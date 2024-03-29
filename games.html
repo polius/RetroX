@@ -1,0 +1,551 @@
+
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
+    <link rel="shortcut icon" href="images/emulator-logo.png" />
+    <title>RetroX Emulator</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#712cf9">
+    <style>
+      .card {
+          box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
+          background-color: rgb(31, 33, 34);
+          border-color: rgba(156, 145, 129, 0.13);
+      }
+      .card .card-header {
+          font-weight: 500;
+      }
+      .card-header:first-child {
+          border-radius: 0.35rem 0.35rem 0 0;
+      }
+      .card-header {
+          padding: 1rem 1.35rem;
+          margin-bottom: 0;
+          background-color: rgba(33, 40, 48, 0.03);
+          border-bottom: 1px solid rgba(141, 131, 117, 0.13);
+      }
+      .form-control {
+          display: block;
+          width: 100%;
+          padding: 0.875rem 1rem;
+          font-size: 0.875rem;
+          font-weight: 400;
+          line-height: 1;
+          color: rgb(177, 169, 156);
+          background-color: rgb(31, 33, 34);
+          background-clip: padding-box;
+          border: 1px solid rgb(72, 77, 80);
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          border-radius: 0.35rem;
+          transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
+      .form-control::placeholder {
+        color: rgb(177, 177, 177);
+      }
+
+      .btn-danger-soft {
+          color: rgb(255, 252, 249);
+          background-color: rgb(63, 31, 36);
+          border-color: rgb(91, 44, 52);
+      }
+
+      .img-enlarge {
+        transition: transform 0.3s ease;
+      }
+      
+      .img-enlarge:hover {
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom d-flex align-items-center">
+          <div class="d-flex flex-fill">
+            <a href="/" class="text-light text-decoration-none d-flex align-items-center">
+              <img src="images/emulator-logo-transparent.png" width="55">
+              <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
+            </a>
+          </div>
+          <a href="games.html" style="text-decoration: none; color: inherit">
+              <span id="logout" style="padding:10px; margin-right:12px" type="button"><b>Games</b></span>
+          </a>
+          <a href="profile.html" style="text-decoration: none; color: inherit">
+              <span id="logout" style="padding:10px; margin-right:12px" type="button">Profile</span>
+          </a>
+          <a href="#" style="text-decoration: none; color: inherit">
+              <span id="logout" style="padding:10px; margin-right:12px" type="button">Logout</span>
+          </a>
+        </header>
+
+        <div class="container-xl px-4 mt-4">
+          <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px">
+            <b>GAMES</b><span style="margin-left: 5px; font-size: 1rem">(10)</span>
+            <button class="btn btn-primary disabled" style="margin-left:auto; padding:8px 22px 8px 22px; margin-top:5px" type="button">Manage</button>
+        </p>
+
+        <div class="container-xl">  
+          <div class="row">
+              <div class="col-lg-12">
+                  <div class="card mb-4">
+                    <div class="card-body">
+                      <p class="px-1 py-2" style="margin:0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="orange" class="bi bi-exclamation-triangle" viewBox="0 0 16 16" style="margin-bottom: 3px; margin-right:5px">
+                          <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+                          <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+                        </svg>
+                        Do NOT make any changes to the files in the <b>RetroX</b> folder on your Google Drive. Doing so could cause problems with your game library.</p>
+                    </div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+
+        <div class="container-xl">
+          <ul class="list-group">
+            <li class="list-group-item d-flex align-items-center" style="padding: 15px; cursor: pointer" data-bs-toggle="modal" data-bs-target="#gameModal">
+              <img src="images/roms/pokemon-red.jpg" class="img-fluid" style="border-radius: 10px; width: min(22vw, 150px);">
+              <p class="px-3 my-0" style="font-size:1.15rem"><b>Pokémon Red</b></p>
+            </li>
+            <li class="list-group-item d-flex align-items-center" style="padding: 15px; cursor: pointer" data-bs-toggle="modal" data-bs-target="#gameModal">
+              <img src="images/roms/pokemon-blue.jpg" class="img-fluid" style="border-radius: 10px; width: min(22vw, 150px);">
+              <p class="px-3 my-0" style="font-size:1.15rem"><b>Pokémon Blue</b></p>
+            </li>
+            <li class="list-group-item d-flex align-items-center" style="padding: 15px; cursor: pointer" data-bs-toggle="modal" data-bs-target="#gameModal">
+              <img src="images/roms/pokemon-silver.jpg" class="img-fluid" style="border-radius: 10px; width: min(22vw, 150px);">
+              <p class="px-3 my-0" style="font-size:1.15rem"><b>Pokémon Silver</b></p>
+            </li>
+            <li class="list-group-item d-flex align-items-center" style="padding: 15px; cursor: pointer" data-bs-toggle="modal" data-bs-target="#gameModal">
+              <img src="images/roms/pokemon-gold.jpg" class="img-fluid" style="border-radius: 10px; width: min(22vw, 150px);">
+              <p class="px-3 my-0" style="font-size:1.15rem"><b>Pokémon Gold</b></p>
+            </li>
+          </ul>
+        </div>
+
+      <!-- Modal -->
+      <div class="modal fade" id="gameModal" tabindex="-1" aria-labelledby="gameModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Game</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="small mb-2" for="currentEmail">Name</label>
+                <input class="form-control" id="currentEmail" type="text" placeholder="Enter ROM Name">
+              </div>
+              <div class="mb-3">
+                <label class="small mb-2" for="currentEmail">Path</label>
+                <input disabled class="form-control" id="currentEmail" type="text" placeholder="ROM Path">
+              </div>
+              <div class="mb-3">
+                <label class="small mb-2" for="currentEmail">Game</label>
+                <input disabled class="form-control mb-3" id="currentEmail" type="text" placeholder="/Downloads/pokemon-red (16MB)">
+                <p>
+                  <button onclick="document.getElementById('romFile').click()" type="button" class="btn btn-outline-secondary" style="width: min(30vw, 200px)">Select ROM</button>
+                </p>
+                <input id='romFile' type='file' hidden/>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
+                  <label class="form-check-label" for="flexCheckDefault">
+                    This game contains multiple disks.
+                  </label>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="small mb-3" for="currentEmail">Image</label>
+                <p>
+                  <img src="images/roms/pokemon-red.jpg" class="img-fluid" style="border-radius: 10px; width: min(30vw, 200px);">
+                </p>
+                <button onclick="document.getElementById('romImage').click()" type="button" class="btn btn-outline-secondary" style="width: min(30vw, 200px)">Select Image</button>
+                <input id='romImage' type='file' hidden/>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">Google Drive API</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Before starting adding new ROMs into your library, please follow the next steps to enable the connectivity between <b>RetroX</b> and your <b>Google Drive</b> account, where ROMs will be stored.</p>
+                    <div class="card mb-4 mt-3">
+                      <div class="card-body">
+                        <p style="margin:0"><b>Important:</b> RetroX will NOT have permission to see your personal files. The following steps will only grant RetroX the ability to manage files created within this app, excluding existing files in your Drive.</p>
+                        <p class="pt-4" style="margin:0">RetroX will create a folder named <b style="color: orange">RetroX</b> in your Google Drive and it will use it to exclusively store all uploaded ROMs and save games.</p>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="py-2">
+        <div class="container-fluid">
+          <p class="fs-5 px-2"><b>Enabled APIs & services</b></p>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 1</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Access to <a href="https://console.cloud.google.com/apis/" target="_blank">https://console.cloud.google.com/apis/</a> and click the button <b style="color: orange">+ ENABLE APIS AND SERVICES</b>.</p>
+                    <img src="images/setup/step1.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 2</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Search the API <b style="color: orange">Google Drive</b> and press enter.</p>
+                    <img src="images/setup/step2.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 3</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Select the <b style="color: orange">Google Drive API</b> on the list.</p>
+                    <img src="images/setup/step3.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 4</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Click the <b style="color: orange">ENABLE</b> button.</p>
+                    <img src="images/setup/step4.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="py-2">
+        <div class="container-fluid">
+          <p class="fs-5 px-2"><b>Oauth consent screens</b></p>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 5</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Go to the <b style="color: orange">OAuth consent screen</b> section, select <b style="color: orange">External</b> and click the CREATE button.</p>
+                    <img src="images/setup/step5.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 6</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Here you will need to enter some values:</p>
+                    <ul>
+                      <li>App name: <b style="color: orange">RetroX</b></li>
+                      <li>User support email: <b style="color: orange">Select your gmail address from the list</b></li>
+                      <li>Authorized domains: Click '+ ADD DOMAIN' and add <b style="color: orange">retrox.app</b></li>
+                      <li>Developer contact information: <b style="color: orange">Type your gmail address</b></li>
+                    </ul>
+                    <p class="pt-1 px-1">Finally click the button <b style="color: orange">SAVE AND CONTINUE</b>.</p>
+                    <img src="images/setup/step6.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 7</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Click the button <b style="color: orange">ADD OR REMOVE SCOPES</b>.</p>
+                    <img src="images/setup/step7.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 8</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Select the Scope <b style="color: orange">.../auth/drive.file</b> and then click the <b style="color: orange">UPDATE</b> button. Finally click <b style="color: orange">SAVE AND CONTINUE</b>.</p>
+                    
+                    <div class="card mb-4 mt-4">
+                      <div class="card-body">
+                        <p style="margin:0">This permission will enable RetroX to create a folder named <b style="color: orange">RetroX</b> in your Google Drive, where it will store and retrieve all your ROMs and save games.</p>
+                        <p class="pt-3" style="margin:0"><b>Important:</b> RetroX will NOT have permission to see your personal files. The scope <b>.../auth/drive.file</b> only permits RetroX to manage files created within this app, not existing files in your Drive.</p>
+                      </div>
+                    </div>
+                    <img src="images/setup/step8.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 9</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Click the <b style="color: orange">SAVE AND CONTINUE</b> button.</p>
+                    <img src="images/setup/step9.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 10</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Click the <b style="color: orange">PUBLISH APP</b> button.</p>
+                    <img src="images/setup/step10.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 11</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Click <b style="color: orange">CONFIRM</b>.</p>
+                    <img src="images/setup/step11.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 12</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">At this point you should see <b style="color: orange">Publishing Status: In production</b>.</p>
+                    <img src="images/setup/step12.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="py-2">
+        <div class="container-fluid">
+          <p class="fs-5 px-2"><b>Credentials</b></p>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 13</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Go to the <b style="color: orange">Credentials</b> section, click <b style="color: orange">+ CREATE CREDENTIALS</b> and select <b style="color: orange">OAuth client ID</b>.</p>
+                    <img src="images/setup/step13.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 14</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Here you will need to enter some values:</p>
+                    <ul>
+                      <li>Application type: <b style="color: orange">Web application</b></li>
+                      <li>Name: <b style="color: orange">RetroX</b></li>
+                      <li>Authorized Javascript origins: <b style="color: orange">https://www.retrox.app</b></li>
+                      <li>Authorized redirect URIs: <b style="color: orange">https://www.retrox.app/callback</b></li>
+                    </ul>
+                    <p class="pt-1 px-1">Finally click the button <b style="color: orange">CREATE</b>.</p>
+                    <img src="images/setup/step14.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 15</div>
+                  <div class="card-body">
+                    <p class="pt-2 px-1">Done! Now copy the values from <b style="color: orange">Client ID</b> and <b style="color: orange">Client secret</b>.</p>
+                    <img src="images/setup/step15.png" class="img-fluid">
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="py-2">
+        <div class="container-fluid">
+          <p class="fs-5 px-2"><b>Almost done! 🚀</b></p>
+        </div>
+      </div>
+
+      <div class="container-xl">  
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card mb-4">
+                  <div class="card-header">STEP 16</div>
+                  <div class="card-body">
+                    <p class="py-2 px-1">Enter the values copied from the previous step and click the Save button.</p>
+                      <form>
+                          <div class="mb-3">
+                              <label class="small mb-2" for="currentEmail">Client ID</label>
+                              <input class="form-control" id="currentEmail" type="text" placeholder="Enter Client ID">
+                          </div>
+                          <div class="mb-3">
+                              <label class="small mb-2" for="newEmail">Client Secret</label>
+                              <input class="form-control" id="newEmail" type="text" placeholder="Enter Client Secret">
+                          </div>
+    
+                          <button class="btn btn-primary" style="padding:8px 25px 8px 25px; margin-top:5px; margin-bottom:5px" type="button">Save</button>
+                      </form>
+                  </div>
+              </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container-xl mb-3">  
+      <div class="row">
+          <div class="col-lg-12">
+              <div class="card">
+                <div class="card-body">
+                  <input class="form-control" id="newEmail" type="text" placeholder="Search Game">
+                </div>
+            </div>
+          </div>
+      </div>
+    </div>
+
+
+        <section id="gallery" class="gallery pt-3">
+            <div class="container-fluid">
+              <div class="row gy-4 justify-content-center align-items-center">
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/pokemon-red.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/pokemon-blue.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/pokemon-gold.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/pokemon-silver.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/zelda-the-minish-cap.png" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/final-fantasy-tactics-advance.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/final-fantasy-ix.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100 d-flex justify-content-center">
+                    <img src="images/roms/super-mario-bros.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
+          RetroX Emulator &copy; 2024
+        </footer>
+      </div>
+    </main>
+    <script src="js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

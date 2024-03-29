@@ -1,0 +1,140 @@
+
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
+    <link rel="shortcut icon" href="images/emulator-logo.png" />
+    <title>RetroX Emulator</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#712cf9">
+    <style>
+      .card {
+          box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
+          background-color: rgb(31, 33, 34);
+          border-color: rgba(156, 145, 129, 0.13);
+      }
+      .card .card-header {
+          font-weight: 500;
+      }
+      .card-header:first-child {
+          border-radius: 0.35rem 0.35rem 0 0;
+      }
+      .card-header {
+          padding: 1rem 1.35rem;
+          margin-bottom: 0;
+          background-color: rgba(33, 40, 48, 0.03);
+          border-bottom: 1px solid rgba(141, 131, 117, 0.13);
+      }
+      .form-control {
+          display: block;
+          width: 100%;
+          padding: 0.875rem 1.125rem;
+          font-size: 0.875rem;
+          font-weight: 400;
+          line-height: 1;
+          color: rgb(177, 169, 156);
+          background-color: rgb(31, 33, 34);
+          background-clip: padding-box;
+          border: 1px solid rgb(72, 77, 80);
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          border-radius: 0.35rem;
+          transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
+      .form-control::placeholder {
+        color: rgb(177, 177, 177);
+      }
+
+      .btn-danger-soft {
+          color: rgb(255, 252, 249);
+          background-color: rgb(63, 31, 36);
+          border-color: rgb(91, 44, 52);
+      }
+
+      .img-enlarge {
+        transition: transform 0.3s ease;
+      }
+      
+      .img-enlarge:hover {
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom d-flex align-items-center">
+          <a href="/" class="text-light text-decoration-none d-flex align-items-center flex-fill">
+            <img src="images/emulator-logo-transparent.png" width="55">
+            <span class="fs-4" style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size:30px!important;">RetroX Emulator</span>
+          </a>
+          <button id="logout" class="btn" style="padding:10px; margin-right:15px" type="button">Register</button>
+          <button id="login" class="btn btn-primary" style="padding-bottom:10px; padding-top:6px; padding-left: 15px; padding-right: 15px;" type="button">Login</button>
+        </header>
+
+        <div class="container-xl px-4 mt-4">
+          <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px"><b>GAMES</b>
+            <button class="btn btn-primary" style="margin-left:auto; padding:8px 22px 8px 22px; margin-top:5px" type="button">Manage</button>
+        </p>
+
+        <section id="gallery" class="gallery pt-3">
+            <div class="container-fluid">
+              <div class="row gy-4 justify-content-center align-items-center">
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/pokemon-red.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/pokemon-blue.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/pokemon-gold.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/pokemon-silver.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/zelda-the-minish-cap.png" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/final-fantasy-tactics-advance.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/final-fantasy-ix.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-5">
+                  <div class="gallery-item h-100">
+                    <img src="images/roms/super-mario-bros.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px; max-width: min(320px, 100%)" alt="">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
+          RetroX Emulator &copy; 2024
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>

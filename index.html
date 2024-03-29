@@ -1,0 +1,137 @@
+
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="apple-touch-icon" sizes="180x180" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
+    <link rel="shortcut icon" href="images/emulator-logo.png" />
+    <meta name="theme-color" content="#212529" />
+    <title>RetroX Emulator</title>
+    <meta name="robots" content="index,follow" />
+    <meta name="description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
+    <meta property="og:title" content="RetroX Emulator" />
+    <meta property="og:description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
+    <meta property="og:image" content="images/emulator-logo.png" />
+    <meta property="og:image:alt" content="RetroX Emulator" />
+    <meta property="og:image:width" content="640" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:site_name" content="RetroX Emulator" />
+    <meta property="author" content="Pol Alzina" />
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      .img-enlarge {
+        transition: transform 0.3s ease;
+      }
+      .img-enlarge:hover {
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom d-flex align-items-center">
+          <a href="/" class="text-light text-decoration-none d-flex align-items-center flex-fill">
+            <img src="images/emulator-logo-transparent.png" width="55">
+            <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
+          </a>
+          <a href="register.html" style="text-decoration: none; color: inherit;">
+            <span id="register" style="padding:10px; margin-right:15px" type="button">Register</span>
+          </a>
+          <a href="login.html">
+            <button id="login" class="btn btn-primary" style="padding-bottom:10px; padding-top:6px; padding-left: 15px; padding-right: 15px;" type="button">Login</button>
+          </a>
+        </header>
+
+        <div class="card mb-4">
+          <div class="card-body">
+            <p class="px-1 py-2" style="margin:0; text-align: center; font-size: 1.1rem">
+              Welcome to your online ROM gaming platform, where classic video game nostalgia awaits right in your browser 🎮🕹️🌐</p>
+          </div>
+        </div>
+
+        <img src="images/emu.png" class="img-fluid" style="border-radius:10px" alt="">
+
+        <div class="pb-4" style="margin-top:50px">
+          <div class="container-fluid">
+            <p class="fs-3 pt-3"><b>Unlock Your ROM Library's Potential! 🎮</b></p>
+            <p class="pt-2" style="font-size: 1.15rem">Sign up, create your ROM library, and enjoy gaming on the move, anytime, anywhere!</p>
+          </div>
+        </div>
+
+        <section id="gallery" class="gallery">
+          <div class="container-fluid">
+            <div class="row gy-4 justify-content-center align-items-center">
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/pokemon-red.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/pokemon-blue.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/pokemon-gold.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/pokemon-silver.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/zelda-the-minish-cap.png" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/final-fantasy-tactics-advance.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/final-fantasy-ix.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+              <div class="col-xl-3 col-lg-4 col-md-5">
+                <div class="gallery-item h-100">
+                  <img src="images/roms/super-mario-bros.jpg" class="img-fluid img-enlarge" style="border-radius:10px; max-width: min(320px, 100%)" alt="">
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="pb-4 pt-4">
+          <div class="container-fluid">
+            <p class="fs-3 pt-3"><b>Save Anywhere, Play Everywhere! ☁️🎮</b></p>
+            <p class="pt-2" style="font-size: 1.15rem">RetroX lets you save your progress in the cloud, so you can start gaming on one device and seamlessly continue on another.</p>
+          </div>
+        </div>
+
+        <img src="images/save.png" class="img-fluid pb-4" style="border-radius:10px" alt="">
+        <img src="images/load.png" class="img-fluid" style="border-radius:10px" alt="">
+
+        <div class="pb-4 pt-4">
+          <div class="container-fluid">
+            <p class="fs-3 pt-3"><b>Seamless Google Drive Integration</b></p>
+            <p class="pt-2" style="font-size: 1.15rem"> Take full control of your ROMs. Build your gaming library effortlessly on Google Drive and dive into playing your favorite classics instantly.</p>
+          </div>
+        </div>
+
+        <img src="images/gdrive.png" class="img-fluid pb-4" style="border-radius:10px" alt="">
+
+        <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
+          The images displayed on this website are not proprietary and are used for illustrative purposes only. All rights belong to their respective owners.
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>

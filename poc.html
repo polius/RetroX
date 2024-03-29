@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-night">
+  <head>
+    <meta charSet="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="apple-touch-icon" sizes="180x180" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="images/emulator-logo.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
+    <link rel="shortcut icon" href="images/emulator-logo.png" />
+    <meta name="theme-color" content="#151515" />
+    <title>RetroX Emulator</title>
+    <meta name="robots" content="index,follow" />
+    <meta name="description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NEXS, Nintendo 64 and Play Station." />
+    <meta property="og:title" content="RetroX Emulator" />
+    <meta property="og:description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
+    <meta property="og:image" content="images/emulator-logo.png" />
+    <meta property="og:image:alt" content="RetroX Emulator" />
+    <meta property="og:image:width" content="640" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:site_name" content="RetroX Emulator" />
+    <meta property="author" content="Pol Alzina" />
+    <link rel="preload" href="css/tailwindcss.css" as="style" />
+    <link rel="stylesheet" href="css/tailwindcss.css" data-n-g="" />
+    <link rel="stylesheet" href="css/style.css" data-n-g="" />
+    <noscript data-n-css=""></noscript>
+  </head>
+  <body class="overflow-x-hidden" style="background-color: rgb(37, 40, 41);">
+    <div id="landing" class="relative w-screen mx-auto font-sans text-base max-w-1440 text-dawn md:flex-row">
+      <div class="static p-24 sm:p-32 md:max-w-536 lg:max-w-736 lg:pr-88 md:pl-0" style="margin-left:auto; margin-right:auto">
+        <div style="text-align: end; margin-bottom:30px">
+          <span id="message" style="margin-right: 10px; cursor:default; color:#ccc"></span>
+          <span id="logout" style="cursor: pointer; padding: 10px; display:none">Logout</span>
+          <span id="login" style="cursor: pointer; padding:10px">Login</span>
+        </div>
+        <div style="text-align: center; font-size:36px; color: #ccc; margin-bottom:25px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;">RetroX Emulator</div>
+        <div id="box" style="font-family:monospace; font-weight:bold; font-size:18px; font-family: 'Courier New', Courier, monospace;">
+          <img src="images/emulator-logo-transparent.png" width="120" style="margin-left: auto; margin-right: auto; margin-bottom:30px">
+          <input type=file id=input>
+          Drag ROM file or click here
+        </div>
+        <div style="padding-top:50px">
+          <div class="absolute sticky top-0 z-40 pt-24 tracking-widest md:sr-only" style="background: #202022; margin-left:-32px; margin-right:-32px; height:64px">
+            <h2 class="text-sm font-bold uppercase text-zenith" style="margin-left:40px; height:28px; cursor: default; font-size: 12px">Games</h2>
+            <div class="z-50 w-full gradient-y-night-transparent shift-0 transition" style="margin-top:12px; height:20px"></div>
+          </div>
+          <h2 class="text-base font-bold uppercase text-slate-200 hidden md:block" style="margin-bottom:30px; color:white; cursor: default; font-size: 14px">Games</h2>
+          <div id="games" class="flex flex-wrap pt-32 pb-10 -my-4 md:-m-4 group md:py-0" style="justify-content:center">
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="js/sweetalert2.all.min.js"></script>
+    <script type="module" src="js/script.js"></script>
+  </body>
+</html>
