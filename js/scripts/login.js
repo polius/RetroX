@@ -3,6 +3,14 @@ function onLoad() {
   if (localStorage.getItem('token')) {
     window.location.href = `${window.location.origin}/games.html`
   }
+
+  // Check remember me option
+  const username = document.getElementById("username");
+  const remember = document.getElementById("remember");
+  if (localStorage.getItem('remember')) {
+    username.value = localStorage.getItem('username')
+    remember.checked = true
+  }
 }
 
 function turnstileCallback() {
@@ -11,8 +19,8 @@ function turnstileCallback() {
 }
 
 function showAlert(type, message) {
-  const registerAlert = document.getElementById('registerAlert')
-  registerAlert.innerHTML = `
+  const loginAlert = document.getElementById('loginAlert')
+  loginAlert.innerHTML = `
     <div class="alert alert-${type} alert-dismissible" role="alert">
       <div style="text-align:left">
         ${type == 'success'
@@ -32,44 +40,21 @@ function showAlert(type, message) {
   `
 }
 
-async function register(event) {
+async function login(event) {
   // Prevent page to refresh
   event.preventDefault();
 
   // Get elements
-  const email = document.getElementById("email");
   const username = document.getElementById("username");
   const password = document.getElementById("password");
-  const repeatPassword = document.getElementById("repeatPassword");
-  const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-  const registerModalError = document.getElementById("registerModalError");
+  const remember = document.getElementById("remember");
   const cfToken = turnstile.getResponse();
   const submitButton = document.getElementById("submit");
   const submitLoading = document.getElementById("loading");
-  const registerForm = document.getElementById("registerForm");
-  const resendDiv = document.getElementById("resendDiv");
 
   // Check if all values are filled
-  if (email.value.length == 0 || username.value.length == 0 || password.value.length == 0 || repeatPassword.value.length == 0) {
+  if (username.value.length == 0 || password.value.length == 0) {
     showAlert("warning", "Please fill out all fields.")
-    // registerModalError.innerText = "Please fill out all fields."
-    // registerModal.show();
-    return
-  }
-
-  // Check if email is valid
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email.value)) {
-    showAlert("warning", "Please enter a valid email.")
-    return
-  }
-
-  // Check if the passwords match
-  if (password.value != repeatPassword.value) {
-    showAlert("warning", "The two passwords do not match.")
-    password.value = ''
-    repeatPassword.value = ''
-    password.focus()
     return
   }
 
@@ -77,14 +62,14 @@ async function register(event) {
   submitButton.setAttribute("disabled", "");
   submitLoading.style.display = 'inline-flex';
 
-  // Perform the Register request
+  // Perform the Login request
   try {
-    const response = await fetch("https://api.retrox.app/register/", {
+    const response = await fetch("https://api.retrox.app/login/", {
       method: "POST",
       body: JSON.stringify({
-        email: email.value,
         username: username.value,
         password: password.value,
+        remember: remember.checked,
         token: cfToken,
       })
     })
@@ -95,15 +80,10 @@ async function register(event) {
       showAlert("danger", json['message'])
     }
     else {
-      showAlert("success", json['message'])
-      registerForm.style.display = 'none'
-      resendDiv.style.display = 'flex'
-      // turnstile.execute('#turnstileConfirm')
-      // turnstile.execute('#turnstileConfirm', {
-      //   callback: function (token) {
-      //     console.log(`Challenge Success ${token}`);
-      //   }
-      // })
+      localStorage.setItem('token', json['token'])
+      localStorage.setItem('username', json['username'])
+      localStorage.setItem('remember', json['remember'])
+      window.location.href = `${window.location.origin}/games.html`
     }
   }
   catch (error) {
@@ -116,11 +96,3 @@ async function register(event) {
 }
 
 onLoad()
-
-// function resend() {
-//   turnstile.execute('#turnstileConfirm', {
-//     callback: function (token) {
-//       console.log(`Challenge Success ${token}`);
-//     }
-//   })
-// }

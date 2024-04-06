@@ -1,3 +1,8 @@
+function turnstileCallback() {
+  const submitButton = document.getElementById("submit");
+  submitButton.removeAttribute("disabled");
+}
+
 function showAlert(type, message) {
   const verifyAlert = document.getElementById('verifyAlert')
   verifyAlert.innerHTML = `
@@ -22,30 +27,38 @@ function showAlert(type, message) {
 async function verify() {
   // Get elements
   const startButton = document.getElementById('startButton');
+  const cfToken = turnstile.getResponse();
+  const submitButton = document.getElementById("submit");
 
   // Get URL Parameters
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
   
   // Check 'verify_id' parameter
-  if (urlParams.get('verify_id').length == 0) {
+  if (urlParams.get('username') == null || urlParams.get('code') == null) {
     showAlert("danger", "This URL is not valid.")
     return
   }
 
   // Perform the verify request
   try {
-    const response = await fetch("https://api.retrox.app/verify", {
+    const response = await fetch("https://api.retrox.app/verify/", {
       method: "POST",
       body: JSON.stringify({
-        verify_id: urlParams.ger('verify_id')
+        username: urlParams.get('username'),
+        code: urlParams.get('code'),
+        token: cfToken,
       })
     })
 
     const json = await response.json()
-    if (!response.ok) showAlert("danger", json['message'])
+    if (!response.ok) {
+      turnstile.reset()
+      showAlert("danger", json['message'])
+    }
     else {
       showAlert("success", json['message'])
+      submitButton.style.display = 'none'
       startButton.style.display = 'block'
     }
   }
@@ -53,5 +66,3 @@ async function verify() {
     showAlert("danger", "An error occurred. Please try again.")
   }
 }
-
-showAlert("success", "Account validated. Welcome!")
