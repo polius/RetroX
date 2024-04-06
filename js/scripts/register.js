@@ -82,9 +82,9 @@ async function register(event) {
     const response = await fetch("https://api.retrox.app/register/", {
       method: "POST",
       body: JSON.stringify({
-        email: email.value,
-        username: username.value,
-        password: password.value,
+        email: email.value.trim(),
+        username: username.value.trim(),
+        password: password.value.trim(),
         token: cfToken,
       })
     })
@@ -98,12 +98,6 @@ async function register(event) {
       showAlert("success", json['message'])
       registerForm.style.display = 'none'
       resendDiv.style.display = 'flex'
-      // turnstile.execute('#turnstileConfirm')
-      // turnstile.execute('#turnstileConfirm', {
-      //   callback: function (token) {
-      //     console.log(`Challenge Success ${token}`);
-      //   }
-      // })
     }
   }
   catch (error) {
@@ -116,11 +110,3 @@ async function register(event) {
 }
 
 onLoad()
-
-// function resend() {
-//   turnstile.execute('#turnstileConfirm', {
-//     callback: function (token) {
-//       console.log(`Challenge Success ${token}`);
-//     }
-//   })
-// }

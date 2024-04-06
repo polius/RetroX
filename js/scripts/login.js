@@ -11,6 +11,11 @@ function onLoad() {
     username.value = localStorage.getItem('username')
     remember.checked = true
   }
+
+  // Fill welcome prompt
+  const loginMessage = document.getElementById('loginMessage');
+  if (localStorage.getItem('username') == null) loginMessage.innerHTML = 'Welcome back!'
+  else loginMessage.innerHTML = `Welcome back, ${localStorage.getItem('username')}`
 }
 
 function turnstileCallback() {
@@ -67,8 +72,8 @@ async function login(event) {
     const response = await fetch("https://api.retrox.app/login/", {
       method: "POST",
       body: JSON.stringify({
-        username: username.value,
-        password: password.value,
+        username: username.value.trim(),
+        password: password.value.trim(),
         remember: remember.checked,
         token: cfToken,
       })

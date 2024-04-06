@@ -4,7 +4,7 @@ import boto3
 import logging
 import requests
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def lambda_handler(event, context):
             },
             ExpressionAttributeValues={
                 ':last_login': {
-                    'N': str(int(datetime.utcnow().timestamp())),
+                    'N': str(int(datetime.now(tz=timezone.utc).timestamp())),
                 },
             },
             UpdateExpression='SET #last_login = :last_login',

@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
     <link rel="shortcut icon" href="images/emulator-logo.png" />
     <meta name="theme-color" content="#212529" />
-    <title>Forgot | RetroX Emulator</title>
+    <title>Recover | RetroX Emulator</title>
     <meta name="robots" content="index,follow" />
     <meta name="description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
     <meta property="og:title" content="RetroX Emulator" />
@@ -39,12 +39,12 @@
         .form-signin .form-floating:focus-within {
             z-index: 2;
         }
-        .form-signin input[type="text"] {
+        .form-signin input[type="email"] {
             margin-bottom: -1px;
             border-bottom-right-radius: 0;
             border-bottom-left-radius: 0;
         }
-        .form-signin input[type="password"] {
+        .form-signin input[type="text"] {
             margin-bottom: 10px;
             border-top-left-radius: 0;
             border-top-right-radius: 0;
@@ -54,28 +54,47 @@
 
 <body class="text-center">
   <main class="form-signin w-100 m-auto">
-    <form>
-      <img class="mb-4" src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
-      <h1 class="h1 fw-normal mb-3"><b>RetroX</b> Emulator</h1>
-      <p class="mb-5 fw-normal" style="font-size: 17px">Let's recover your password!</p>
+    <a href="/" style="text-decoration: none;">
+      <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
+      <h1 class="h1 fw-normal mb-3 pt-4"><b>RetroX</b> Emulator</h1>
+    </a>
+    <p class="mb-5 fw-normal" style="font-size: 17px; cursor:default;">Let's recover your account!</p>
 
-      <div id="forgotAlert"></div>
-      <div class="form-floating">
-        <input id="username" autofocus type="text" class="form-control" id="floatingInput" placeholder="Username">
-        <label for="floatingInput">Username</label>
+    <div id="recoverAlert"></div>
+
+    <div id="recoverSuccess" class="card mb-3" style="display: none">
+      <div class="card-body">
+        <p style="font-size: 1.1rem;">This is your new password</p>
+        <p id="recoverSuccessPassword" class="mt-3" style="margin:0; font-family: monospace; font-size: 1.2rem; font-weight: 600; letter-spacing: 1px;"></p>
+        <p class="mt-3" style="margin:0;">You can change it in the <b>Profile</b> section.</p>
       </div>
+    </div>
+
+    <form id="recoverRequest" onsubmit="recoverRequest(event)" style="display: none;">
       <div class="form-floating">
-        <input id="email" type="email" class="form-control" id="floatingEmail" placeholder="Email">
+        <input id="email" autofocus type="email" class="form-control" id="floatingEmail" placeholder="Email">
         <label for="floatingEmail">Email</label>
       </div>
-      
-      <div class="cf-turnstile" style="margin-top:20px" data-sitekey="0x4AAAAAAAV5uNntU0ymmp6t" data-callback="turnstileCallback"></div>
-
-      <button id="submit" type="submit" disabled onclick="recover(event)" class="w-100 btn btn-lg btn-primary mt-3">
-        <span id="loading" class="spinner-border spinner-border-sm"  style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
-        Recover password
+      <div class="form-floating">
+        <input id="username" type="text" class="form-control" id="floatingInput" placeholder="Username">
+        <label for="floatingInput">Username</label>
+      </div>
+      <div id="turnstileRequest"></div>
+      <button id="submit" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-3">
+        <span id="loading" class="spinner-border spinner-border-sm" style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
+        Recover account
       </button>
     </form>
+
+    <form id="recoverSubmit" onsubmit="recoverSubmit(event)" style="display: none;">
+      <div id="turnstileSubmit"></div>
+      <button id="submit2" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-3">
+        <span id="loading2" class="spinner-border spinner-border-sm" style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
+        Recover account
+      </button>
+    </form>
+
+
     <footer class="pt-3 text-muted border-top d-flex justify-content-center" style="margin-top: 50px">
       RetroX Emulator &copy; 2024
     </footer>
@@ -84,5 +103,5 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   <script src="js/bootstrap.bundle.min.js"></script>
   <script src="js/scripts/common.js"></script>
-  <script src="js/scripts/forgot.js"></script>
+  <script src="js/scripts/recover.js"></script>
 </html>

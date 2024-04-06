@@ -1,6 +1,7 @@
 import os
 import json
 import boto3
+import requests
 from datetime import datetime, timedelta
 
 
@@ -12,7 +13,7 @@ def lambda_handler(event, context):
     if not {'username','code','token'}.issubset(body.keys()):
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Invalid parameters."})
+            'body': json.dumps({"message": "Invalid URL."})
         }
 
     # Get variables
@@ -35,12 +36,11 @@ def lambda_handler(event, context):
             'body': json.dumps({"message": "The Cloudflare token is not valid. Please try again."})
         }
 
-    # Validate account
-    try:
-        # Initialize DynamoDB client
-        dynamodb = boto3.client('dynamodb')
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
 
-        # Create new account in DynamoDB
+    # Create new account in DynamoDB
+    try:
         response = dynamodb.update_item(
             TableName='retrox-users',
             Key={'username': {'S': username}},

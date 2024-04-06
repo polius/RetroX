@@ -1,3 +1,10 @@
+function onLoad() {
+  // Check if user is already logged in
+  if (localStorage.getItem('token')) {
+    window.location.href = `${window.location.origin}/games.html`
+  }
+}
+
 function turnstileCallback() {
   const submitButton = document.getElementById("submit");
   submitButton.removeAttribute("disabled");
@@ -28,17 +35,27 @@ async function verify() {
   // Get elements
   const startButton = document.getElementById('startButton');
   const cfToken = turnstile.getResponse();
+  const turnstileDiv = document.getElementsByClassName("cf-turnstile")[0];
   const submitButton = document.getElementById("submit");
+  const submitLoading = document.getElementById("loading");
+  const verifyAlert = document.getElementById('verifyAlert')
 
   // Get URL Parameters
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
+
+  // Clean alert
+  verifyAlert.innerHTML = ''
   
-  // Check 'verify_id' parameter
+  // Check parameters
   if (urlParams.get('username') == null || urlParams.get('code') == null) {
     showAlert("danger", "This URL is not valid.")
     return
   }
+
+  // Disable the submit button
+  submitButton.setAttribute("disabled", "");
+  submitLoading.style.display = 'inline-flex';
 
   // Perform the verify request
   try {
@@ -55,9 +72,12 @@ async function verify() {
     if (!response.ok) {
       turnstile.reset()
       showAlert("danger", json['message'])
+      submitButton.removeAttribute("disabled");
+      submitLoading.style.display = 'none';
     }
     else {
       showAlert("success", json['message'])
+      turnstileDiv.style.display = 'none'
       submitButton.style.display = 'none'
       startButton.style.display = 'block'
     }
@@ -66,3 +86,5 @@ async function verify() {
     showAlert("danger", "An error occurred. Please try again.")
   }
 }
+
+onLoad()
