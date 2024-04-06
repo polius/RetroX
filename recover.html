@@ -62,12 +62,19 @@
 
     <div id="recoverAlert"></div>
 
-    <div id="recoverSuccess" class="card mb-3" style="display: none">
-      <div class="card-body">
-        <p style="font-size: 1.1rem;">This is your new password</p>
-        <p id="recoverSuccessPassword" class="mt-3" style="margin:0; font-family: monospace; font-size: 1.2rem; font-weight: 600; letter-spacing: 1px;"></p>
-        <p class="mt-3" style="margin:0;">You can change it in the <b>Profile</b> section.</p>
+    <div id="recoverSuccess" class="mb-3" style="display: none">
+      <div class="card">
+        <div class="card-body">
+          <p style="font-size: 1.1rem;">This is your new password</p>
+          <p id="recoverSuccessPassword" class="mt-3" style="margin:0; font-family: monospace; font-size: 1.2rem; font-weight: 600; letter-spacing: 1px;"></p>
+          <p class="mt-3" style="margin:0;">You can change it in the <b>Profile</b> section.</p>
+        </div>
       </div>
+      <a href="login.html">
+        <button class="w-100 btn btn-lg btn-primary mt-4">
+          Login
+        </button>
+      </a>
     </div>
 
     <form id="recoverRequest" onsubmit="recoverRequest(event)" style="display: none;">
@@ -79,7 +86,7 @@
         <input id="username" type="text" class="form-control" id="floatingInput" placeholder="Username">
         <label for="floatingInput">Username</label>
       </div>
-      <div id="turnstileRequest"></div>
+      <div id="turnstileRequest" class="mt-4"></div>
       <button id="submit" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-3">
         <span id="loading" class="spinner-border spinner-border-sm" style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
         Recover account

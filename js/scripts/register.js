@@ -41,8 +41,6 @@ async function register(event) {
   const username = document.getElementById("username");
   const password = document.getElementById("password");
   const repeatPassword = document.getElementById("repeatPassword");
-  const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-  const registerModalError = document.getElementById("registerModalError");
   const cfToken = turnstile.getResponse();
   const submitButton = document.getElementById("submit");
   const submitLoading = document.getElementById("loading");
@@ -52,8 +50,6 @@ async function register(event) {
   // Check if all values are filled
   if (email.value.length == 0 || username.value.length == 0 || password.value.length == 0 || repeatPassword.value.length == 0) {
     showAlert("warning", "Please fill out all fields.")
-    // registerModalError.innerText = "Please fill out all fields."
-    // registerModal.show();
     return
   }
 

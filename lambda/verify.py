@@ -59,7 +59,7 @@ def lambda_handler(event, context):
         print(e)
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Invalid code."})
+            'body': json.dumps({"message": "Invalid URL."})
         }
 
     return {

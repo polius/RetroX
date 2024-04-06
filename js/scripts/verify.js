@@ -31,7 +31,10 @@ function showAlert(type, message) {
   `
 }
 
-async function verify() {
+async function verify(event) {
+  // Prevent page to refresh
+  event.preventDefault();
+
   // Get elements
   const startButton = document.getElementById('startButton');
   const cfToken = turnstile.getResponse();

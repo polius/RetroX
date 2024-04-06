@@ -46,15 +46,15 @@ def lambda_handler(event, context):
         }
 
     # Get DynamoDB user
-    try:
-        response = dynamodb.get_item(
-            TableName='retrox-users',
-            Key={'username': {'S': username}},
-            ProjectionExpression='password,verify_code',
-        )
-        user = response.get('Item')
+    response = dynamodb.get_item(
+        TableName='retrox-users',
+        Key={'username': {'S': username}},
+        ProjectionExpression='password,verify_code',
+    )
+    user = response.get('Item')
 
-    except Exception:
+    # Check if user exists
+    if not user:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid username or password."})
@@ -64,7 +64,7 @@ def lambda_handler(event, context):
     if user.get('verify_code'):
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Account not yet verified."})
+            'body': json.dumps({"message": "Account not verified. Check your email to complete the verification process."})
         }
 
     # Decrypt password

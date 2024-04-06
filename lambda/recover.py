@@ -25,23 +25,15 @@ def request(body):
     dynamodb = boto3.client('dynamodb')
 
     # Get DynamoDB user
-    try:
-        response = dynamodb.get_item(
-            TableName='retrox-users',
-            Key={'username': {'S': username}},
-            ProjectionExpression='email, recover_code_time',
-        )
-        user = response.get('Item')
-
-    except Exception as e:
-        logger.error(str(e))
-        return {
-            'statusCode': 400,
-            'body': json.dumps({"message": "This account does not exist."})
-        }
+    response = dynamodb.get_item(
+        TableName='retrox-users',
+        Key={'username': {'S': username}},
+        ProjectionExpression='email, recover_code_time',
+    )
+    user = response.get('Item')
 
     # Check if user is not yet verified
-    if user['email']['S'] != email:
+    if not user or user['email']['S'] != email:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "This account does not exist."})
@@ -145,23 +137,15 @@ def submit(body):
     dynamodb = boto3.client('dynamodb')
 
     # Check recover_code validity
-    try:
-        response = dynamodb.get_item(
-            TableName='retrox-users',
-            Key={'username': {'S': username}},
-            ProjectionExpression='recover_code, recover_code_time',
-        )
-        user = response.get('Item')
+    response = dynamodb.get_item(
+        TableName='retrox-users',
+        Key={'username': {'S': username}},
+        ProjectionExpression='recover_code, recover_code_time',
+    )
+    user = response.get('Item')
 
-    except Exception as e:
-        logger.error(str(e))
-        return {
-            'statusCode': 400,
-            'body': json.dumps({"message": "This account does not exist."})
-        }
-
-    # Check code validity
-    if 'recover_code' not in user or user['recover_code']['S'] != code:
+    # Check request validity
+    if not user or 'recover_code' not in user or user['recover_code']['S'] != code:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid URL."})
