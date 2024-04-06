@@ -1,76 +1,37 @@
 import os
 import re
+import jwt
 import json
-import requests
 import boto3
 import secrets
 import logging
 from datetime import datetime, timedelta, timezone
-from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 
-def lambda_handler(event, context):
+def change_email(event):
     # Initialize DynamoDB client
     dynamodb = boto3.client('dynamodb')
 
     # Check required parameters
     body = json.loads(event['body'])
 
-    if not {'username','password','email','token'}.issubset(body.keys()):
+    if 'email' not in body:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid parameters."})
         }
 
     # Get variables
-    username = body['username']
-    password = body['password']
     email = body['email']
-    token = body['token']
 
     # Check email format
-    if not re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email):
+    email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
+    if not re.fullmatch(email_regex, email):
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "This email is not valid."})
+            'body': json.dumps({"message": "The new email is not a valid email."})
         }
-
-    # Check username format
-    if not re.match(r'^[0-9a-zA-Z\-_\.]+$', username):
-        return {
-            'statusCode': 400,
-            'body': json.dumps({"message": "The username must contain the following characters: 0-9, a-z, A-Z, Hyphen (-), Underscore (_), Period (.)"})
-        }
-
-    # Check password requirements
-    if len(password) < 8:
-        return {
-            'statusCode': 400,
-            'body': json.dumps({"message": "The password must contain at least 8 characters."})
-        }
-
-    # Check Cloudflare Turnstile token validity
-    url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
-    data = {
-        "secret": os.environ['TURNSTILE_SECRET'],
-        "response": token,
-    }
-    response = requests.post(url, data=data)
-    response = response.json()
-
-    if not response['success']:
-        return {
-            'statusCode': 400,
-            'body': json.dumps({"message": "The Cloudflare token is not valid. Please try again."})
-        }
-
-    # Encrypt password
-    f = Fernet(os.environ['SECRET_KEY'].encode())
-    password_encrypted = f.encrypt(password.encode()).decode()
-
-    # Generate verify code
-    verify_code = secrets.token_urlsafe(32)
 
     # Check if the email already exists
     response = dynamodb.query(
@@ -87,30 +48,40 @@ def lambda_handler(event, context):
             'body': json.dumps({"message": "This email already exists."})
         }
 
-    # Create user in DynamoDB
+    # Generate verify code
+    verify_code = secrets.token_urlsafe(32)
+
+    print(response)
+
     try:
-        dynamodb.put_item(
+        dynamodb.update_item(
             TableName='retrox-users',
-            Item={
-                "username": {'S': username},
-                "password": {'S': password_encrypted},
-                "email": {'S': email},
-                "created": {'N': str(int(datetime.now(tz=timezone.utc).timestamp()))},
-                "verify_code": {'S': verify_code},
-                "ttl": {'N': str(int((datetime.now(tz=timezone.utc) + timedelta(days=1)).timestamp()))},
+            Key={'username': {'S': username}},
+            ExpressionAttributeNames={
+                '#verify_code': 'verify_code',
+                '#verify_code_ttl': 'verify_code_ttl',
             },
-            ConditionExpression='attribute_not_exists(username)',
+            ExpressionAttributeValues={
+                ':verify_code': {
+                    'S': verify_code,
+                },
+                ':verify_code_ttl': {
+                    'N': str(int((datetime.now(tz=timezone.utc) + timedelta(days=1)).timestamp())),
+                },
+            },
+            UpdateExpression='SET #verify_code = :verify_code, #verify_code_ttl = :verify_code_ttl',
+            ConditionExpression='attribute_exists(username)',
         )
     except dynamodb.exceptions.ConditionalCheckFailedException:
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "This username already exists."})
+            'body': json.dumps({"message": "This account no longer exists."})
         }
     except Exception as e:
         logger.error(str(e))
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "An error occurred creating the user. Please try again in a few minutes."})
+            'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
         }
 
     # Build Verify URL
@@ -150,5 +121,37 @@ def lambda_handler(event, context):
     # Return success
     return {
         'statusCode': 200,
-        'body': json.dumps({"message": "Account created."})
+        'body': json.dumps({"message": "Check your mail to verify this new email."})
+    }
+
+def change_password(event):
+    pass
+
+def change_google_drive_api(event):
+    pass
+
+def change_two_factor(event):
+    pass
+
+def delete_account(event):
+    pass
+
+def lambda_handler(event, context):
+    # Get username TBD..... get Authorizer (cookie & parameter compatible) and using the jwt library, extract the username and pass it to all next methods.
+    print(event)
+
+    if event['requestContext']['http']['path'] == '/profile/email':
+        return change_email(event)
+    elif event['requestContext']['http']['path'] == '/profile/password':
+        return change_password(event)
+    elif event['requestContext']['http']['path'] == '/profile/google':
+        return change_google_drive_api(event)
+    elif event['requestContext']['http']['path'] == '/profile/twofactor':
+        return change_two_factor(event)
+    elif event['requestContext']['http']['path'] == '/profile/delete':
+        return delete_account(event)
+
+    return {
+        'statusCode': 400,
+        'body': json.dumps({"message": "Invalid method."})
     }

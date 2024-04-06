@@ -44,22 +44,24 @@ def lambda_handler(event, context):
         response = dynamodb.update_item(
             TableName='retrox-users',
             Key={'username': {'S': username}},
-            UpdateExpression='REMOVE #verify_code, #ttl',
-            ConditionExpression='attribute_exists(#username) AND #verify_code = :verify_code',
+            UpdateExpression='REMOVE #verify_code, #verify_code_ttl, #ttl',
+            ConditionExpression='attribute_exists(#username) AND #verify_code = :verify_code AND (attribute_not_exists(#verify_code_ttl) OR #verify_code_ttl < :now)',
             ExpressionAttributeNames={
                 '#username': 'username',
                 '#verify_code': 'verify_code',
+                '#verify_code_ttl': 'verify_code_ttl',
                 '#ttl': 'ttl',
             },
             ExpressionAttributeValues={
                 ':verify_code': {'S': code},
+                ':now': {'N': str(int(datetime.now(tz=timezone.utc).timestamp()))},
             }
         )
     except Exception as e:
         print(e)
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Invalid URL."})
+            'body': json.dumps({"message": "This URL is not valid or has expired."})
         }
 
     return {

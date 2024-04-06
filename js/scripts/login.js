@@ -86,6 +86,7 @@ async function login(event) {
     }
     else {
       localStorage.setItem('token', json['token'])
+      localStorage.setItem('email', json['email'])
       localStorage.setItem('username', json['username'])
       localStorage.setItem('remember', json['remember'])
       window.location.href = `${window.location.origin}/games.html`

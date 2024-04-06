@@ -2,60 +2,71 @@
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
     <link rel="apple-touch-icon" sizes="180x180" href="images/emulator-logo.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="images/emulator-logo.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
     <link rel="shortcut icon" href="images/emulator-logo.png" />
-    <title>RetroX Emulator</title>
+    <meta name="theme-color" content="#212529" />
+    <title>Profile | RetroX Emulator</title>
+    <meta name="robots" content="index,follow" />
+    <meta name="description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
+    <meta property="og:title" content="RetroX Emulator" />
+    <meta property="og:description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
+    <meta property="og:image" content="images/emulator-logo.png" />
+    <meta property="og:image:alt" content="RetroX Emulator" />
+    <meta property="og:image:width" content="640" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:site_name" content="RetroX Emulator" />
+    <meta property="author" content="Pol Alzina" />
     <link href="css/bootstrap.min.css" rel="stylesheet">
-    <meta name="theme-color" content="#712cf9">
     <style>
+      body {
+        background-color: rgb(37, 40, 41);
+      }
       .card {
-          box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
-          background-color: rgb(31, 33, 34);
-          border-color: rgba(156, 145, 129, 0.13);
+        box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
+        background-color: rgb(31, 33, 34);
+        border-color: rgba(156, 145, 129, 0.13);
       }
       .card .card-header {
-          font-weight: 500;
+        font-weight: 500;
       }
       .card-header:first-child {
-          border-radius: 0.35rem 0.35rem 0 0;
+        border-radius: 0.35rem 0.35rem 0 0;
       }
       .card-header {
-          padding: 1rem 1.35rem;
-          margin-bottom: 0;
-          background-color: rgba(33, 40, 48, 0.03);
-          border-bottom: 1px solid rgba(141, 131, 117, 0.13);
+        padding: 1rem 1.35rem;
+        margin-bottom: 0;
+        background-color: rgba(33, 40, 48, 0.03);
+        border-bottom: 1px solid rgba(141, 131, 117, 0.13);
       }
       .form-control {
-          display: block;
-          width: 100%;
-          padding: 0.875rem 1.125rem;
-          font-size: 0.875rem;
-          font-weight: 400;
-          line-height: 1;
-          color: rgb(177, 169, 156);
-          background-color: rgb(31, 33, 34);
-          background-clip: padding-box;
-          border: 1px solid rgb(72, 77, 80);
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-          border-radius: 0.35rem;
-          transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        display: block;
+        width: 100%;
+        padding: 0.875rem 1.125rem;
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1;
+        color: rgb(177, 169, 156);
+        background-color: rgb(31, 33, 34);
+        background-clip: padding-box;
+        border: 1px solid rgb(72, 77, 80);
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        border-radius: 0.35rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
       }
       .form-control::placeholder {
         color: rgb(177, 177, 177);
       }
-
       .btn-danger-soft {
-          color: rgb(255, 252, 249);
-          background-color: rgb(63, 31, 36);
-          border-color: rgb(91, 44, 52);
+        background-color: rgb(63, 31, 36);
+      }
+      .btn-danger-soft:hover {
+        background-color: rgb(52, 26, 30);
       }
     </style>
   </head>
@@ -63,137 +74,146 @@
     <main>
       <div class="container py-4">
         <header class="pb-3 mb-4 border-bottom d-flex align-items-center">
-            <div class="d-flex flex-fill">
-              <a href="/" class="text-light text-decoration-none d-flex align-items-center">
-                <img src="images/emulator-logo-transparent.png" width="55">
-                <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
-              </a>
-            </div>
-            <a href="games.html" style="text-decoration: none; color: inherit">
-                <span style="padding:10px; margin-right:12px; margin-left:20px;" type="button">Games</span>
+          <div class="d-flex flex-fill">
+            <a href="/" class="text-light text-decoration-none d-flex align-items-center">
+              <img src="images/emulator-logo-transparent.png" width="55">
+              <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
             </a>
-            <a href="profile.html" style="text-decoration: none; color: inherit">
-                <span style="padding:10px; margin-right:12px" type="button"><b>Profile</b></span>
-            </a>
-            <a href="#" onclick="logout(event)" style="text-decoration: none; color: inherit">
-                <span style="padding:10px; margin-right:12px" type="button">Logout</span>
-            </a>
-          </header>
+          </div>
+          <a href="games.html" style="text-decoration: none; color: inherit">
+            <span style="padding:10px; margin-right:12px; margin-left:20px;" type="button">Games</span>
+          </a>
+          <a href="profile.html" style="text-decoration: none; color: inherit">
+            <span style="padding:10px; margin-right:12px" type="button"><b>Profile</b></span>
+          </a>
+          <a href="#" onclick="logout(event)" style="text-decoration: none; color: inherit">
+            <span style="padding:10px; margin-right:12px" type="button">Logout</span>
+          </a>
+        </header>
 
         <div class="container-xl px-4 mt-4">
-          <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px"><b>PROFILE</b></p>
+          <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px; color: white;"><b>PROFILE</b></p>
 
           <div class="row">
-              <div class="col-lg-8">
-                  <!-- Change email-->
-                  <div class="card mb-4">
-                    <div class="card-header">Change Email</div>
-                    <div class="card-body">
-                        <form>
-                            <!-- Form Group (current email)-->
-                            <div class="mb-3">
-                                <label class="small mb-1" for="currentEmail">Current Email</label>
-                                <input class="form-control" id="currentEmail" type="text" placeholder="Enter current email">
-                            </div>
-                            <!-- Form Group (new email)-->
-                            <div class="mb-3">
-                                <label class="small mb-1" for="newEmail">New Email</label>
-                                <input class="form-control" id="newEmail" type="text" placeholder="Enter new email">
-                            </div>
-                            <!-- Form Group (confirm email)-->
-                            <div class="mb-3">
-                                <label class="small mb-1" for="confirmEmail">Confirm Email</label>
-                                <input class="form-control" id="confirmEmail" type="text" placeholder="Confirm new email">
-                            </div>
-                            <button class="btn btn-primary" style="padding:8px 22px 8px 22px; margin-top:5px" type="button">Save</button>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- Change password card-->
+            <div class="col-lg-8">
+                <!-- Change email -->
                 <div class="card mb-4">
-                  <div class="card-header">Change Password</div>
+                  <div class="card-header">Change Email</div>
                   <div class="card-body">
-                      <form>
-                          <!-- Form Group (current password)-->
-                          <div class="mb-3">
-                              <label class="small mb-1" for="currentPassword">Current Password</label>
-                              <input class="form-control" id="currentPassword" type="password" placeholder="Enter current password">
-                          </div>
-                          <!-- Form Group (new password)-->
-                          <div class="mb-3">
-                              <label class="small mb-1" for="newPassword">New Password</label>
-                              <input class="form-control" id="newPassword" type="password" placeholder="Enter new password">
-                          </div>
-                          <!-- Form Group (confirm password)-->
-                          <div class="mb-3">
-                              <label class="small mb-1" for="confirmPassword">Confirm Password</label>
-                              <input class="form-control" id="confirmPassword" type="password" placeholder="Confirm new password">
-                          </div>
-                          <button class="btn btn-primary" style="padding:8px 22px 8px 22px; margin-top:5px" type="button">Save</button>
-                      </form>
+                    <div id="emailAlert"></div>
+                    <form onsubmit="changeEmail(event)">
+                      <div class="mb-3">
+                        <label class="small mb-1" for="newEmail">Current Email</label>
+                        <input id="currentEmail" disabled class="form-control" type="email" placeholder="Current Email">
+                      </div>
+                      <div class="mb-3">
+                        <label class="small mb-1" for="newEmail">New Email</label>
+                        <input id="newEmail" class="form-control" type="email" placeholder="Enter an email">
+                      </div>
+                      <button id="submitEmail" class="btn btn-primary" style="padding:8px 22px 8px 22px; margin-top:5px" type="submit">
+                        <span id="loadingEmail" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                        Save
+                      </button>
+                    </form>
                   </div>
-                </div>
+              </div>
 
-
-                <div class="card mb-4">
-                    <div class="card-header">Change Google Drive API Credentials</div>
-                    <div class="card-body">
-                        <form>
-                            <a href="https://console.cloud.google.com/apis/" target="_blank">https://console.cloud.google.com/apis</a>
-                            <div class="my-3">
-                                <label class="small mb-2" for="currentEmail">Current Client ID</label>
-                                <input class="form-control" disabled id="currentEmail" type="text" placeholder="Current Client Secret">
-                            </div>
-                            <div class="mb-3">
-                                <label class="small mb-2" for="currentEmail">New Client ID</label>
-                                <input class="form-control" id="currentEmail" type="text" placeholder="Enter Client ID">
-                            </div>
-                            <div class="mb-3">
-                                <label class="small mb-2" for="newEmail">New Client Secret</label>
-                                <input class="form-control" id="newEmail" type="text" placeholder="Enter Client Secret">
-                            </div>
-                            <button class="btn btn-primary" style="padding:8px 22px 8px 22px; margin-top:5px" type="button">Save</button>
-                        </form>
+              <!-- Change password -->
+              <div class="card mb-4">
+                <div class="card-header">Change Password</div>
+                <div class="card-body">
+                  <form onsubmit="changePassword(event)">
+                    <div class="mb-3">
+                      <label class="small mb-1" for="currentPassword">Current Password</label>
+                      <input id="currentPassword" class="form-control" type="password" placeholder="Enter current password">
                     </div>
+                    <div class="mb-3">
+                      <label class="small mb-1" for="newPassword">New Password</label>
+                      <input id="newPassword" class="form-control" type="password" placeholder="Enter new password">
+                    </div>
+                    <div class="mb-3">
+                      <label class="small mb-1" for="confirmPassword">Confirm Password</label>
+                      <input id="confirmPassword" class="form-control" type="password" placeholder="Re-type new password">
+                    </div>
+                    <button id="submitPassword" class="btn btn-primary" style="padding:8px 22px 8px 22px; margin-top:5px" type="submit">
+                      <span id="loadingPassword" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                      Save
+                    </button>
+                  </form>
                 </div>
+              </div>
 
+              <!-- Change Google Drive API -->
+              <div class="card mb-4">
+                <div class="card-header">Change Google Drive API Credentials</div>
+                <div class="card-body">
+                  <form onsubmit="changeGoogleDriveAPI(event)">
+                    <a href="https://console.cloud.google.com/apis/" target="_blank">https://console.cloud.google.com/apis</a>
+                    <div class="my-3">
+                      <label class="small mb-2" for="currentClientID">Current Client ID</label>
+                      <input id="currentClientID" class="form-control" disabled type="text" placeholder="Current Client Secret">
+                    </div>
+                    <div class="mb-3">
+                      <label class="small mb-2" for="newClientID">New Client ID</label>
+                      <input id="newClientID" class="form-control"  type="text" placeholder="Enter Client ID">
+                    </div>
+                    <div class="mb-3">
+                      <label class="small mb-2" for="newClientSecret">New Client Secret</label>
+                      <input id="newClientSecret" class="form-control" id="newClientSecret" type="password" placeholder="Enter Client Secret">
+                    </div>
+                    <button id="submitGoogleDriveAPI" class="btn btn-primary" style="padding:8px 22px 8px 22px; margin-top:5px" type="submit">
+                      <span id="loadingGoogleDriveAPI" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                      Save
+                    </button>
+                  </form>
+                </div>
               </div>
-              <div class="col-lg-4">
-                  <!-- Two factor authentication card-->
-                  <div class="card mb-4">
-                      <div class="card-header">Two-Factor Authentication</div>
-                      <div class="card-body">
-                          <p>Add another level of security to your account by enabling two-factor authentication.</p>
-                          <form>
-                              <div class="form-check">
-                                  <input class="form-check-input" disabled id="twoFactorOff" type="radio" name="twoFactor" checked="">
-                                  <label class="form-check-label" for="twoFactorOff">Off</label>
-                              </div>
-                              <div class="form-check">
-                                  <input class="form-check-input" disabled id="twoFactorOn" type="radio" name="twoFactor">
-                                  <label class="form-check-label" for="twoFactorOn">On</label>
-                              </div>
-                              <!-- <div class="mt-3">
-                                  <label class="small mb-1" for="twoFactorSMS">SMS Number</label>
-                                  <input class="form-control" id="twoFactorSMS" type="tel" placeholder="Enter a phone number" value="555-123-4567">
-                              </div> -->
-                              <button class="btn btn-primary" disabled style="padding:8px 20px 8px 20px; margin-top:20px" type="button">Save</button>
-                          </form>
-                      </div>
-                  </div>
-                  <!-- Delete account card-->
-                  <div class="card mb-4">
-                      <div class="card-header">Delete Account</div>
-                      <div class="card-body">
-                          <p>Deleting your account is a permanent action and cannot be undone. The <b>RetroX</b> folder in your Google Drive account containing all your ROMs won't be deleted. </p>
-                          <p>If you are sure you want to delete your account, select the button below.</p>
-                          <button class="btn btn-danger-soft text-danger" type="button">I understand, delete my account</button>
-                      </div>
-                  </div>
+
+            </div>
+            <div class="col-lg-4">
+              <!-- Two factor authentication -->
+              <div class="card mb-4">
+                <div class="card-header">Two-Factor Authentication</div>
+                <div class="card-body">
+                  <p>Add another level of security to your account by enabling two-factor authentication.</p>
+                  <form onsubmit="changeTwoFactor(event)">
+                    <div class="form-check">
+                      <input id="twoFactorOff" class="form-check-input" disabled type="radio" name="twoFactor" checked="">
+                      <label class="form-check-label" for="twoFactorOff">Off</label>
+                    </div>
+                    <div class="form-check">
+                      <input id="twoFactorOn" class="form-check-input" disabled type="radio" name="twoFactor">
+                      <label class="form-check-label" for="twoFactorOn">On</label>
+                    </div>
+                    <div class="mt-3">
+                      <label class="small mb-1" for="twoFactorCode">Code</label>
+                      <input id="twoFactorCode" class="form-control" type="text" placeholder="Enter the Two-Factor Code">
+                    </div>
+                    <button id="twoFactorSubmit" class="btn btn-primary" disabled style="padding:8px 20px 8px 20px; margin-top:20px" type="submit">
+                      <span id="twoFactorLoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                      Save
+                    </button>
+                  </form>
+                </div>
               </div>
+
+              <!-- Delete account -->
+              <div class="card mb-4">
+                <div class="card-header">Delete Account</div>
+                <div class="card-body">
+                  <form onsubmit="deleteAccount(event)">
+                    <p>Deleting your account is a permanent action and cannot be undone. The <b>RetroX</b> folder in your Google Drive account containing all your ROMs won't be deleted. </p>
+                    <p>If you are sure you want to delete your account, select the button below.</p>
+                    <button id="deleteAccountSubmit" class="btn btn-danger-soft text-danger" type="submit">
+                      <span id="deleteAccountLoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                      I understand, delete my account
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
           </div>
-      </div>
+        </div>
 
         <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
           RetroX Emulator &copy; 2024
@@ -202,5 +222,6 @@
     </main>
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/scripts/common.js"></script>
+    <script src="js/scripts/profile.js"></script>
   </body>
 </html>

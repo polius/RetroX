@@ -49,7 +49,7 @@ def lambda_handler(event, context):
     response = dynamodb.get_item(
         TableName='retrox-users',
         Key={'username': {'S': username}},
-        ProjectionExpression='password,verify_code',
+        ProjectionExpression='email,password,verify_code',
     )
     user = response.get('Item')
 
@@ -107,14 +107,14 @@ def lambda_handler(event, context):
         }
     
     # Generate token
-    expiration = datetime.utcnow() + timedelta(days=30)
+    expiration = datetime.now(tz=timezone.utc) + timedelta(days=30)
     payload = {'username': username, 'exp': int(expiration.timestamp())}
     token = jwt.encode(payload, secret_key, algorithm='HS256')
 
     # Return token as a parameter
     return {
         'statusCode': 200,
-        'body': json.dumps({'token': token, 'username': username, 'remember': remember})
+        'body': json.dumps({'token': token, 'email': user['email']['S'], 'username': username, 'remember': remember})
     }
 
     # Return token as a cookie
@@ -124,5 +124,5 @@ def lambda_handler(event, context):
         "cookies": [
             f"token={token}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=Strict; Path=/"
         ],
-        'body': json.dumps({'username': username, 'expires': int(expiration.timestamp())})
+        'body': json.dumps({'email': user['email']['S'], 'username': username, 'remember': remember, 'expires': int(expiration.timestamp())})
     }
