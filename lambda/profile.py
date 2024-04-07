@@ -201,7 +201,7 @@ def change_two_factor(event):
     # Check required parameters
     body = json.loads(event['body'])
 
-    if 'enabled' not in body:
+    if 'enable' not in body:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid parameters."})
@@ -209,76 +209,33 @@ def change_two_factor(event):
 
     # Get variables
     username = event['requestContext']['authorizer']['lambda']['username']
-    enabled = body['enabled']
+    enable = body['enable']
 
-    if enabled:
+    if enable:
         # Generate new code
         if 'code' not in body:
             # Generate OTP Secret
             otp_secret = pyotp.random_base32()
 
-            # Store 2FA
-            try:
-                dynamodb.update_item(
-                    TableName='retrox-users',
-                    Key={'username': {'S': username}},
-                    ExpressionAttributeNames={
-                        '#2fa_enabled': '2fa_enabled',
-                        '#2fa_secret': '2fa_secret',
-                    },
-                    ExpressionAttributeValues={
-                        ':2fa_enabled': {
-                            'BOOL': False
-                        },
-                        ':2fa_secret': {
-                            'S': otp_secret
-                        },
-                    },
-                    UpdateExpression='SET #2fa_enabled = :2fa_enabled, #2fa_secret = :2fa_secret',
-                    ConditionExpression='attribute_exists(username)',
-                )
-            except dynamodb.exceptions.ConditionalCheckFailedException:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({"message": "This account no longer exists."})
-                }
-            except Exception as e:
-                logger.error(str(e))
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
-                }
-
+            # Return OTP
             return {
                 'statusCode': 200,
                 'body': json.dumps({
                     "message": "Scan the QR and enter the code.",
+                    "2fa_key": otp_secret,
                     "2fa_uri": pyotp.totp.TOTP(otp_secret).provisioning_uri(name=username, issuer_name='RetroX Emulator'),
                 })
             }
-
         else:
-            # Get User 2FA Code
-            response = dynamodb.get_item(
-                TableName='retrox-users',
-                Key={'username': {'S': username}},
-                ProjectionExpression='#2fa_enabled, #2fa_secret',
-                ExpressionAttributeNames={
-                    '#2fa_enabled': '2fa_enabled',
-                    '#2fa_secret': '2fa_secret',
-                }
-            )
-            user = response.get('Item')
-
-            # Check attributes
-            if '2fa_enabled' not in user or '2fa_secret' not in user or user['2fa_enabled']['BOOL']:
+            # Check parameters
+            if not {'key','code'}.issubset(body.keys()):
                 return {
                     'statusCode': 400,
-                    'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+                    'body': json.dumps({"message": "Invalid parameters."})
                 }
 
             # Verify 2FA
-            totp = pyotp.TOTP(user['2fa_secret']['S'])
+            totp = pyotp.TOTP(body['key'])
             if not totp.verify(body['code'], valid_window=1):
                 return {
                     'statusCode': 400,
@@ -291,14 +248,14 @@ def change_two_factor(event):
                     TableName='retrox-users',
                     Key={'username': {'S': username}},
                     ExpressionAttributeNames={
-                        '#2fa_enabled': '2fa_enabled',
+                        '#2fa_secret': '2fa_secret',
                     },
                     ExpressionAttributeValues={
-                        ':2fa_enabled': {
-                            'BOOL': True
+                        ':2fa_secret': {
+                            'S': body['key']
                         },
                     },
-                    UpdateExpression='SET #2fa_enabled = :2fa_enabled',
+                    UpdateExpression='SET #2fa_secret = :2fa_secret',
                     ConditionExpression='attribute_exists(username)',
                 )
             except dynamodb.exceptions.ConditionalCheckFailedException:
@@ -324,15 +281,9 @@ def change_two_factor(event):
                 TableName='retrox-users',
                 Key={'username': {'S': username}},
                 ExpressionAttributeNames={
-                    '#2fa_enabled': '2fa_enabled',
                     '#2fa_secret': '2fa_secret',
                 },
-                ExpressionAttributeValues={
-                    ':2fa_enabled': {
-                        'BOOL': False
-                    }
-                },
-                UpdateExpression='SET #2fa_enabled = :2fa_enabled REMOVE #2fa_secret',
+                UpdateExpression='REMOVE #2fa_secret',
                 ConditionExpression='attribute_exists(username)',
             )
         except dynamodb.exceptions.ConditionalCheckFailedException:

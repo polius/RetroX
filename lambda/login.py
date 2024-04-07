@@ -120,7 +120,7 @@ def lambda_handler(event, context):
     # Return token as a parameter
     return {
         'statusCode': 200,
-        'body': json.dumps({'token': token, 'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': user['2fa_enabled']['BOOL']})
+        'body': json.dumps({'token': token, 'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': '2fa_secret' in user})
     }
 
     # Return token as a cookie
@@ -130,5 +130,5 @@ def lambda_handler(event, context):
         "cookies": [
             f"token={token}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=Strict; Path=/"
         ],
-        'body': json.dumps({'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': user['2fa_enabled']['BOOL'], 'expires': int(expiration.timestamp())})
+        'body': json.dumps({'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': '2fa_secret' in user, 'expires': int(expiration.timestamp())})
     }

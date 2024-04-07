@@ -5,7 +5,9 @@ async function logout(event) {
   // Perform the Logout request
   await fetch("https://api.retrox.app/logout/", { method: "POST" })
 
-  // Remove token and redirect to the home page
+  // Remove session variables and redirect to the home page
   localStorage.removeItem('token')
+  localStorage.removeItem('email')
+  localStorage.removeItem('2fa')
   window.location.href = `${window.location.origin}/index.html`
 }

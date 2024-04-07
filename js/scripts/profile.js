@@ -1,4 +1,4 @@
-var twoFactorStep = 1
+var twoFactorKey = null;
 var modalMode;
 
 function onLoad() {
@@ -13,6 +13,9 @@ function onLoad() {
 
   // Check two factor
   const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
+  const twoFactorLabel = document.getElementById('twoFactorLabel');
+
+  twoFactorLabel.style.display = localStorage.getItem('2fa') == 'true' ? 'block' : 'none';
   twoFactorSubmitName.innerHTML = localStorage.getItem('2fa') == 'true' ? 'Disable' : 'Enable';
 }
 
@@ -177,6 +180,7 @@ async function changeTwoFactor(event) {
   const twoFactorCode = document.getElementById('twoFactorCode');
   const submitButton = document.getElementById('twoFactorSubmit');
   const submitLoading = document.getElementById('twoFactorLoading');
+  const twoFactorLabel = document.getElementById('twoFactorLabel');
   const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
   const twoFactorAlert = document.getElementById("twoFactorAlert");
 
@@ -193,7 +197,7 @@ async function changeTwoFactor(event) {
     // Set values
     modalMode = '2fa'
     modalTitle.innerHTML = 'Disable Two-Factor Authentication'
-    modalBody.innerHTML = 'Are you sure you want to disable the Two-Factor Authentication?'
+    modalBody.innerHTML = 'Are you sure you want to disable it?'
     modal.show()
   }
   else {
@@ -202,7 +206,7 @@ async function changeTwoFactor(event) {
     submitLoading.style.display = 'inline-flex';
 
     // Enable two-factor - Step 1/2
-    if (twoFactorStep == 1) {
+    if (twoFactorKey == null) {
       try {
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
@@ -211,7 +215,7 @@ async function changeTwoFactor(event) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            enabled: true
+            enable: true
           })
         })
 
@@ -221,18 +225,18 @@ async function changeTwoFactor(event) {
         }
         else {
           showAlert(twoFactorAlert, "success", json['message'])
-          twoFactorStep = 2
+          twoFactorKey = json['2fa_key']
           twoFactorDiv.style.display = 'block'
           twoFactorSubmitName.innerHTML = 'Submit'
           twoFactorCode.value = ''
           twoFactorCode.focus()
+          qrCanvas.title = `QR Key: ${json['2fa_key']}`
           QRCode.toCanvas(
             qrCanvas,
             json['2fa_uri'],
             { errorCorrectionLevel: "H" },
             function (error) {
               if (error) console.error(error);
-              console.log("success!");
             }
           )
         }
@@ -247,7 +251,7 @@ async function changeTwoFactor(event) {
       }
     }
     // Enable two-factor - Step 2/2
-    else if (twoFactorStep == 2) {
+    else if (twoFactorKey != null) {
       // Check if all values are filled
       if (twoFactorCode.value.length == 0) {
         showAlert(twoFactorAlert, "warning", "The Two-Factor code is empty.")
@@ -263,7 +267,8 @@ async function changeTwoFactor(event) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            enabled: true,
+            enable: true,
+            key: twoFactorKey,
             code: twoFactorCode.value.trim()
           })
         })
@@ -274,10 +279,11 @@ async function changeTwoFactor(event) {
         }
         else {
           showAlert(twoFactorAlert, "success", json['message'])
-          twoFactorStep = 1
+          twoFactorKey = null
           twoFactorDiv.style.display = 'none'
           twoFactorSubmitName.innerHTML = 'Disable'
           twoFactorCode.value = ''
+          twoFactorLabel.style.display = 'block';
           localStorage.setItem('2fa', 'true')
         }
       }
@@ -295,10 +301,11 @@ async function changeTwoFactor(event) {
 
 async function disable2FASubmit() {
   // Get components
+  const twoFactorLabel = document.getElementById('twoFactorLabel');
   const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
   const twoFactorAlert = document.getElementById("twoFactorAlert");
   const modalAlert = document.getElementById('modalAlert');
-  const cancelModal = document.getElementById('cancelModal');
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modal'));
 
   // Disable 2FA
   try {
@@ -309,7 +316,7 @@ async function disable2FASubmit() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        enabled: false
+        enable: false
       })
     })
 
@@ -320,8 +327,9 @@ async function disable2FASubmit() {
     else {
       showAlert(twoFactorAlert, "success", json['message'])
       twoFactorSubmitName.innerHTML = 'Enable'
+      twoFactorLabel.style.display = 'none'
       localStorage.setItem('2fa', 'false')
-      cancelModal.click()
+      modal.hide()
     }
   }
   catch (error) {
