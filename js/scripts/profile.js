@@ -1,3 +1,6 @@
+var twoFactorStep = 1
+var modalMode;
+
 function onLoad() {
   // Check if user is not logged in
   if (!localStorage.getItem('token')) {
@@ -7,6 +10,10 @@ function onLoad() {
   // Add current email
   const currentEmail = document.getElementById('currentEmail')
   currentEmail.value = localStorage.getItem('email')
+
+  // Check two factor
+  const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
+  twoFactorSubmitName.innerHTML = localStorage.getItem('2fa') == 'true' ? 'Disable' : 'Enable';
 }
 
 function showAlert(component, type, message) {
@@ -58,6 +65,7 @@ async function changeEmail(event) {
   submitLoading.style.display = 'inline-flex';
 
   // Perform the Change Email request
+  const newEmailValue = newEmail.value.trim()
   try {
     const response = await fetch("https://api.retrox.app/profile/email", {
       method: "POST",
@@ -66,7 +74,7 @@ async function changeEmail(event) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: newEmail.value.trim(),
+        email: newEmailValue,
       })
     })
 
@@ -160,7 +168,166 @@ async function changeGoogleDriveAPI(event) {
 }
 
 async function changeTwoFactor(event) {
+  // Prevent page to refresh
+  event.preventDefault();
 
+  // Get components
+  const twoFactorDiv = document.getElementById('twoFactorDiv');
+  const qrCanvas = document.getElementById("qrCanvas");
+  const twoFactorCode = document.getElementById('twoFactorCode');
+  const submitButton = document.getElementById('twoFactorSubmit');
+  const submitLoading = document.getElementById('twoFactorLoading');
+  const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
+  const twoFactorAlert = document.getElementById("twoFactorAlert");
+
+  // Disable two-factor
+  if (localStorage.getItem('2fa') == 'true') {
+    // Get components
+    const modal = new bootstrap.Modal(document.getElementById('modal'), {
+      backdrop: 'static',
+      keyboard: false
+    })
+    const modalTitle = document.getElementById('modalTitle')
+    const modalBody = document.getElementById('modalBody')
+
+    // Set values
+    modalMode = '2fa'
+    modalTitle.innerHTML = 'Disable Two-Factor Authentication'
+    modalBody.innerHTML = 'Are you sure you want to disable the Two-Factor Authentication?'
+    modal.show()
+  }
+  else {
+    // Disable the submit button
+    submitButton.setAttribute("disabled", "");
+    submitLoading.style.display = 'inline-flex';
+
+    // Enable two-factor - Step 1/2
+    if (twoFactorStep == 1) {
+      try {
+        const response = await fetch("https://api.retrox.app/profile/2fa", {
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            enabled: true
+          })
+        })
+
+        const json = await response.json()
+        if (!response.ok) {
+          showAlert(twoFactorAlert, "danger", json['message'])
+        }
+        else {
+          showAlert(twoFactorAlert, "success", json['message'])
+          twoFactorStep = 2
+          twoFactorDiv.style.display = 'block'
+          twoFactorSubmitName.innerHTML = 'Submit'
+          twoFactorCode.value = ''
+          twoFactorCode.focus()
+          QRCode.toCanvas(
+            qrCanvas,
+            json['2fa_uri'],
+            { errorCorrectionLevel: "H" },
+            function (error) {
+              if (error) console.error(error);
+              console.log("success!");
+            }
+          )
+        }
+      }
+      catch (error) {
+        console.log(error)
+        showAlert(twoFactorAlert, "danger", "An error occurred. Please try again.")
+      }
+      finally {
+        submitButton.removeAttribute("disabled");
+        submitLoading.style.display = 'none';
+      }
+    }
+    // Enable two-factor - Step 2/2
+    else if (twoFactorStep == 2) {
+      // Check if all values are filled
+      if (twoFactorCode.value.length == 0) {
+        showAlert(twoFactorAlert, "warning", "The Two-Factor code is empty.")
+        submitButton.removeAttribute("disabled");
+        submitLoading.style.display = 'none';
+        return
+      }
+      try {
+        const response = await fetch("https://api.retrox.app/profile/2fa", {
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            enabled: true,
+            code: twoFactorCode.value.trim()
+          })
+        })
+
+        const json = await response.json()
+        if (!response.ok) {
+          showAlert(twoFactorAlert, "danger", json['message'])
+        }
+        else {
+          showAlert(twoFactorAlert, "success", json['message'])
+          twoFactorStep = 1
+          twoFactorDiv.style.display = 'none'
+          twoFactorSubmitName.innerHTML = 'Disable'
+          twoFactorCode.value = ''
+          localStorage.setItem('2fa', 'true')
+        }
+      }
+      catch (error) {
+        console.log(error)
+        showAlert(twoFactorAlert, "danger", "An error occurred. Please try again.")
+      }
+      finally {
+        submitButton.removeAttribute("disabled");
+        submitLoading.style.display = 'none';
+      }
+    }
+  }
+}
+
+async function disable2FASubmit() {
+  // Get components
+  const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
+  const twoFactorAlert = document.getElementById("twoFactorAlert");
+  const modalAlert = document.getElementById('modalAlert');
+  const cancelModal = document.getElementById('cancelModal');
+
+  // Disable 2FA
+  try {
+    const response = await fetch("https://api.retrox.app/profile/2fa", {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        enabled: false
+      })
+    })
+
+    const json = await response.json()
+    if (!response.ok) {
+      showAlert(modalAlert, "danger", json['message'])
+    }
+    else {
+      showAlert(twoFactorAlert, "success", json['message'])
+      twoFactorSubmitName.innerHTML = 'Enable'
+      localStorage.setItem('2fa', 'false')
+      cancelModal.click()
+    }
+  }
+  catch (error) {
+    console.log(error)
+    showAlert(modalAlert, "danger", "An error occurred. Please try again.")
+  }
 }
 
 async function deleteAccount(event) {
@@ -176,24 +343,15 @@ async function deleteAccount(event) {
   const modalBody = document.getElementById('modalBody')
 
   // Set values
+  modalMode = 'delete'
   modalTitle.innerHTML = 'Delete account'
   modalBody.innerHTML = 'Are you sure you want to delete your account?'
-  modal.show() 
+  modal.show()
 }
 
-async function modalConfirm() {
+async function deleteAccountSubmit() {
   // Get components
-  const modal = new bootstrap.Modal(document.getElementById('modal'))
-  const closeModal = document.getElementById('closeModal');
-  const cancelModal = document.getElementById('cancelModal');
-  const submitButton = document.getElementById('modalSubmit');
-  const submitLoading = document.getElementById('modalLoading');
-
-  // Disable the submit button
-  closeModal.setAttribute("disabled", "");
-  cancelModal.setAttribute("disabled", "");
-  submitButton.setAttribute("disabled", "");
-  submitLoading.style.display = 'inline-flex';
+  const modalAlert = document.getElementById('modalAlert');
 
   // Perform the Change Password request
   try {
@@ -206,10 +364,10 @@ async function modalConfirm() {
     })
     const json = await response.json()
     if (!response.ok) {
-      showAlert(deleteAlert, "danger", json['message'])
+      showAlert(modalAlert, "danger", json['message'])
     }
     else {
-      showAlert(deleteAlert, "success", json['message'])
+      showAlert(modalAlert, "success", json['message'])
 
       // Perform the Logout request
       await fetch("https://api.retrox.app/logout/", { method: "POST" })
@@ -229,12 +387,30 @@ async function modalConfirm() {
     console.log(error)
     showAlert(passwordAlert, "danger", "An error occurred. Please try again.")
   }
-  finally {
-    submitButton.removeAttribute("disabled");
-    closeModal.removeAttribute("disabled");
-    cancelModal.removeAttribute("disabled");
-    submitLoading.style.display = 'none';
-  }
+}
+
+async function modalConfirm() {
+  // Get components
+  const closeModal = document.getElementById('closeModal');
+  const cancelModal = document.getElementById('cancelModal');
+  const submitButton = document.getElementById('modalSubmit');
+  const submitLoading = document.getElementById('modalLoading');
+
+  // Disable the submit button
+  closeModal.setAttribute("disabled", "");
+  cancelModal.setAttribute("disabled", "");
+  submitButton.setAttribute("disabled", "");
+  submitLoading.style.display = 'inline-flex';
+
+
+  if (modalMode == 'delete') await deleteAccountSubmit()
+  else if (modalMode == '2fa') await disable2FASubmit()
+
+  // Enable submit button again
+  submitButton.removeAttribute("disabled");
+  closeModal.removeAttribute("disabled");
+  cancelModal.removeAttribute("disabled");
+  submitLoading.style.display = 'none';
 }
 
 onLoad()

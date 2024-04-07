@@ -176,23 +176,19 @@
               <div class="card mb-4">
                 <div class="card-header">Two-Factor Authentication</div>
                 <div class="card-body">
-                  <p>Add another level of security to your account by enabling two-factor authentication.</p>
+                  <div id="twoFactorAlert"></div>
+                  <p style="margin:0">Add another level of security to your account by enabling two-factor authentication.</p>
                   <form onsubmit="changeTwoFactor(event)">
-                    <div class="form-check">
-                      <input id="twoFactorOff" class="form-check-input" disabled type="radio" name="twoFactor" checked="">
-                      <label class="form-check-label" for="twoFactorOff">Off</label>
+                    <div id="twoFactorDiv" style="display: none;">
+                      <canvas id="qrCanvas" class="mt-3"></canvas>
+                      <div class="mt-2">
+                        <label class="small mb-1" for="twoFactorCode">Code</label>
+                        <input id="twoFactorCode" class="form-control" type="text" placeholder="Enter the Two-Factor Code">
+                      </div>
                     </div>
-                    <div class="form-check">
-                      <input id="twoFactorOn" class="form-check-input" disabled type="radio" name="twoFactor">
-                      <label class="form-check-label" for="twoFactorOn">On</label>
-                    </div>
-                    <div class="mt-3">
-                      <label class="small mb-1" for="twoFactorCode">Code</label>
-                      <input id="twoFactorCode" class="form-control" type="text" placeholder="Enter the Two-Factor Code">
-                    </div>
-                    <button id="twoFactorSubmit" class="btn btn-primary" disabled style="padding:8px 20px 8px 20px; margin-top:20px" type="submit">
+                    <button id="twoFactorSubmit" class="btn btn-primary" style="padding:8px 20px 8px 20px; margin-top:20px" type="submit">
                       <span id="twoFactorLoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
-                      Save
+                      <span id="twoFactorSubmitName">Enable</span>
                     </button>
                   </form>
                 </div>
@@ -225,7 +221,7 @@
                 <button id="closeModal" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
-                <div id="deleteAlert"></div>
+                <div id="modalAlert"></div>
                 <p id="modalBody" style="margin:0">Modal body text goes here.</p>
               </div>
               <div class="modal-footer">
@@ -245,6 +241,7 @@
       </div>
     </main>
     <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/qrcode.js"></script>
     <script src="js/scripts/common.js"></script>
     <script src="js/scripts/profile.js"></script>
   </body>

@@ -95,6 +95,7 @@ def lambda_handler(event, context):
                 "username": {'S': username},
                 "password": {'S': password_encrypted},
                 "email": {'S': email},
+                "2fa_enabled": {'BOOL': False},
                 "created": {'N': str(int(datetime.now(tz=timezone.utc).timestamp()))},
                 "verify_code": {'S': verify_code},
                 "ttl": {'N': str(int((datetime.now(tz=timezone.utc) + timedelta(days=1)).timestamp()))},

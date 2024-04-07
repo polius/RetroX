@@ -49,7 +49,13 @@ def lambda_handler(event, context):
     response = dynamodb.get_item(
         TableName='retrox-users',
         Key={'username': {'S': username}},
-        ProjectionExpression='email,password,verify_code',
+        ProjectionExpression='#email, #password, #verify_code, #2fa_enabled',
+        ExpressionAttributeNames={
+            '#email': 'email',
+            '#password': 'password',
+            '#verify_code': 'verify_code',
+            '#2fa_enabled': '2fa_enabled',
+        }
     )
     user = response.get('Item')
 
@@ -114,7 +120,7 @@ def lambda_handler(event, context):
     # Return token as a parameter
     return {
         'statusCode': 200,
-        'body': json.dumps({'token': token, 'email': user['email']['S'], 'username': username, 'remember': remember})
+        'body': json.dumps({'token': token, 'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': user['2fa_enabled']['BOOL']})
     }
 
     # Return token as a cookie
@@ -124,5 +130,5 @@ def lambda_handler(event, context):
         "cookies": [
             f"token={token}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=Strict; Path=/"
         ],
-        'body': json.dumps({'email': user['email']['S'], 'username': username, 'remember': remember, 'expires': int(expiration.timestamp())})
+        'body': json.dumps({'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': user['2fa_enabled']['BOOL'], 'expires': int(expiration.timestamp())})
     }

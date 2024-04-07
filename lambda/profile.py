@@ -2,6 +2,7 @@ import os
 import re
 import json
 import boto3
+import pyotp
 import secrets
 import logging
 from datetime import datetime, timedelta, timezone
@@ -194,7 +195,162 @@ def change_google_drive_api(event):
     pass
 
 def change_two_factor(event):
-    pass
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Check required parameters
+    body = json.loads(event['body'])
+
+    if 'enabled' not in body:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "Invalid parameters."})
+        }
+
+    # Get variables
+    username = event['requestContext']['authorizer']['lambda']['username']
+    enabled = body['enabled']
+
+    if enabled:
+        # Generate new code
+        if 'code' not in body:
+            # Generate OTP Secret
+            otp_secret = pyotp.random_base32()
+
+            # Store 2FA
+            try:
+                dynamodb.update_item(
+                    TableName='retrox-users',
+                    Key={'username': {'S': username}},
+                    ExpressionAttributeNames={
+                        '#2fa_enabled': '2fa_enabled',
+                        '#2fa_secret': '2fa_secret',
+                    },
+                    ExpressionAttributeValues={
+                        ':2fa_enabled': {
+                            'BOOL': False
+                        },
+                        ':2fa_secret': {
+                            'S': otp_secret
+                        },
+                    },
+                    UpdateExpression='SET #2fa_enabled = :2fa_enabled, #2fa_secret = :2fa_secret',
+                    ConditionExpression='attribute_exists(username)',
+                )
+            except dynamodb.exceptions.ConditionalCheckFailedException:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "This account no longer exists."})
+                }
+            except Exception as e:
+                logger.error(str(e))
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+                }
+
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    "message": "Scan the QR and enter the code.",
+                    "2fa_uri": pyotp.totp.TOTP(otp_secret).provisioning_uri(name=username, issuer_name='RetroX Emulator'),
+                })
+            }
+
+        else:
+            # Get User 2FA Code
+            response = dynamodb.get_item(
+                TableName='retrox-users',
+                Key={'username': {'S': username}},
+                ProjectionExpression='#2fa_enabled, #2fa_secret',
+                ExpressionAttributeNames={
+                    '#2fa_enabled': '2fa_enabled',
+                    '#2fa_secret': '2fa_secret',
+                }
+            )
+            user = response.get('Item')
+
+            # Check attributes
+            if '2fa_enabled' not in user or '2fa_secret' not in user or user['2fa_enabled']['BOOL']:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+                }
+
+            # Verify 2FA
+            totp = pyotp.TOTP(user['2fa_secret']['S'])
+            if not totp.verify(body['code'], valid_window=1):
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "The code is not valid."})
+                }
+
+            # Enable 2FA
+            try:
+                dynamodb.update_item(
+                    TableName='retrox-users',
+                    Key={'username': {'S': username}},
+                    ExpressionAttributeNames={
+                        '#2fa_enabled': '2fa_enabled',
+                    },
+                    ExpressionAttributeValues={
+                        ':2fa_enabled': {
+                            'BOOL': True
+                        },
+                    },
+                    UpdateExpression='SET #2fa_enabled = :2fa_enabled',
+                    ConditionExpression='attribute_exists(username)',
+                )
+            except dynamodb.exceptions.ConditionalCheckFailedException:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "This account no longer exists."})
+                }
+            except Exception as e:
+                logger.error(str(e))
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+                }
+
+            return {
+                'statusCode': 200,
+                'body': json.dumps({"message": "Two-Factor enabled."})
+            }
+    else:
+        # Disable 2FA
+        try:
+            dynamodb.update_item(
+                TableName='retrox-users',
+                Key={'username': {'S': username}},
+                ExpressionAttributeNames={
+                    '#2fa_enabled': '2fa_enabled',
+                    '#2fa_secret': '2fa_secret',
+                },
+                ExpressionAttributeValues={
+                    ':2fa_enabled': {
+                        'BOOL': False
+                    }
+                },
+                UpdateExpression='SET #2fa_enabled = :2fa_enabled REMOVE #2fa_secret',
+                ConditionExpression='attribute_exists(username)',
+            )
+        except dynamodb.exceptions.ConditionalCheckFailedException:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "This account no longer exists."})
+            }
+        except Exception as e:
+            logger.error(str(e))
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+            }
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({"message": "Two-Factor disabled."})
+        }
 
 def delete_account(event):
     # Initialize DynamoDB client
@@ -234,7 +390,7 @@ def lambda_handler(event, context):
         return change_password(event)
     elif event['requestContext']['http']['path'] == '/profile/google':
         return change_google_drive_api(event)
-    elif event['requestContext']['http']['path'] == '/profile/twofactor':
+    elif event['requestContext']['http']['path'] == '/profile/2fa':
         return change_two_factor(event)
     elif event['requestContext']['http']['path'] == '/profile/delete':
         return delete_account(event)
