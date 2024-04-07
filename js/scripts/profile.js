@@ -57,7 +57,7 @@ async function changeEmail(event) {
   submitButton.setAttribute("disabled", "");
   submitLoading.style.display = 'inline-flex';
 
-  // Perform the Register request
+  // Perform the Change Email request
   try {
     const response = await fetch("https://api.retrox.app/profile/email", {
       method: "POST",
@@ -90,7 +90,69 @@ async function changeEmail(event) {
 }
 
 async function changePassword(event) {
+  // Prevent page to refresh
+  event.preventDefault();
 
+  // Get elements
+  const currentPassword = document.getElementById("currentPassword");
+  const newPassword = document.getElementById("newPassword");
+  const confirmPassword = document.getElementById("confirmPassword");
+  const submitButton = document.getElementById("submitPassword");
+  const submitLoading = document.getElementById("loadingPassword");
+  const passwordAlert = document.getElementById("passwordAlert");
+
+  // Check if all values are filled
+  if (currentPassword.value.length == 0 || newPassword.value.length == 0 || confirmPassword.value.length == 0) {
+    showAlert(passwordAlert, "warning", "Please fill out all fields.")
+    return
+  }
+
+  // Check if the passwords match
+  if (newPassword.value != confirmPassword.value) {
+    showAlert(passwordAlert, "warning", "The two passwords do not match.")
+    newPassword.value = ''
+    confirmPassword.value = ''
+    newPassword.focus()
+    return
+  }
+
+  // Disable the submit button
+  submitButton.setAttribute("disabled", "");
+  submitLoading.style.display = 'inline-flex';
+
+  // Perform the Change Password request
+  try {
+    const response = await fetch("https://api.retrox.app/profile/password", {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        password: newPassword.value.trim(),
+      })
+    })
+
+    const json = await response.json()
+    if (!response.ok) {
+      showAlert(passwordAlert, "danger", json['message'])
+    }
+    else {
+      showAlert(passwordAlert, "success", json['message'])
+      currentPassword.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
+      currentPassword.focus()
+    }
+  }
+  catch (error) {
+    console.log(error)
+    showAlert(passwordAlert, "danger", "An error occurred. Please try again.")
+  }
+  finally {
+    submitButton.removeAttribute("disabled");
+    submitLoading.style.display = 'none';
+  }
 }
 
 async function changeGoogleDriveAPI(event) {
@@ -102,7 +164,77 @@ async function changeTwoFactor(event) {
 }
 
 async function deleteAccount(event) {
+  // Prevent page to refresh
+  event.preventDefault();
 
+  // Get components
+  const modal = new bootstrap.Modal(document.getElementById('modal'), {
+    backdrop: 'static',
+    keyboard: false
+  })
+  const modalTitle = document.getElementById('modalTitle')
+  const modalBody = document.getElementById('modalBody')
+
+  // Set values
+  modalTitle.innerHTML = 'Delete account'
+  modalBody.innerHTML = 'Are you sure you want to delete your account?'
+  modal.show() 
+}
+
+async function modalConfirm() {
+  // Get components
+  const modal = new bootstrap.Modal(document.getElementById('modal'))
+  const closeModal = document.getElementById('closeModal');
+  const cancelModal = document.getElementById('cancelModal');
+  const submitButton = document.getElementById('modalSubmit');
+  const submitLoading = document.getElementById('modalLoading');
+
+  // Disable the submit button
+  closeModal.setAttribute("disabled", "");
+  cancelModal.setAttribute("disabled", "");
+  submitButton.setAttribute("disabled", "");
+  submitLoading.style.display = 'inline-flex';
+
+  // Perform the Change Password request
+  try {
+    const response = await fetch("https://api.retrox.app/profile/delete", {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+    })
+    const json = await response.json()
+    if (!response.ok) {
+      showAlert(deleteAlert, "danger", json['message'])
+    }
+    else {
+      showAlert(deleteAlert, "success", json['message'])
+
+      // Perform the Logout request
+      await fetch("https://api.retrox.app/logout/", { method: "POST" })
+
+      // Clean local storage
+      localStorage.removeItem('token')
+      localStorage.removeItem('username')
+      localStorage.removeItem('email')
+      localStorage.removeItem('remember')
+
+      setTimeout(() => {
+        window.location.href = `${window.location.origin}`
+      }, 1500)
+    }
+  }
+  catch (error) {
+    console.log(error)
+    showAlert(passwordAlert, "danger", "An error occurred. Please try again.")
+  }
+  finally {
+    submitButton.removeAttribute("disabled");
+    closeModal.removeAttribute("disabled");
+    cancelModal.removeAttribute("disabled");
+    submitLoading.style.display = 'none';
+  }
 }
 
 onLoad()

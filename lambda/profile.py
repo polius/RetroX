@@ -5,6 +5,7 @@ import boto3
 import secrets
 import logging
 from datetime import datetime, timedelta, timezone
+from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +129,66 @@ def change_email(event):
     }
 
 def change_password(event):
-    pass
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Check required parameters
+    body = json.loads(event['body'])
+
+    if 'password' not in body:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "Invalid parameters."})
+        }
+
+    # Get variables
+    username = event['requestContext']['authorizer']['lambda']['username']
+    password = body['password']
+
+    # Check password requirements
+    if len(password) < 8:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "The password must contain at least 8 characters."})
+        }
+
+    # Encrypt password
+    f = Fernet(os.environ['SECRET_KEY'].encode())
+    password_encrypted = f.encrypt(password.encode()).decode()
+
+    # Assign new password to user
+    try:
+        dynamodb.update_item(
+            TableName='retrox-users',
+            Key={'username': {'S': username}},
+            ExpressionAttributeNames={
+                '#password': 'password',
+            },
+            ExpressionAttributeValues={
+                ':password': {
+                    'S': password_encrypted,
+                },
+            },
+            UpdateExpression='SET #password = :password',
+            ConditionExpression='attribute_exists(username)',
+        )
+    except dynamodb.exceptions.ConditionalCheckFailedException:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "This account no longer exists."})
+        }
+    except Exception as e:
+        logger.error(str(e))
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+        }
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({"message": "Password changed."})
+    }
+
 
 def change_google_drive_api(event):
     pass
@@ -137,7 +197,35 @@ def change_two_factor(event):
     pass
 
 def delete_account(event):
-    pass
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Get variables
+    username = event['requestContext']['authorizer']['lambda']['username']
+
+    # Delete account
+    try:
+        dynamodb.delete_item(
+            TableName='retrox-users',
+            Key={'username': {'S': username}},
+            ConditionExpression='attribute_exists(username)',
+        )
+    except dynamodb.exceptions.ConditionalCheckFailedException:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "This account no longer exists."})
+        }
+    except Exception as e:
+        logger.error(str(e))
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+        }
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({"message": "Account deleted."})
+    }
 
 def lambda_handler(event, context):
     if event['requestContext']['http']['path'] == '/profile/email':
