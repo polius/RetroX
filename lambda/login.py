@@ -3,6 +3,7 @@ import json
 import boto3
 import logging
 import requests
+import pyotp
 import jwt
 from datetime import datetime, timedelta, timezone
 from cryptography.fernet import Fernet
@@ -27,6 +28,7 @@ def lambda_handler(event, context):
     username = body['username']
     password = body['password']
     remember = body['remember']
+    two_factor = body.get('2fa')
     token = body['token']
     secret_key = os.environ['SECRET_KEY']
 
@@ -49,12 +51,12 @@ def lambda_handler(event, context):
     response = dynamodb.get_item(
         TableName='retrox-users',
         Key={'username': {'S': username}},
-        ProjectionExpression='#email, #password, #verify_code, #2fa_enabled',
+        ProjectionExpression='#email, #password, #verify_code, #2fa_secret',
         ExpressionAttributeNames={
             '#email': 'email',
             '#password': 'password',
             '#verify_code': 'verify_code',
-            '#2fa_enabled': '2fa_enabled',
+            '#2fa_secret': '2fa_secret',
         }
     )
     user = response.get('Item')
@@ -83,6 +85,29 @@ def lambda_handler(event, context):
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid username or password."})
         }
+
+    # Check if 2FA is enabled and user is requesting to log in
+    if '2fa_secret' in user and not two_factor:
+        # Generate cookie
+        cookie_expires = expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        return {
+            'statusCode': 200,
+            "cookies": [
+                f"username={username}; Expires={cookie_expires}; Path=/",
+                f"password={password_encrypted}; Expires={cookie_expires}; Path=/",
+                f"remember={remember}; Expires={cookie_expires}; Path=/",
+            ],
+            'body': json.dumps({'2FA': 'Required'})
+        }
+
+    # Check two factor code
+    if '2fa_secret' in user and two_factor:
+        totp = pyotp.TOTP(user['2fa_secret']['S'])
+        if not totp.verify(two_factor, valid_window=1):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "The code is not valid."})
+            }
 
     # Update user last_login
     try:

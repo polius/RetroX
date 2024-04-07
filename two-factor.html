@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="images/emulator-logo.png" />
     <link rel="shortcut icon" href="images/emulator-logo.png" />
     <meta name="theme-color" content="#212529" />
-    <title>Login | RetroX Emulator</title>
+    <title>Two-Factor Authentication | RetroX Emulator</title>
     <meta name="robots" content="index,follow" />
     <meta name="description" content="A Multi-Platform Emulator for Game Boy, Game Boy Color, Game Boy Advance, NES, Nintendo 64 and Play Station." />
     <meta property="og:title" content="RetroX Emulator" />
@@ -39,50 +39,30 @@
         .form-signin .form-floating:focus-within {
           z-index: 2;
         }
-        .form-signin input[type="text"] {
-          margin-bottom: -1px;
-          border-bottom-right-radius: 0;
-          border-bottom-left-radius: 0;
-        }
-        .form-signin input[type="password"] {
-          margin-bottom: 10px;
-          border-top-left-radius: 0;
-          border-top-right-radius: 0;
-        }
     </style>
 </head>
 
 <body class="text-center">
   <main class="form-signin w-100 m-auto">
-    <form onsubmit="login(event)" >
+    <form onsubmit="twoFactor(event)" >
       <a href="/" style="text-decoration: none;">
         <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
         <h1 class="h1 fw-normal mb-3 pt-4"><b>RetroX</b> Emulator</h1>
       </a>
-      <p id="loginMessage" class="mb-5 fw-normal" style="font-size: 17px; cursor:default;"></p>
+      <p class="mb-5 fw-normal" style="margin-top: 30px; font-size: 24px; cursor:default; font-weight: 600;">Two-Factor Authentication</p>
 
-      <div id="loginAlert"></div>
+      <div id="twoFactorAlert"></div>
       <div class="form-floating">
-        <input id="username" autofocus type="text" class="form-control" id="floatingInput" placeholder="Username">
-        <label for="floatingInput">Username</label>
-      </div>
-      <div class="form-floating">
-        <input id="password" type="password" class="form-control" id="floatingPassword" placeholder="Password">
-        <label for="floatingPassword">Password</label>
+        <input id="2fa" autofocus type="text" class="form-control" id="floatingInput" placeholder="Two-Factor Code">
+        <label for="floatingInput">Two-Factor Code</label>
       </div>
       
       <div class="cf-turnstile" style="margin-top:20px" data-sitekey="0x4AAAAAAAV5uNntU0ymmp6t" data-callback="turnstileCallback"></div>
 
-      <div class="checkbox mb-4 mt-3">
-        <label>
-          <input id="remember" type="checkbox" value="remember-me"> Remember me
-        </label>
-      </div>
-      <button id="submit" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-2 mb-4">
+      <button id="submit" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-3 mb-4">
         <span id="loading" class="spinner-border spinner-border-sm"  style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
         Log in
       </button>
-      <a href="recover.html" style="text-decoration: none">Forgot password</a>
     </form>
     <footer class="pt-3 text-muted border-top d-flex justify-content-center" style="margin-top: 50px">
       RetroX Emulator &copy; 2024
@@ -92,5 +72,5 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   <script src="js/bootstrap.bundle.min.js"></script>
   <script src="js/scripts/common.js"></script>
-  <script src="js/scripts/login.js"></script>
+  <script src="js/scripts/two-factor.js"></script>
 </html>
