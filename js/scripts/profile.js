@@ -1,4 +1,10 @@
 function onLoad() {
+  // Check if user is not logged in
+  if (!localStorage.getItem('token')) {
+    window.location.href = `${window.location.origin}`
+  }
+
+  // Add current email
   const currentEmail = document.getElementById('currentEmail')
   currentEmail.value = localStorage.getItem('email')
 }
@@ -70,7 +76,6 @@ async function changeEmail(event) {
     }
     else {
       showAlert(emailAlert, "success", json['message'])
-      currentEmail.value = ''
       newEmail.value = ''
     }
   }

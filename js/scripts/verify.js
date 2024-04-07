@@ -1,10 +1,3 @@
-function onLoad() {
-  // Check if user is already logged in
-  if (localStorage.getItem('token')) {
-    window.location.href = `${window.location.origin}/games.html`
-  }
-}
-
 function turnstileCallback() {
   const submitButton = document.getElementById("submit");
   submitButton.removeAttribute("disabled");
@@ -51,7 +44,7 @@ async function verify(event) {
   verifyAlert.innerHTML = ''
   
   // Check parameters
-  if (urlParams.get('username') == null || urlParams.get('code') == null) {
+  if (urlParams.get('username') == null || urlParams.get('code') == null || urlParams.get('origin') == null) {
     showAlert("danger", "This URL is not valid.")
     return
   }
@@ -67,6 +60,7 @@ async function verify(event) {
       body: JSON.stringify({
         username: urlParams.get('username'),
         code: urlParams.get('code'),
+        origin: urlParams.get('origin'),
         token: cfToken,
       })
     })
@@ -90,4 +84,17 @@ async function verify(event) {
   }
 }
 
-onLoad()
+async function login() {
+  // Show loading spinner
+  const startLoading = document.getElementById('startLoading');
+  startLoading.style.display = 'inline-flex'
+
+  // Perform the Logout request
+  await fetch("https://api.retrox.app/logout/", { method: "POST" })
+
+  // Remove token from local storage
+  localStorage.removeItem('token')
+
+  // Redirect to the home page
+  window.location.href = `${window.location.origin}/login.html`
+}

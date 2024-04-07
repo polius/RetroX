@@ -1,6 +1,5 @@
 import os
 import re
-import jwt
 import json
 import boto3
 import secrets
@@ -23,6 +22,7 @@ def change_email(event):
         }
 
     # Get variables
+    username = event['requestContext']['authorizer']['lambda']['username']
     email = body['email']
 
     # Check email format
@@ -51,8 +51,7 @@ def change_email(event):
     # Generate verify code
     verify_code = secrets.token_urlsafe(32)
 
-    print(response)
-
+    # Assign verify code to user
     try:
         dynamodb.update_item(
             TableName='retrox-users',
@@ -60,6 +59,7 @@ def change_email(event):
             ExpressionAttributeNames={
                 '#verify_code': 'verify_code',
                 '#verify_code_ttl': 'verify_code_ttl',
+                '#new_email': 'new_email',
             },
             ExpressionAttributeValues={
                 ':verify_code': {
@@ -68,8 +68,11 @@ def change_email(event):
                 ':verify_code_ttl': {
                     'N': str(int((datetime.now(tz=timezone.utc) + timedelta(days=1)).timestamp())),
                 },
+                ':new_email': {
+                    'S': email,
+                },
             },
-            UpdateExpression='SET #verify_code = :verify_code, #verify_code_ttl = :verify_code_ttl',
+            UpdateExpression='SET #verify_code = :verify_code, #verify_code_ttl = :verify_code_ttl, #new_email = :new_email',
             ConditionExpression='attribute_exists(username)',
         )
     except dynamodb.exceptions.ConditionalCheckFailedException:
@@ -85,7 +88,7 @@ def change_email(event):
         }
 
     # Build Verify URL
-    verify_url = f"https://www.retrox.app/verify.html?username={username}&code={verify_code}"
+    verify_url = f"https://www.retrox.app/verify.html?username={username}&code={verify_code}&origin=profile"
 
     # Get the Verify email template
     with open("verify_email.html", "r") as fopen:
@@ -137,9 +140,6 @@ def delete_account(event):
     pass
 
 def lambda_handler(event, context):
-    # Get username TBD..... get Authorizer (cookie & parameter compatible) and using the jwt library, extract the username and pass it to all next methods.
-    print(event)
-
     if event['requestContext']['http']['path'] == '/profile/email':
         return change_email(event)
     elif event['requestContext']['http']['path'] == '/profile/password':
