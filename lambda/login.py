@@ -56,8 +56,6 @@ def lambda_handler(event, context):
             "turnstile": body['turnstile'],
         }
 
-    print(params)
-
     # Check Cloudflare Turnstile validity
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = {

@@ -1,6 +1,6 @@
 function onLoad() {
   // Check if user is already logged in
-  if (localStorage.getItem('token')) {
+  if (localStorage.getItem('expires')) {
     window.location.href = `${window.location.origin}/games.html`
   }
 }
@@ -72,11 +72,11 @@ async function twoFactor(event) {
       twoFactorCode.focus()
     }
     else {
-      localStorage.setItem('token', json['token'])
       localStorage.setItem('email', json['email'])
       localStorage.setItem('username', json['username'])
       localStorage.setItem('remember', json['remember'])
       localStorage.setItem('2fa', json['2fa'])
+      localStorage.setItem('expires', json['expires'])
       window.location.href = `${window.location.origin}/games.html`
     }
   }

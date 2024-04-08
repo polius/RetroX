@@ -1,6 +1,6 @@
 function onLoad() {
   // Check if user is already logged in
-  if (localStorage.getItem('token')) {
+  if (localStorage.getItem('expires')) {
     window.location.href = `${window.location.origin}/games.html`
   }
 }

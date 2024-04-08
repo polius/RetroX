@@ -9,6 +9,7 @@ async function logout(page) {
   localStorage.removeItem('token')
   localStorage.removeItem('email')
   localStorage.removeItem('2fa')
+  localStorage.removeItem('expires')
   window.location.href = `${window.location.origin}/${page}.html`
 }
 
