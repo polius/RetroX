@@ -84,6 +84,7 @@ async function recoverRequest(event) {
   try {
     const response = await fetch("https://api.retrox.app/recover/", {
       method: "POST",
+      credentials: 'include',
       body: JSON.stringify({
         email: email.value.trim(),
         username: username.value.trim(),
@@ -141,6 +142,7 @@ async function recoverSubmit(event) {
   try {
     const response = await fetch("https://api.retrox.app/recover/", {
       method: "POST",
+      credentials: 'include',
       body: JSON.stringify({
         username: urlParams.get('username'),
         code: urlParams.get('code'),

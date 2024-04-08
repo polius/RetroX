@@ -77,11 +77,12 @@ async function register(event) {
   try {
     const response = await fetch("https://api.retrox.app/register/", {
       method: "POST",
+      credentials: 'include',
       body: JSON.stringify({
         email: email.value.trim(),
         username: username.value.trim(),
         password: password.value.trim(),
-        token: cfToken,
+        turnstile: cfToken,
       })
     })
 

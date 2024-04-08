@@ -10,7 +10,7 @@ from cryptography.fernet import Fernet
 logger = logging.getLogger(__name__)
 
 def request(body):
-    if not {'email','username','token'}.issubset(body.keys()):
+    if not {'email','username','turnstile'}.issubset(body.keys()):
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "The username and email are required."})
@@ -122,7 +122,7 @@ def request(body):
     }
 
 def submit(body):
-    if not {'username','code','token'}.issubset(body.keys()):
+    if not {'username','code','turnstile'}.issubset(body.keys()):
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid URL."})
@@ -209,7 +209,7 @@ def lambda_handler(event, context):
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = {
         "secret": os.environ['TURNSTILE_SECRET'],
-        "response": body.get('token'),
+        "response": body.get('turnstile'),
     }
     response = requests.post(url, data=data)
     response = response.json()

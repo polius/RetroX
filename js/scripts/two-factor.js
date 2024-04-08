@@ -6,12 +6,12 @@ function onLoad() {
 }
   
 function turnstileCallback() {
-  const submitButton = document.getElementById("submit");
+  const submitButton = document.getElementById("twoFactorSubmit");
   submitButton.removeAttribute("disabled");
 }
 
 function showAlert(type, message) {
-  const twoFactorAlert = document.getElementById('loginAlert')
+  const twoFactorAlert = document.getElementById('twoFactorAlert')
   twoFactorAlert.innerHTML = `
     <div class="alert alert-${type} alert-dismissible" role="alert">
       <div style="text-align:left">
@@ -36,19 +36,16 @@ async function twoFactor(event) {
   // Prevent page to refresh
   event.preventDefault();
 
-  return
-
   // Get elements
-  const username = document.getElementById("username");
-  const password = document.getElementById("password");
-  const remember = document.getElementById("remember");
+  const twoFactorCode = document.getElementById("twoFactorCode");
   const cfToken = turnstile.getResponse();
-  const submitButton = document.getElementById("submit");
-  const submitLoading = document.getElementById("loading");
+  const submitButton = document.getElementById("twoFactorSubmit");
+  const submitLoading = document.getElementById("twoFactorLoading");
 
   // Check if all values are filled
-  if (username.value.length == 0 || password.value.length == 0) {
+  if (twoFactorCode.value.length == 0) {
     showAlert("warning", "Please fill out all fields.")
+    twoFactorCode.focus()
     return
   }
 
@@ -60,11 +57,11 @@ async function twoFactor(event) {
   try {
     const response = await fetch("https://api.retrox.app/login/", {
       method: "POST",
+      credentials: 'include',
       body: JSON.stringify({
-        username: username.value.trim(),
-        password: password.value.trim(),
-        remember: remember.checked,
-        token: cfToken,
+        mode: 'two-factor',
+        code: twoFactorCode.value.trim(),
+        turnstile: cfToken,
       })
     })
 
@@ -72,6 +69,7 @@ async function twoFactor(event) {
     if (!response.ok) {
       turnstile.reset()
       showAlert("danger", json['message'])
+      twoFactorCode.focus()
     }
     else {
       localStorage.setItem('token', json['token'])

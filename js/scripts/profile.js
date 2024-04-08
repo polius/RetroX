@@ -70,12 +70,14 @@ async function changeEmail(event) {
   // Perform the Change Email request
   const newEmailValue = newEmail.value.trim()
   try {
+    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/email", {
       method: "POST",
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      // headers: {
+      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      //   'Content-Type': 'application/json',
+      // },
       body: JSON.stringify({
         email: newEmailValue,
       })
@@ -133,12 +135,14 @@ async function changePassword(event) {
 
   // Perform the Change Password request
   try {
+    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/password", {
       method: "POST",
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      // headers: {
+      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      //   'Content-Type': 'application/json',
+      // },
       body: JSON.stringify({
         password: newPassword.value.trim(),
       })
@@ -208,12 +212,14 @@ async function changeTwoFactor(event) {
     // Enable two-factor - Step 1/2
     if (twoFactorKey == null) {
       try {
+        await checkLogin()
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
+          credentials: 'include',
+          // headers: {
+          //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          //   'Content-Type': 'application/json',
+          // },
           body: JSON.stringify({
             enable: true
           })
@@ -260,12 +266,14 @@ async function changeTwoFactor(event) {
         return
       }
       try {
+        await checkLogin()
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
+          credentials: 'include',
+          // headers: {
+          //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          //   'Content-Type': 'application/json',
+          // },
           body: JSON.stringify({
             enable: true,
             key: twoFactorKey,
@@ -309,12 +317,14 @@ async function disable2FASubmit() {
 
   // Disable 2FA
   try {
+    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/2fa", {
       method: "POST",
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      // headers: {
+      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      //   'Content-Type': 'application/json',
+      // },
       body: JSON.stringify({
         enable: false
       })
@@ -363,12 +373,14 @@ async function deleteAccountSubmit() {
 
   // Perform the Change Password request
   try {
+    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/delete", {
       method: "POST",
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      // headers: {
+      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      //   'Content-Type': 'application/json',
+      // },
     })
     const json = await response.json()
     if (!response.ok) {
@@ -378,7 +390,10 @@ async function deleteAccountSubmit() {
       showAlert(modalAlert, "success", json['message'])
 
       // Perform the Logout request
-      await fetch("https://api.retrox.app/logout/", { method: "POST" })
+      await fetch("https://api.retrox.app/logout/", { 
+        method: "POST",
+        credentials: 'include',
+      })
 
       // Clean local storage
       localStorage.removeItem('token')

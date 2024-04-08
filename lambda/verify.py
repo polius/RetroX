@@ -11,7 +11,7 @@ def lambda_handler(event, context):
     # Check required parameters
     body = json.loads(event['body'])
 
-    if not {'username','code','origin','token'}.issubset(body.keys()) or body['origin'] not in ['register','profile']:
+    if not {'username','code','origin','turnstile'}.issubset(body.keys()) or body['origin'] not in ['register','profile']:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid URL."})
@@ -21,13 +21,13 @@ def lambda_handler(event, context):
     username = body['username']
     code = body['code']
     origin = body['origin']
-    token = body['token']
+    turnstile = body['turnstile']
 
     # Check Cloudflare Turnstile token validity
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = {
         "secret": os.environ['TURNSTILE_SECRET'],
-        "response": token,
+        "response": turnstile,
     }
     response = requests.post(url, data=data)
     response = response.json()

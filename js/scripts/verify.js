@@ -57,11 +57,12 @@ async function verify(event) {
   try {
     const response = await fetch("https://api.retrox.app/verify/", {
       method: "POST",
+      credentials: 'include',
       body: JSON.stringify({
         username: urlParams.get('username'),
         code: urlParams.get('code'),
         origin: urlParams.get('origin'),
-        token: cfToken,
+        turnstile: cfToken,
       })
     })
 
@@ -90,7 +91,10 @@ async function login() {
   startLoading.style.display = 'inline-flex'
 
   // Perform the Logout request
-  await fetch("https://api.retrox.app/logout/", { method: "POST" })
+  await fetch("https://api.retrox.app/logout/", {
+    method: "POST",
+    credentials: 'include',
+  })
 
   // Remove token from local storage
   localStorage.removeItem('token')

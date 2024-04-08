@@ -45,5 +45,5 @@ def authorizer_cookie(event):
 
 
 def lambda_handler(event, context):
-    return authorizer_default(event)
-    # return authorizer_cookie(event)
+    # return authorizer_default(event)
+    return authorizer_cookie(event)

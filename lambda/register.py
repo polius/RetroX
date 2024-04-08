@@ -17,7 +17,7 @@ def lambda_handler(event, context):
     # Check required parameters
     body = json.loads(event['body'])
 
-    if not {'username','password','email','token'}.issubset(body.keys()):
+    if not {'username','password','email','turnstile'}.issubset(body.keys()):
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid parameters."})
@@ -27,7 +27,7 @@ def lambda_handler(event, context):
     username = body['username']
     password = body['password']
     email = body['email']
-    token = body['token']
+    turnstile = body['turnstile']
 
     # Check email format
     if not re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email):
@@ -54,7 +54,7 @@ def lambda_handler(event, context):
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = {
         "secret": os.environ['TURNSTILE_SECRET'],
-        "response": token,
+        "response": turnstile,
     }
     response = requests.post(url, data=data)
     response = response.json()

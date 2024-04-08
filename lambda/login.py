@@ -10,33 +10,59 @@ from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 
-
 def lambda_handler(event, context):
     # Initialize DynamoDB client
     dynamodb = boto3.client('dynamodb')
 
-    # Check required parameters
+    # Get variables
+    secret_key = os.environ['SECRET_KEY']
     body = json.loads(event['body'])
+    cookies = {i.split('=')[0]: i.split('=')[1] for i in event.get('cookies')}
+    params = {}
 
-    if not {'username','password','remember','token'}.issubset(body.keys()):
+    # Check parameters
+    if 'mode' not in body or body['mode'] not in ['login','two-factor']:
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "The username and password are required."})
+            'body': json.dumps({"message": "Invalid parameters."})
         }
 
-    # Get variables
-    username = body['username']
-    password = body['password']
-    remember = body['remember']
-    two_factor = body.get('2fa')
-    token = body['token']
-    secret_key = os.environ['SECRET_KEY']
+    if body['mode'] == 'login':
+        if not {'username','password','remember','turnstile'}.issubset(body.keys()):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "Invalid parameters."})
+            }
+        params = {
+            "mode": body['mode'],
+            "username": body['username'],
+            "password": body['password'],
+            "remember": body['remember'],
+            "turnstile": body['turnstile'],
+        }
 
-    # Check Cloudflare Turnstile token validity
+    elif body['mode'] == 'two-factor':
+        if not {'username','password','remember'}.issubset(cookies.keys()) or not {'code','turnstile'}.issubset(body.keys()):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "Invalid parameters."})
+            }
+        params = {
+            "mode": body['mode'],
+            "username": cookies['username'],
+            "password": cookies['password'],
+            "remember": cookies['remember'],
+            "code": body['code'],
+            "turnstile": body['turnstile'],
+        }
+
+    print(params)
+
+    # Check Cloudflare Turnstile validity
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = {
         "secret": os.environ['TURNSTILE_SECRET'],
-        "response": token,
+        "response": params['turnstile'],
     }
     response = requests.post(url, data=data)
     response = response.json()
@@ -50,7 +76,7 @@ def lambda_handler(event, context):
     # Get DynamoDB user
     response = dynamodb.get_item(
         TableName='retrox-users',
-        Key={'username': {'S': username}},
+        Key={'username': {'S': params['username']}},
         ProjectionExpression='#email, #password, #verify_code, #2fa_secret',
         ExpressionAttributeNames={
             '#email': 'email',
@@ -77,33 +103,41 @@ def lambda_handler(event, context):
 
     # Decrypt password
     f = Fernet(secret_key.encode())
-    password_decrypted = f.decrypt(user['password']['S'].encode()).decode()
+    password_decrypted = f.decrypt(user['password']['S'].encode()).decode() if params['mode'] == 'login' else params['password']
 
     # Check both passwords
-    if password != password_decrypted:
+    if params['password'] != password_decrypted:
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Invalid username or password."})
         }
 
     # Check if 2FA is enabled and user is requesting to log in
-    if '2fa_secret' in user and not two_factor:
+    if params['mode'] == 'login' and '2fa_secret' in user:
         # Generate cookie
+        expiration = datetime.now(tz=timezone.utc) + timedelta(days=1)
         cookie_expires = expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')
         return {
             'statusCode': 200,
             "cookies": [
-                f"username={username}; Expires={cookie_expires}; Path=/",
-                f"password={password_encrypted}; Expires={cookie_expires}; Path=/",
-                f"remember={remember}; Expires={cookie_expires}; Path=/",
+                f"username={params['username']}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=None; Path=/",
+                f"password={user['password']['S']}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=None; Path=/",
+                f"remember={params['remember']}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=None; Path=/",
             ],
             'body': json.dumps({'2FA': 'Required'})
         }
 
     # Check two factor code
-    if '2fa_secret' in user and two_factor:
+    if params['mode'] == 'two-factor':
+        if '2fa_secret' not in user:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "This user does not have Two-Factor enabled."})
+            }
+
+        # Check Two-Factor
         totp = pyotp.TOTP(user['2fa_secret']['S'])
-        if not totp.verify(two_factor, valid_window=1):
+        if not totp.verify(params['code'], valid_window=1):
             return {
                 'statusCode': 400,
                 'body': json.dumps({"message": "The code is not valid."})
@@ -113,7 +147,7 @@ def lambda_handler(event, context):
     try:
         dynamodb.update_item(
             TableName='retrox-users',
-            Key={'username': {'S': username}},
+            Key={'username': {'S': params['username']}},
             ExpressionAttributeNames={
                 '#last_login': 'last_login',
             },
@@ -139,21 +173,20 @@ def lambda_handler(event, context):
     
     # Generate token
     expiration = datetime.now(tz=timezone.utc) + timedelta(days=30)
-    payload = {'username': username, 'exp': int(expiration.timestamp())}
+    payload = {'username': params['username'], 'exp': int(expiration.timestamp())}
     token = jwt.encode(payload, secret_key, algorithm='HS256')
 
     # Return token as a parameter
-    return {
-        'statusCode': 200,
-        'body': json.dumps({'token': token, 'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': '2fa_secret' in user})
-    }
+    # return {
+    #     'statusCode': 200,
+    #     'body': json.dumps({'token': token, 'email': user['email']['S'], 'username':params['username'], 'remember': params['remember'], '2fa': '2fa_secret' in user})
+    # }
 
     # Return token as a cookie
-    cookie_expires = expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')
     return {
         'statusCode': 200,
         "cookies": [
-            f"token={token}; Expires={cookie_expires}; Secure; HttpOnly; SameSite=Strict; Path=/"
+            f"token={token}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/" # Change None to Strict for Production
         ],
-        'body': json.dumps({'email': user['email']['S'], 'username': username, 'remember': remember, '2fa': '2fa_secret' in user, 'expires': int(expiration.timestamp())})
+        'body': json.dumps({'email': user['email']['S'], 'username': params['username'], 'remember': params['remember'], '2fa': '2fa_secret' in user, 'expires': int(expiration.timestamp())})
     }

@@ -71,11 +71,13 @@ async function login(event) {
   try {
     const response = await fetch("https://api.retrox.app/login/", {
       method: "POST",
+      credentials: 'include',
       body: JSON.stringify({
+        mode: 'login',
         username: username.value.trim(),
         password: password.value.trim(),
         remember: remember.checked,
-        token: cfToken,
+        turnstile: cfToken,
       })
     })
 
@@ -83,6 +85,9 @@ async function login(event) {
     if (!response.ok) {
       turnstile.reset()
       showAlert("danger", json['message'])
+    }
+    else if (json['2FA'] == 'Required') {
+      window.location.href = `${window.location.origin}/two-factor.html`
     }
     else {
       localStorage.setItem('token', json['token'])
