@@ -17,7 +17,7 @@ def lambda_handler(event, context):
     # Get variables
     secret_key = os.environ['SECRET_KEY']
     body = json.loads(event['body'])
-    cookies = {i.split('=')[0]: i.split('=')[1] for i in event.get('cookies')}
+    cookies = {i.split('=')[0]: i.split('=')[1] for i in event.get('cookies', [])}
     params = {}
 
     # Check parameters
@@ -75,12 +75,13 @@ def lambda_handler(event, context):
     response = dynamodb.get_item(
         TableName='retrox-users',
         Key={'username': {'S': params['username']}},
-        ProjectionExpression='#email, #password, #verify_code, #2fa_secret',
+        ProjectionExpression='#email, #password, #verify_code, #2fa_secret, #google_client_id',
         ExpressionAttributeNames={
             '#email': 'email',
             '#password': 'password',
             '#verify_code': 'verify_code',
             '#2fa_secret': '2fa_secret',
+            '#google_client_id': 'google_client_id',
         }
     )
     user = response.get('Item')
@@ -186,5 +187,12 @@ def lambda_handler(event, context):
         "cookies": [
             f"token={token}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/" # Change None to Strict for Production
         ],
-        'body': json.dumps({'email': user['email']['S'], 'username': params['username'], 'remember': params['remember'], '2fa': '2fa_secret' in user, 'expires': int(expiration.timestamp())})
+        'body': json.dumps({
+            'email': user['email']['S'],
+            'username': params['username'],
+            'remember': params['remember'],
+            '2fa': '2fa_secret' in user,
+            'google_client_id': user['google_client_id']['S'] if 'google_client_id' in user else None,
+            'expires': int(expiration.timestamp())
+        })
     }

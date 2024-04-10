@@ -76,6 +76,7 @@ async function twoFactor(event) {
       localStorage.setItem('username', json['username'])
       localStorage.setItem('remember', json['remember'])
       localStorage.setItem('2fa', json['2fa'])
+      localStorage.setItem('google_client_id', json['google_client_id'])
       localStorage.setItem('expires', json['expires'])
       window.location.href = `${window.location.origin}/games.html`
     }

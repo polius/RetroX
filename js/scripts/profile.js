@@ -17,6 +17,10 @@ function onLoad() {
 
   twoFactorLabel.style.display = localStorage.getItem('2fa') == 'true' ? 'block' : 'none';
   twoFactorSubmitName.innerHTML = localStorage.getItem('2fa') == 'true' ? 'Disable' : 'Enable';
+
+  // Check Google API
+  const currentClientID = document.getElementById('currentClientID');
+  currentClientID.value = localStorage.getItem('google_client_id')
 }
 
 function showAlert(component, type, message) {
@@ -171,7 +175,67 @@ async function changePassword(event) {
 }
 
 async function changeGoogleDriveAPI(event) {
+  // Prevent page to refresh
+  event.preventDefault();
 
+  // Get elements
+  const googleAlert = document.getElementById("googleAlert");
+  const newClientID = document.getElementById("newClientID");
+  const newClientSecret = document.getElementById("newClientSecret");
+  const googleAPISubmit = document.getElementById("submitGoogleDriveAPI");
+  const googleAPILoading = document.getElementById("loadingGoogleDriveAPI");
+
+  // Get values
+  const client_id = newClientID.value.trim()
+  const client_secret = newClientSecret.value.trim()
+
+  // Check if all values are filled
+  if (client_id.length == 0 || client_secret.length == 0) {
+    showAlert(googleAlert, "warning", "Please fill out all fields.")
+    return
+  }
+
+  // Disable the submit button
+  googleAPISubmit.setAttribute("disabled", "");
+  googleAPILoading.style.display = 'inline-flex';
+
+  // Store the client_id and client_secret
+  try {
+    await checkLogin()
+    const response = await fetch("https://api.retrox.app/profile/google", {
+      method: "POST",
+      credentials: 'include',
+      // headers: {
+      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      //   'Content-Type': 'application/json',
+      // },
+      body: JSON.stringify({
+        mode: 'init',
+        google_client_id: client_id,
+        google_client_secret: client_secret
+      })
+    })
+
+    const json = await response.json()
+    if (!response.ok) {
+      showAlert(googleAlert, "danger", json['message'])
+      googleAPIClientID.value = ''
+      googleAPIClientSecret.value = ''
+      googleAPIClientID.focus()
+    }
+    else {
+      showAlert(googleAlert, "success", json['message'])
+      setTimeout(() => googleDriveAuth(client_id, 'profile'), 1000)
+    }
+  }
+  catch (error) {
+    console.log(error)
+    showAlert(googleAlert, "danger", "An error occurred. Please try again.")
+  }
+  finally {
+    googleAPISubmit.removeAttribute("disabled");
+    googleAPILoading.style.display = 'none';
+  }
 }
 
 async function changeTwoFactor(event) {

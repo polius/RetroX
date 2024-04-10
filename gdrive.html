@@ -1,79 +1,231 @@
+<!-- https://developers.google.com/drive/api/guides/folder#python -->
+<!-- https://console.cloud.google.com/apis/credentials -->
+
+<!-- Check if oauth consent is internal or external -->
+<!-- https://developers.google.com/workspace/guides/configure-oauth-consent#configure_oauth_consent -->
+
 <html><head></head><body>
-<script>
-  var YOUR_CLIENT_ID = '473626750459-0488dtf1pn17suujse3sm0pqmpa2n7nc.apps.googleusercontent.com';
-  var YOUR_REDIRECT_URI = 'https://emu.alzina.dev/';
-  var fragmentString = location.hash.substring(1);
-
-  // Parse query string to see if page request is coming from OAuth 2.0 server.
-  var params = {};
-  var regex = /([^&=]+)=([^&]*)/g, m;
-  while (m = regex.exec(fragmentString)) {
-    params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
-  }
-  if (Object.keys(params).length > 0) {
-    localStorage.setItem('oauth2-test-params', JSON.stringify(params) );
-    if (params['state'] && params['state'] == 'try_sample_request') {
-      trySampleRequest();
+  <script>
+    const client_id = '473626750459-hl890ci9navc4vi9pc01hn1aiv5outn8.apps.googleusercontent.com';
+    const client_secret = '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';
+    const redirect_uri = 'http://localhost:5500/gdrive.html';
+    var folder_id = '';
+    var refresh_token = '';
+  
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log("PARAMS")
+    console.log(urlParams)
+    if (urlParams.get('code') != null) auth2(urlParams.get('code'));
+  
+    async function go() {
+      try {
+        // folder = await createFolder()
+        // folder_id = folder['id']
+        // await uploadFile()
+        await existsFolder()
+      }
+      catch(error) {
+        console.log(error)
+        await auth()
+      }
     }
-  }
-
-  // If there's an access token, try an API request.
-  // Otherwise, start OAuth 2.0 flow.
-  function trySampleRequest() {
-    var params = JSON.parse(localStorage.getItem('oauth2-test-params'));
-    if (params && params['access_token']) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'https://www.googleapis.com/drive/v3/about?fields=user&' + 'access_token=' + params['access_token']);
-      xhr.onreadystatechange = function (e) {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          console.log(xhr.response);
-        } else if (xhr.readyState === 4 && xhr.status === 401) {
-          // Token invalid, so prompt for user permission.
-          oauth2SignIn();
-        }
-      };
-      xhr.send(null);
-    } else {
-      oauth2SignIn();
+  
+    async function createFolder() {
+      return new Promise((resolve, reject) => {
+          fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+              method: 'POST',
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`,
+              },
+              body: JSON.stringify({
+                "name": "RetroX",
+                "mimeType": "application/vnd.google-apps.folder"
+              })
+          })
+          .then((response) => {
+              if (response.ok) response.json().then(json => {
+                console.log(json)
+                resolve(json)
+              })
+              else response.json().then(json => reject({"status": response.status, "message": json['message']}));
+          })
+          .catch((error) => {
+            if (error.status === undefined) reject({"status": 429, "message": "Too Many Requests"})
+            reject(error)
+          })
+        })
     }
-  }
-
-  /*
-  * Create form to request access token from Google's OAuth 2.0 server.
-  */
-  function oauth2SignIn() {
-    // Google's OAuth 2.0 endpoint for requesting an access token
-    var oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
-
-    // Create element to open OAuth 2.0 endpoint in new window.
-    var form = document.createElement('form');
-    form.setAttribute('method', 'GET'); // Send as a GET request.
-    form.setAttribute('action', oauth2Endpoint);
-
-    // Parameters to pass to OAuth 2.0 endpoint.
-    var params = {
-      'client_id': YOUR_CLIENT_ID,
-      'redirect_uri': YOUR_REDIRECT_URI,
-      'scope': 'https://www.googleapis.com/auth/drive.file',
-      'state': 'try_sample_request',
-      'include_granted_scopes': 'true',
-      'response_type': 'token'
-    };
-
-    // Add form parameters as hidden input values.
-    for (var p in params) {
+  
+    async function uploadFile() {    
+      return new Promise((resolve, reject) => {
+        var fileContent = 'Hello World';
+        var file = new Blob([fileContent], { type: 'text/plain' });
+        var metadata = {
+          'name': 'README.txt', // Filename at Google Drive
+          'mimeType': 'text/plain', // mimeType at Google Drive
+          'parents': [folder_id], // Folder ID at Google Drive which is optional
+        };
+        
+        var form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+  
+        fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+            method: 'POST',
+            headers: {
+              "Authorization": `Bearer ${access_token}`,
+            },
+            body: form
+        })
+        .then((response) => {
+            if (response.ok) response.json().then(json => {
+              console.log(json)
+              resolve(json)
+            })
+            else response.json().then(json => reject({"status": response.status, "message": json['message']}));
+        })
+        .catch((error) => {
+          if (error.status === undefined) reject({"status": 429, "message": "Too Many Requests"})
+          reject(error)
+        })
+      })
+    }
+  
+    // Check if folder exists!
+    function existsFolder() {
+      // files.list
+      return new Promise((resolve, reject) => {
+        // const encoded_query = encodeURIComponent("name = 'RetroX' and mimeType = 'application/vnd.google-apps.folder' and trashed = false")
+        // const encoded_query = encodeURIComponent("trashed = false and '' in parents")
+        const encoded_query = encodeURIComponent("trashed = false")
+        fetch(`https://www.googleapis.com/drive/v3/files?q=${encoded_query}`, {
+        // fetch(`https://www.googleapis.com/drive/v3/files`, {
+            method: 'GET',
+            headers: {
+              "Authorization": `Bearer ${access_token}`,
+            },
+        })
+        .then((response) => {
+            if (response.ok) response.json().then(json => {
+              console.log(json)
+              // {
+              //     "kind": "drive#fileList",
+              //     "incompleteSearch": false,
+              //     "files": []
+              // }
+              resolve(json)
+            })
+            else response.json().then(json => reject({"status": response.status, "message": json['message']}));
+        })
+        .catch((error) => {
+          if (error.status === undefined) reject({"status": 429, "message": "Too Many Requests"})
+          reject(error)
+        })
+      })
+    }
+  
+  
+    function getFile() {
+      // files.get
+    }
+  
+    // Front-end
+    function auth() {
+      var form = document.createElement('form');
+      form.setAttribute('method', 'GET');
+      form.setAttribute('action', 'https://accounts.google.com/o/oauth2/v2/auth');
+      form.setAttribute('target', '_blank');
+  
+      // Parameters to pass to OAuth 2.0 endpoint.
+      var params = {'client_id': client_id,
+                    'redirect_uri': redirect_uri,
+                    'scope': 'https://www.googleapis.com/auth/drive.file',
+                    'include_granted_scopes': 'true',
+                    'access_type': 'offline',
+                    'prompt': 'consent',
+                    'response_type': 'code'};
+  
+      // Add form parameters as hidden input values.
+      for (var p in params) {
         var input = document.createElement('input');
         input.setAttribute('type', 'hidden');
         input.setAttribute('name', p);
         input.setAttribute('value', params[p]);
         form.appendChild(input);
+      }
+  
+      // Add form to page and submit it to open the OAuth 2.0 endpoint.
+      document.body.appendChild(form);
+      form.submit();
     }
-
-    // Add form to page and submit it to open the OAuth 2.0 endpoint.
-    document.body.appendChild(form);
-    form.submit();
-  }
-</script>
-
-<button onclick="trySampleRequest();">Try sample request</button>
-</body></html>
+  
+    // Back-end lambda --> store refresh_token in DynamoDB & return access_token.
+    function auth2(code) {
+      fetch("https://oauth2.googleapis.com/token", {
+          method: 'POST',
+          body: JSON.stringify({
+            client_id: client_id,
+            client_secret: client_secret,
+            code: code,
+            redirect_uri: redirect_uri,
+            grant_type: 'authorization_code',
+          })
+      })
+      .then((response) => {
+        if (response.ok) response.json().then(json => {
+            console.log(json)
+            localStorage.setItem('data', JSON.stringify(json))
+            window.close()
+          })
+          else response.json().then(json => reject({"status": response.status, "message": json['message']}));
+      })
+      .catch((error) => {
+        console.log("ERROR AUTH")
+        console.log(error)
+      })
+    }
+  
+    // Back-end lambda --> return access_token. If 401 error, frontend start again the whole auth process by calling "auth()".
+    async function refresh() {
+  //     POST https://accounts.google.com/o/oauth2/token
+  // code={AUTHORIZATION CODE}&client_id={ClientId}&client_secret={ClientSecret}&redirect_uri={REDIRECT URI}&grant_type=authorization_code
+      fetch("https://oauth2.googleapis.com/token", {
+          method: 'POST',
+          body: JSON.stringify({
+            client_id: client_id,
+            client_secret: client_secret,
+            grant_type: 'refresh_token',
+            refresh_token: refresh_token
+          })
+      })
+      .then((response) => {
+        if (response.ok) response.json().then(json => {
+          console.log("REFRESH_TOKEN")
+          console.log(json)
+        })
+        else response.json().then(json => reject({"status": response.status, "message": json['message']}));
+      })
+      .catch((error) => {
+        console.log("ERROR AUTH")
+        console.log(error)
+      })
+    }
+  
+  window.addEventListener('storage', (event) => {
+    if (event.storageArea != localStorage) return;
+    if (event.key === 'data') {
+      console.log("MESSAGE")
+      refresh_token = JSON.parse(event.newValue)['refresh_token']
+      console.log("r")
+      console.log(refresh_token)
+      console.log(JSON.parse(event.newValue))
+      refresh()
+      // Do something with event.newValue
+    }
+  });
+  
+  </script>
+  
+  <button onclick="go();">Try sample request</button>
+  </body></html>

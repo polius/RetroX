@@ -5,6 +5,8 @@ import boto3
 import pyotp
 import secrets
 import logging
+import hashlib
+import requests
 from datetime import datetime, timedelta, timezone
 from cryptography.fernet import Fernet
 
@@ -192,7 +194,110 @@ def change_password(event):
 
 
 def change_google_drive_api(event):
-    pass
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Check required parameters
+    username = event['requestContext']['authorizer']['lambda']['username']
+    body = json.loads(event['body'])
+    cookies = {i.split('=')[0]: i.split('=')[1] for i in event.get('cookies', [])}
+
+    if 'mode' not in body or body['mode'] not in ['init','verify']:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "Invalid parameters."})
+        }
+
+    if body['mode'] == 'init':
+        # Check parameters
+        if not {'google_client_id','google_client_secret'}.issubset(body.keys()):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "Invalid parameters."})
+            }
+
+        # Return token as a cookie
+        expiration = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+        return {
+            'statusCode': 200,
+            "cookies": [
+                f"google_client_id={body['google_client_id']}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
+                f"google_client_secret={body['google_client_secret']}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
+            ],
+            'body': json.dumps({'message': "Please confirm your identity."})
+        }
+
+    if body['mode'] == 'verify':
+        # Check parameters
+        if not {'google_client_id','google_client_secret'}.issubset(cookies.keys()) or 'google_client_code' not in body:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "Invalid parameters."})
+            }
+
+        # Verify Google Oauth Code
+        data = {
+            "client_id": cookies['google_client_id'],
+            "client_secret": cookies['google_client_secret'],
+            "code": body['google_client_code'],
+            "redirect_uri": "http://localhost:5500/callback.html",
+            "grant_type": 'authorization_code',
+        }
+        response = requests.post("https://oauth2.googleapis.com/token", data=data)
+        response_data = response.json()
+
+        print(response.text)
+        if not response.ok:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "The verification process failed."})
+            }
+
+        # Store credentials in DynamoDB
+        try:
+            dynamodb.update_item(
+                TableName='retrox-users',
+                Key={'username': {'S': username}},
+                ExpressionAttributeNames={
+                    '#google_client_id': 'google_client_id',
+                    '#google_client_secret': 'google_client_secret',
+                    '#google_refresh_token': 'google_refresh_token',
+                },
+                ExpressionAttributeValues={
+                    ':google_client_id': {
+                        'S': cookies['google_client_id']
+                    },
+                    ':google_client_secret': {
+                        'S': cookies['google_client_secret']
+                    },
+                    ':google_refresh_token': {
+                        'S': response_data['refresh_token']
+                    },
+                },
+                UpdateExpression='SET #google_client_id = :google_client_id, #google_client_secret = :google_client_secret, #google_refresh_token = :google_refresh_token',
+                ConditionExpression='attribute_exists(username)',
+            )
+        except dynamodb.exceptions.ConditionalCheckFailedException:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "This account no longer exists."})
+            }
+        except Exception as e:
+            logger.error(str(e))
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"message": "An error occurred retrieving the account. Please try again in a few minutes."})
+            }
+
+        # Return success and clear session cookies
+        return {
+            'statusCode': 200,
+            "cookies": [
+                f"google_client_id=; Max-Age=0; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
+                f"google_client_secret=;  Max-Age=0; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
+            ],
+            'body': json.dumps({'message': "Identity verified.", 'google_client_id': cookies['google_client_id']})
+        }
 
 def change_two_factor(event):
     # Initialize DynamoDB client
