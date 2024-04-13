@@ -1,12 +1,17 @@
+// Variables
+var disks = 1;
+
 // Get elements
 const gamesModal = document.getElementById('gamesModal');
 const gamesModalTitle = document.getElementById('gamesModalTitle');
 const gamesModalName = document.getElementById('gamesModalName');
+const gamesModalDisks = document.getElementById('gamesModalDisks');
 const gamesModalPathDiv = document.getElementById('gamesModalPathDiv');
 const gamesModalGameName = document.getElementById('gamesModalGameName');
 const gamesModalRom = document.getElementById('gamesModalRom');
 const gamesModalImage = document.getElementById('gamesModalImage');
-
+const gamesModalDelete = document.getElementById('gamesModalDelete');
+const searchGame = document.getElementById('searchGame');
 
 const gamesManageList = document.getElementById('gamesManageList');
 const gamesManageSubmitButton = document.getElementById('gamesManageSubmitButton');
@@ -25,6 +30,7 @@ function onLoad() {
 
   // Check if Google Drive API is setup
   if (localStorage.getItem('google_client_id') == null) {
+    window.location.href = `${window.location.origin}/setup.html`
     gamesSetupDiv.style.display = 'block';
   }
   else {
@@ -120,33 +126,7 @@ async function saveGoogleAPICredentials(event) {
 }
 
 function manageGames() {
-  // Control visibility
-  gamesManageSubmitButton.style.display = 'none'
-  gamesListDiv.style.display = 'none'
-  gamesManageList.style.display = 'block'
-  gamesManageAddButton.style.display = 'block'  
-  gamesManageCloseButton.style.display = 'block'  
-}
-
-function manageGamesClose() {
-  // Control visibility
-  gamesManageList.style.display = 'none'
-  gamesManageAddButton.style.display = 'none'
-  gamesManageCloseButton.style.display = 'none'
-  gamesManageSubmitButton.style.display = 'block'
-  gamesListDiv.style.display = 'block'
-  gamesListEmpty.style.display = 'block';
-}
-
-function addGame() {
-  gamesModalTitle.innerHTML = 'New Game'
-  gamesModalPathDiv.style.display = 'none'
-  gamesModalGameName.style.display = 'none'
-  gamesModalImage.style.display = 'none'
-  const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
-  console.log(modal)
-  console.log()
-  modal.show()
+  window.location.href = `${window.location.origin}/manage.html`
 }
 
 onLoad()
@@ -154,15 +134,6 @@ onLoad()
 gamesModal.addEventListener('shown.bs.modal', () => {
   gamesModalName.focus();
 });
-
-gamesModalRomInput.addEventListener("change", (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    console.log(file)
-    gamesModalGameName.value = `${file.name} (${calculateSize(file.size)})`;
-    gamesModalGameName.style.display = 'block';
-  }
-})
 
 gamesModalImageInput.addEventListener("change", (event) => {
   const file = event.target.files[0];
@@ -175,3 +146,15 @@ gamesModalImageInput.addEventListener("change", (event) => {
     reader.readAsDataURL(file);
   }
 })
+
+document.addEventListener("change", function(event) {
+  if (event.target && event.target.id.startsWith('gamesModalRomInput')) {
+    const file = event.target.files[0];
+    if (file) {
+      console.log(file)
+      let gamesModalGameName = document.getElementById('gamesModalGameName_' + event.target.id.slice(-1))
+      gamesModalGameName.value = `${file.name} (${calculateSize(file.size)})`;
+      gamesModalGameName.style.display = 'block';
+    }
+  }
+});

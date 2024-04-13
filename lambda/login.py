@@ -75,13 +75,14 @@ def lambda_handler(event, context):
     response = dynamodb.get_item(
         TableName='retrox-users',
         Key={'username': {'S': params['username']}},
-        ProjectionExpression='#email, #password, #verify_code, #2fa_secret, #google_client_id',
+        ProjectionExpression='#email, #password, #verify_code, #2fa_secret, #google_client_id, #new_email',
         ExpressionAttributeNames={
             '#email': 'email',
             '#password': 'password',
             '#verify_code': 'verify_code',
             '#2fa_secret': '2fa_secret',
             '#google_client_id': 'google_client_id',
+            '#new_email': 'new_email',
         }
     )
     user = response.get('Item')
@@ -94,7 +95,7 @@ def lambda_handler(event, context):
         }
 
     # Check if user is not yet verified
-    if user.get('verify_code'):
+    if user.get('verify_code') and not user.get('new_email'):
         return {
             'statusCode': 400,
             'body': json.dumps({"message": "Account not verified. Check your email to complete the verification process."})
