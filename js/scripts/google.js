@@ -21,6 +21,21 @@
 // Games
 // --> Playing a game.
 
+// Compress Data to gzip
+async function compress(data) {
+  const stream = new Blob([data]).stream();
+  const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+  const compressedResponse = await new Response(compressedStream);
+  return await compressedResponse.blob();
+}
+
+// Decompress gzip data
+async function decompress(blob) {
+  let decompressionStream = new DecompressionStream("gzip");
+  let decompressedStream = blob.stream().pipeThrough(decompressionStream);
+  return await new Response(decompressedStream).blob();
+}
+
 // Start authentication process
 function googleDriveAuth(clientID, origin) {
   var form = document.createElement('form');
@@ -52,158 +67,139 @@ function googleDriveAuth(clientID, origin) {
 }
 
 // Get Google API Token
-async function googleDriveToken(origin) {
-  try {
-    await checkLogin()
-    const response = await fetch("https://api.retrox.app/profile/google", {
-      method: "GET",
-      credentials: 'include',
-    })
+async function googleDriveToken() {
+  await checkLogin()
+  const response = await fetch("https://api.retrox.app/profile/google", {
+    method: "GET",
+    credentials: 'include',
+  })
 
+  const json = await response.json()
+  if (response.ok) return json['token']
+  else throw new Error({"message": json['message']})
+}
+
+// List files
+async function listFiles(accessToken, query) {
+  const encodedQuery = query === undefined ? encodeURIComponent("trashed = false") : encodeURIComponent(query)
+  const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}`, {
+    method: 'GET',
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+    },
+  })
+
+  const json = await response.json()
+  if (response.ok) return json.files
+  else throw new Error(json['error']['message'])
+}
+
+async function createFolder(accessToken, folderName, folderID) {    
+  var metadata = {
+    'name': folderName,
+    'mimeType': "application/vnd.google-apps.folder",
+    'parents': folderID === undefined ? [] : [folderID],
+  };
+
+  var form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+
+  const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: form
+  })
+
+  const json = await response.json()
+  if (response.ok) return json.id
+  else throw new Error(json['error']['message'])
+}
+
+async function createFile(accessToken, fileName, fileContent, folderID) {    
+  var metadata = {
+    'name': fileName,
+    'mimeType': fileContent.type,
+    'parents': folderID === undefined ? [] : [folderID],
+  };
+
+  var form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', fileContent);
+
+  const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: form
+  })
+
+  const json = await response.json()
+  if (response.ok) return blobjson
+  else throw new Error(json['error']['message'])
+}
+
+async function getFile(accessToken, fileID) {
+  const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileID}?alt=media`, {
+    method: 'GET',
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+    },
+  })
+
+  if (response.ok) return await response.blob()
+  else throw new Error(await response.blob()['error']['message'])
+}
+
+async function deleteFile(accessToken, fileID) {
+  const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileID}`, {
+    method: 'DELETE',
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
     const json = await response.json()
-    if (!response.ok) {
-      console.log(json['message'])
-      // googleDriveAuth(localStorage.getItem('google_client_id'), origin)
-      // throw new Error({"message": json['message']})
-    }
-    else return json['token']
-  }
-  catch (error) {
-    console.log(error)
-    return {"ok": false, "message": "An error occurred. Please try again."}
-  }
-}
-
-// Check if folder exists
-async function existsFolder(token) {
-  try {
-    const access_token = await googleDriveToken()
-    const encoded_query = encodeURIComponent("name = 'RetroX' and mimeType = 'application/vnd.google-apps.folder' and trashed = false")
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encoded_query}`, {
-      method: 'GET',
-      headers: {
-        "Authorization": `Bearer ${access_token}`,
-      },
-    })
-
-    const json = await response.json()
-    if (response.ok) {
-      console.log(json)
-      // {
-      //     "kind": "drive#fileList",
-      //     "incompleteSearch": false,
-      //     "files": []
-      // }
-    }
-    else {
-
-    }
-  }
-  catch (error) {
-    console.log(error)
-    return {"ok": false, "message": "An error occurred. Please try again."}
-  }
-}
-
-async function createFile(fileName, fileContent, folderID, isFolder) {    
-  try {
-    // var fileContent = 'Hello World';
-    var file = new Blob([fileContent], { type: 'text/plain' });
-    var metadata = {
-      'name': fileName,
-      'mimeType': isFolder ? "application/vnd.google-apps.folder" : fileContent.type, // 'text/plain',
-      'parents': folderID === undefined ? [] : [folderID],
-    };
-
-    var form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', file);
-
-    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-      method: 'POST',
-      headers: {
-        "Authorization": `Bearer ${access_token}`,
-      },
-      body: form
-    })
-
-    if (response.ok) {
-
-    }
-    else {
-
-    }
-  }
-  catch (error) {
-    console.log(error)
-    return {"ok": false, "message": "An error occurred. Please try again."}
-  }
-}
-
-async function getFile(fileID) {
-  try {
-    const access_token = await googleDriveToken()
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileID}`, {
-      method: 'GET',
-      headers: {
-        "Authorization": `Bearer ${access_token}`,
-      },
-    })
-
-    const json = await response.json()
-    if (response.ok) {
-      console.log(json)
-      // {
-      //     "kind": "drive#fileList",
-      //     "incompleteSearch": false,
-      //     "files": []
-      // }
-    }
-    else {
-
-    }
-  }
-  catch (error) {
-    console.log(error)
-    return {"ok": false, "message": "An error occurred. Please try again."}
-  }
-}
-
-async function deleteFile(fileID) {
-  try {
-    const access_token = await googleDriveToken()
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileID}`, {
-      method: 'DELETE',
-      headers: {
-        "Authorization": `Bearer ${access_token}`,
-      },
-    })
-
-    if (response.ok) {
-      console.log("OK!")
-      // {
-      //     "kind": "drive#fileList",
-      //     "incompleteSearch": false,
-      //     "files": []
-      // }
-    }
-    else {
-      console.log("NOT OK!")
-    }
-  }
-  catch (error) {
-    console.log(error)
-    return {"ok": false, "message": "An error occurred. Please try again."}
+    throw new Error(json['error']['message'])
   }
 }
 
 async function onLoad() {
-  console.log(window.location.host)
-  console.log(window.location.pathname)
-  let origin = 'profile'
-  let token = await googleDriveToken(localStorage.getItem('google_client_id'), origin)
-  console.log(token)
+  // Get Google API Access Token from Backend 
+  const accessToken = await googleDriveToken()
+
+  // Check if RetroX Folder exists
+  const query = "name = 'RetroX' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+  var list = await listFiles(accessToken, query)
+  if (list.length == 0) { console.log("Folder created."); await createFolder(accessToken, 'RetroX') }
+  // else { console.log("Folder deleted."); await deleteFile(accessToken, list[0]['id']) }
+
+  // Create File inside RetroX folder
+  const file = new Blob(['Hello World'], { type: 'text/plain' });
+  // const file = compress('Hello World')
+  // await createFile(accessToken, 'README.md', file, list[0]['id'])
+  // console.log("File created.")
+
+  // List all items
+  console.log("List items:")
+  list = await listFiles(accessToken)
+  console.log(list)
+
+  // Get item content
+  try {
+    console.log("Getting file: " + list[0]['id'])
+    const blob = await getFile(accessToken, list[0]['id'])
+    console.log(blob)
+    const text = await blob.text() // <-- This is not returning the text. Is returning a Promise ?!!
+    console.log(text)
+  }
+  catch (error) {
+    console.error(error)
+  }
 }
 
-// window.addEventListener('load', onLoad);
+window.addEventListener('load', onLoad);
 
