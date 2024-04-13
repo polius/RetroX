@@ -192,6 +192,54 @@ def change_password(event):
         'body': json.dumps({"message": "Password changed."})
     }
 
+def get_google_drive_token(event):
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Get variables
+    username = event['requestContext']['authorizer']['lambda']['username']
+
+    # Get DynamoDB user
+    response = dynamodb.get_item(
+        TableName='retrox-users',
+        Key={'username': {'S': username}},
+        ProjectionExpression='#google_client_id, #google_client_secret, #google_refresh_token',
+        ExpressionAttributeNames={
+            '#google_client_id': 'google_client_id',
+            '#google_client_secret': 'google_client_secret',
+            '#google_refresh_token': 'google_refresh_token',
+        }
+    )
+    user = response.get('Item')
+
+    # Check if user exists
+    if not user:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "Invalid username or password."})
+        }
+
+    # Get Google API Token
+    data = {
+        "client_id": user['google_client_id']['S'],
+        "client_secret": user['google_client_secret']['S'],
+        "grant_type": 'refresh_token',
+        "refresh_token": user['google_refresh_token']['S'],
+    }
+    response = requests.post("https://oauth2.googleapis.com/token", data=data)
+    response_data = response.json()
+
+    if not response.ok:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "The google credentials are no longer valid."})
+        }
+
+    # Return Google API Token
+    return {
+        'statusCode': 200,
+        'body': json.dumps({"token": response_data['access_token']})
+    }
 
 def change_google_drive_api(event):
     # Initialize DynamoDB client
@@ -246,7 +294,6 @@ def change_google_drive_api(event):
         response = requests.post("https://oauth2.googleapis.com/token", data=data)
         response_data = response.json()
 
-        print(response.text)
         if not response.ok:
             return {
                 'statusCode': 400,
@@ -440,15 +487,18 @@ def delete_account(event):
     }
 
 def lambda_handler(event, context):
-    if event['requestContext']['http']['path'] == '/profile/email':
+    if event['requestContext']['http']['method'] == 'POST' and event['requestContext']['http']['path'] == '/profile/email':
         return change_email(event)
-    elif event['requestContext']['http']['path'] == '/profile/password':
+    elif event['requestContext']['http']['method'] == 'POST' and event['requestContext']['http']['path'] == '/profile/password':
         return change_password(event)
     elif event['requestContext']['http']['path'] == '/profile/google':
-        return change_google_drive_api(event)
-    elif event['requestContext']['http']['path'] == '/profile/2fa':
+        if event['requestContext']['http']['method'] == 'GET':
+            return get_google_drive_token(event)
+        elif event['requestContext']['http']['method'] == 'POST':
+            return change_google_drive_api(event)
+    elif event['requestContext']['http']['method'] == 'POST' and event['requestContext']['http']['path'] == '/profile/2fa':
         return change_two_factor(event)
-    elif event['requestContext']['http']['path'] == '/profile/delete':
+    elif event['requestContext']['http']['method'] == 'POST' and event['requestContext']['http']['path'] == '/profile/delete':
         return delete_account(event)
 
     return {

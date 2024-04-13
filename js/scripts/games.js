@@ -1,23 +1,36 @@
-function onLoad() {
-  // Get components
-  const gamesManageButton = document.getElementById('gamesManageButton');
-  // const gamesManageList = document.getElementById('gamesManageList');
-  const gamesSetupDiv = document.getElementById('gamesSetupDiv');
-  const gamesListDiv = document.getElementById('gamesListDiv');
+// Get elements
+const gamesModal = document.getElementById('gamesModal');
+const gamesModalTitle = document.getElementById('gamesModalTitle');
+const gamesModalName = document.getElementById('gamesModalName');
+const gamesModalPathDiv = document.getElementById('gamesModalPathDiv');
+const gamesModalGameName = document.getElementById('gamesModalGameName');
+const gamesModalRom = document.getElementById('gamesModalRom');
+const gamesModalImage = document.getElementById('gamesModalImage');
 
+
+const gamesManageList = document.getElementById('gamesManageList');
+const gamesManageSubmitButton = document.getElementById('gamesManageSubmitButton');
+const gamesManageCloseButton = document.getElementById('gamesManageCloseButton');
+const gamesManageAddButton = document.getElementById('gamesManageAddButton');
+const gamesListDiv = document.getElementById('gamesListDiv');
+const gamesListEmpty = document.getElementById('gamesListEmpty');
+const gamesListSearchDiv = document.getElementById('gamesListSearchDiv');
+const gamesSetupDiv = document.getElementById('gamesSetupDiv');
+
+function onLoad() {
   // Check if user is not logged in
   if (!localStorage.getItem('expires')) {
     window.location.href = `${window.location.origin}`
   }
 
   // Check if Google Drive API is setup
-  console.log(localStorage.getItem('google_client_id'))
-  if (localStorage.getItem('google_client_id') == 'null') {
+  if (localStorage.getItem('google_client_id') == null) {
     gamesSetupDiv.style.display = 'block';
   }
   else {
-    gamesManageButton.removeAttribute("disabled");
+    gamesManageSubmitButton.removeAttribute("disabled");
     gamesListDiv.style.display = 'block';
+    gamesListEmpty.style.display = 'block';
   }
 }
 
@@ -106,4 +119,59 @@ async function saveGoogleAPICredentials(event) {
   }
 }
 
+function manageGames() {
+  // Control visibility
+  gamesManageSubmitButton.style.display = 'none'
+  gamesListDiv.style.display = 'none'
+  gamesManageList.style.display = 'block'
+  gamesManageAddButton.style.display = 'block'  
+  gamesManageCloseButton.style.display = 'block'  
+}
+
+function manageGamesClose() {
+  // Control visibility
+  gamesManageList.style.display = 'none'
+  gamesManageAddButton.style.display = 'none'
+  gamesManageCloseButton.style.display = 'none'
+  gamesManageSubmitButton.style.display = 'block'
+  gamesListDiv.style.display = 'block'
+  gamesListEmpty.style.display = 'block';
+}
+
+function addGame() {
+  gamesModalTitle.innerHTML = 'New Game'
+  gamesModalPathDiv.style.display = 'none'
+  gamesModalGameName.style.display = 'none'
+  gamesModalImage.style.display = 'none'
+  const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
+  console.log(modal)
+  console.log()
+  modal.show()
+}
+
 onLoad()
+
+gamesModal.addEventListener('shown.bs.modal', () => {
+  gamesModalName.focus();
+});
+
+gamesModalRomInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    console.log(file)
+    gamesModalGameName.value = `${file.name} (${calculateSize(file.size)})`;
+    gamesModalGameName.style.display = 'block';
+  }
+})
+
+gamesModalImageInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();  
+    reader.onload = function(e) {
+      gamesModalImage.src = e.target.result;
+      gamesModalImage.style.display = 'block';
+    }
+    reader.readAsDataURL(file);
+  }
+})
