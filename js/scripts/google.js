@@ -137,7 +137,7 @@ async function createFile(accessToken, fileName, fileContent, folderID) {
   })
 
   const json = await response.json()
-  if (response.ok) return blobjson
+  if (response.ok) return json
   else throw new Error(json['error']['message'])
 }
 
@@ -149,8 +149,17 @@ async function getFile(accessToken, fileID) {
     },
   })
 
-  if (response.ok) return await response.blob()
-  else throw new Error(await response.blob()['error']['message'])
+  // Streaming
+  const reader = response.body.getReader();
+  const size = +response.headers.get('Content-Length');
+  return {"reader": reader, "size": size};
+
+  // Not streaming
+  const blob = await response.blob()
+  console.log(await blob.text())
+
+  if (response.ok) return await response.text()
+  else throw new Error(await response.json()['error']['message'])
 }
 
 async function deleteFile(accessToken, fileID) {
@@ -178,7 +187,7 @@ async function onLoad() {
   // else { console.log("Folder deleted."); await deleteFile(accessToken, list[0]['id']) }
 
   // Create File inside RetroX folder
-  const file = new Blob(['Hello World'], { type: 'text/plain' });
+  const file = new Blob(['Hello Worlddsfjnshjdfvsdhnjflkhasdfkvhaskdhfvbkajsdhlfvkdhasfvndanyt87v 4y5a87ny458na4y58nvay7rnvygnvayidfgynivao4y3673vny67nv3'], { type: 'text/plain' });
   // const file = compress('Hello World')
   // await createFile(accessToken, 'README.md', file, list[0]['id'])
   // console.log("File created.")
@@ -189,16 +198,24 @@ async function onLoad() {
   console.log(list)
 
   // Get item content
-  try {
-    console.log("Getting file: " + list[0]['id'])
-    const blob = await getFile(accessToken, list[0]['id'])
-    console.log(blob)
-    const text = await blob.text() // <-- This is not returning the text. Is returning a Promise ?!!
-    console.log(text)
+  console.log("Getting file: " + list[0]['id'])
+  const response = await getFile(accessToken, list[0]['id'])
+
+  // Read the data
+  let receivedLength = 0;
+  let chunks = [];
+  while (true) {
+      const {done, value} = await response['reader'].read();
+      if (done) break;
+      chunks.push(value);
+      receivedLength += value.length;
+      let progress = `Progress: ${(Math.round(receivedLength * 100) / response['size']).toFixed(2)}%`
+      console.log(progress)
   }
-  catch (error) {
-    console.error(error)
-  }
+  console.log("Game will start soon...")
+  let blob = new Blob(chunks)
+  let text = await blob.text()
+  console.log(text)
 }
 
 window.addEventListener('load', onLoad);
