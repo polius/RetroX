@@ -196,7 +196,7 @@
               <div class="modal-content">
                 <div class="modal-header">
                   <h1 id="gamesModalTitle" class="modal-title fs-5" id="exampleModalLabel">New Game</h1>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  <button id="gamesModalClose" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="padding: 1.2rem">
                   <div id="manageAlert"></div>
@@ -221,7 +221,7 @@
                   <div class="mb-1">
                     <label class="small mb-2" for="currentEmail">Image</label>
                     <p style="margin: 0;">
-                      <img id="gamesModalImage" src="" class="img-fluid mb-3" style="border-radius: 10px; width:200px; display: none;">
+                      <img id="gamesModalImage" src="" class="img-fluid mb-3" style="border-radius: 10px; width:222px; display: none;">
                     </p>
                     <button onclick="document.getElementById('gamesModalImageInput').click()" type="button" class="btn btn-primary btn-sm" style="width: 222px; height:40px">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-image" viewBox="0 0 16 16" style="margin-bottom:3px; margin-right:8px">
@@ -234,9 +234,15 @@
                   </div>
                 </div>
                 <div class="modal-footer" style="padding:0.8rem">
-                  <button id="gamesModalDelete" type="button" class="btn btn-danger" style="height:40px;">Delete</button>
-                  <button type="button" class="btn btn-secondary" style="margin-left:auto; height: 40px;" data-bs-dismiss="modal">Cancel</button>
-                  <button type="button" class="btn btn-primary" style="height: 40px;">Save changes</button>
+                  <button id="gamesModalDeleteSubmit" type="button" class="btn btn-danger" style="height:40px;">
+                    <span id="gamesModalDeleteLoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                    Delete
+                  </button>
+                  <button id="gamesModalCloseSubmit" type="button" class="btn btn-secondary" style="margin-left:auto; height: 40px;" data-bs-dismiss="modal">Close</button>
+                  <button id="gamesModalSaveSubmit" onclick="gamesModalSubmit()" type="button" class="btn btn-primary" style="height: 40px;">
+                    <span id="gamesModalSaveLoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                    Save changes
+                  </button>
                 </div>
               </div>
             </div>

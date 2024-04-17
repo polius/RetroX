@@ -78,10 +78,6 @@ async function changeEmail(event) {
     const response = await fetch("https://api.retrox.app/profile/email", {
       method: "POST",
       credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
       body: JSON.stringify({
         email: newEmailValue,
       })
@@ -143,10 +139,6 @@ async function changePassword(event) {
     const response = await fetch("https://api.retrox.app/profile/password", {
       method: "POST",
       credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
       body: JSON.stringify({
         password: newPassword.value.trim(),
       })
@@ -205,10 +197,6 @@ async function changeGoogleDriveAPI(event) {
     const response = await fetch("https://api.retrox.app/profile/google", {
       method: "POST",
       credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
       body: JSON.stringify({
         mode: 'init',
         google_client_id: client_id,
@@ -225,7 +213,7 @@ async function changeGoogleDriveAPI(event) {
     }
     else {
       showAlert(googleAlert, "success", json['message'])
-      setTimeout(() => googleDriveAuth(client_id, 'profile'), 1000)
+      setTimeout(() => googleDriveAPI.auth(client_id), 1000)
     }
   }
   catch (error) {
@@ -280,10 +268,6 @@ async function changeTwoFactor(event) {
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
           credentials: 'include',
-          // headers: {
-          //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          //   'Content-Type': 'application/json',
-          // },
           body: JSON.stringify({
             enable: true
           })
@@ -334,10 +318,6 @@ async function changeTwoFactor(event) {
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
           credentials: 'include',
-          // headers: {
-          //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          //   'Content-Type': 'application/json',
-          // },
           body: JSON.stringify({
             enable: true,
             key: twoFactorKey,
@@ -385,10 +365,6 @@ async function disable2FASubmit() {
     const response = await fetch("https://api.retrox.app/profile/2fa", {
       method: "POST",
       credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
       body: JSON.stringify({
         enable: false
       })
@@ -441,10 +417,6 @@ async function deleteAccountSubmit() {
     const response = await fetch("https://api.retrox.app/profile/delete", {
       method: "POST",
       credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
     })
     const json = await response.json()
     if (!response.ok) {

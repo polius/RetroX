@@ -55,10 +55,6 @@ async function confirmIdentity() {
     const response = await fetch("https://api.retrox.app/profile/google", {
       method: "POST",
       credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
       body: JSON.stringify({
         mode: 'verify',
         google_client_code: code

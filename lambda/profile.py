@@ -231,7 +231,7 @@ def get_google_drive_token(event):
 
     if not response.ok:
         return {
-            'statusCode': 400,
+            'statusCode': 401,
             'body': json.dumps({"message": "The google credentials are no longer valid."})
         }
 

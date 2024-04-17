@@ -1,8 +1,11 @@
 // Variables
+var mode = 'new';
 var disks = 1;
 
 // Get elements
+const manageAlert = document.getElementById("manageAlert");
 const gamesModal = document.getElementById('gamesModal');
+const gamesModalClose = document.getElementById('gamesModalClose');
 const gamesModalAddDisk = document.getElementById('gamesModalAddDisk');
 const gamesModalTitle = document.getElementById('gamesModalTitle');
 const gamesModalName = document.getElementById('gamesModalName');
@@ -11,7 +14,13 @@ const gamesModalPathDiv = document.getElementById('gamesModalPathDiv');
 const gamesModalGameName = document.getElementById('gamesModalGameName');
 const gamesModalRom = document.getElementById('gamesModalRom');
 const gamesModalImage = document.getElementById('gamesModalImage');
-const gamesModalDelete = document.getElementById('gamesModalDelete');
+const gamesModalImageInput = document.getElementById('gamesModalImageInput');
+const gamesModalDeleteSubmit = document.getElementById('gamesModalDeleteSubmit');
+const gamesModalDeleteLoading = document.getElementById('gamesModalDeleteLoading');
+const gamesModalCloseSubmit = document.getElementById('gamesModalCloseSubmit');
+const gamesModalSaveSubmit = document.getElementById('gamesModalSaveSubmit');
+const gamesModalSaveLoading = document.getElementById('gamesModalSaveLoading');
+
 const searchGame = document.getElementById('searchGame');
 
 const gamesManageList = document.getElementById('gamesManageList');
@@ -27,23 +36,32 @@ function onLoad() {
 }
 
 function showAlert(type, message) {
-  const manageAlert = document.getElementById("manageAlert");
   manageAlert.innerHTML = `
-    <div class="alert alert-${type} alert-dismissible" role="alert">
+    <div class="alert alert-${type} ${type != 'info' ? 'alert-dismissible' : ''} d-flex align-items-center" role="alert">
       <div style="text-align:left">
-        ${type == 'success'
-        ? 
-          `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16" style="margin-bottom:3px; margin-right:3px">
+        ${type == 'success' ?
+          `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16" style="margin-bottom:3px; margin-right:5px">
             <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
           </svg>`
-        :
-          `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16" style="margin-bottom:3px; margin-right:3px">
+        : type == 'danger' ?
+          `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16" style="margin-bottom:3px; margin-right:5px">
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4m.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+          </svg>`
+        : type == 'warning' ?
+          `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16" style="margin-bottom:3px; margin-right:5px">
             <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
           </svg>`
+        : type == 'info' ?
+          `<span class="spinner-border spinner-border-sm" style="width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>`
+        : ''
         }
         ${message}
       </div>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      ${type == 'info' ? 
+        `<!-- <button onclick="cancelUpload()" type="button" class="btn btn-danger" style="position: relative; margin-left: auto;">Cancel</button> -->`
+      :
+        `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`
+      }
     </div>
   `
 }
@@ -53,10 +71,17 @@ function manageGamesClose() {
 }
 
 function addGame() {
+  // setTimeout(() => showAlert('info', "Uploading Game (Disk 1). Progress: 10%"), 1000)
+  mode = 'new'
+  manageAlert.innerHTML = ''
   gamesModalTitle.innerHTML = 'New Game'
+  gamesModalName.value = ''
   gamesModalPathDiv.style.display = 'none'
   gamesModalImage.style.display = 'none'
-  gamesModalDelete.style.display = 'none'
+  gamesModalDeleteSubmit.style.display = 'none'
+  gamesModalDeleteLoading.style.display = 'none'
+  gamesModalSaveLoading.style.display = 'none'
+  gamesModalImageInput.value = null;
   const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
   modal._config.backdrop = 'static'; // Prevents closing by clicking outside
   modal._config.keyboard = false; // Prevents closing by pressing Esc key
@@ -82,15 +107,15 @@ function addDisk() {
           </svg>
           Select ROM
         </button>
+        <input id='gamesModalRomInput_${disks}' type='file' hidden/>
       </div>
       <div id="gamesModalGameRemove_${disks}" onclick="removeDisk(${disks})" class="col-auto d-flex align-items-center justify-content-end" style="cursor:pointer; padding-left:25px" title="Remove disk">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="red" class="bi bi-x-lg" viewBox="0 0 16 16">
           <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
         </svg>
       </div>
-      <input id='gamesModalRomInput_${disks}' type='file' hidden/>
     </div>`
-  if (disks == 1)  document.getElementById(`gamesModalGameRemove_${disks}`).style.visibility = 'hidden'
+  if (disks == 1) document.getElementById(`gamesModalGameRemove_${disks}`).style.visibility = 'hidden'
   else document.getElementById(`gamesModalGameRemove_${disks-1}`).style.visibility = 'hidden'
   if (disks == 5) gamesModalAddDisk.setAttribute("disabled", "");
 }
@@ -104,7 +129,98 @@ function removeDisk(disk) {
   disks -= 1;
 }
 
-onLoad()
+async function gamesModalSubmit() {
+  // Validate inputs
+  if (gamesModalName.value.trim().length == 0) {
+    showAlert('warning', 'Please enter the ROM name.')
+    return
+  }
+  if (!/^[0-9a-zA-Z\-_\: ]+$/.test(gamesModalName.value.trim())) {
+    showAlert('warning', 'The game name contains invalid characters.')
+    return
+  }
+  if (gamesModalImageInput.files.length == 0) {
+    showAlert('warning', 'Please upload the ROM cover image.')
+    return
+  }
+  for (let i = 1; i <= disks; ++i) {
+    let element = document.getElementById(`gamesModalRomInput_${i}`);
+    if (element.files.length == 0) {
+      showAlert('warning', `Please upload the ROM file for Disk ${i}.`)
+      return
+    }
+  }
+
+  // Disable buttons and apply loading effect
+  gamesModalSaveLoading.style.display = 'inline-flex'
+  gamesModalClose.setAttribute("disabled", "");
+  gamesModalCloseSubmit.setAttribute("disabled", "");
+  gamesModalSaveSubmit.setAttribute("disabled", "");
+
+  // Check mode
+  try {
+    if (mode == 'new') await gamesModalSubmitNew()
+    else if (mode == 'edit') {}
+    else if (mode == 'delete') {}
+  } catch (error) {
+    showAlert('danger', error)
+  }
+  finally {
+    // Enable buttons and disable loading effect
+    gamesModalSaveLoading.style.display = 'none'
+    gamesModalClose.removeAttribute("disabled");
+    gamesModalCloseSubmit.removeAttribute("disabled");
+    gamesModalSaveSubmit.removeAttribute("disabled");
+  }
+}
+
+async function gamesModalSubmitNew() {
+  // Show loading alert
+  showAlert('info', "Preparing files to upload it into Google Drive...")
+
+  // Check if a game exists with the same name
+  const query = `appProperties has { key='name' and value='${gamesModalName.value.trim()}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+  const filter = await googleDriveAPI.listFiles(query, 1)
+  console.log(filter)
+  if (filter.length != 0) {
+    showAlert('warning', "This game already exists.")
+    return
+  }
+
+  // 1. Upload image
+  let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
+  let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
+  let parentFolderName = 'Images'
+  let image_id = await googleDriveAPI.createFile(fileName, fileContent, parentFolderName, trackUploadProgress, 'Image')
+
+  // 2. Upload ROM files
+  for (let i = 1; i <= disks; ++i) {
+    let element = document.getElementById(`gamesModalRomInput_${i}`);
+    let fileName = gamesModalName.value.trim() + element.files[0].name.substring(element.files[0].name.lastIndexOf('.'));
+    let fileContent = await googleDriveAPI.compress(element.files[0])
+    let parentFolderName = 'Games'
+    let game_id = await googleDriveAPI.createFile(fileName, fileContent, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
+    // const file = await (await googleDriveAPI.getFile(response)).blob()
+    // const decompressedFile = await googleDriveAPI.decompress(file)
+    // console.log(await decompressedFile.text())
+  }
+
+  // 3. Show success
+  showAlert("success", "Game successfully stored in Google Drive.")
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
+  modal.hide()
+}
+
+async function trackUploadProgress(event, element) {
+  showAlert('info', `Uploading ${element}. Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
+  console.log(`Uploaded ${event.loaded} of ${event.total}`);
+  console.log(`Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
+}
+
+async function cancelUpload() {
+  googleDriveAPI.abort()
+}
 
 gamesModal.addEventListener('shown.bs.modal', () => {
   gamesModalName.focus();
@@ -126,7 +242,6 @@ document.addEventListener("change", function(event) {
   if (event.target && event.target.id.startsWith('gamesModalRomInput')) {
     const file = event.target.files[0];
     if (file) {
-      console.log(file)
       let gamesModalGameName = document.getElementById('gamesModalGameName_' + event.target.id.slice(-1))
       gamesModalGameName.value = `${file.name} (${calculateSize(file.size)})`;
       gamesModalGameName.style.display = 'block';
@@ -140,12 +255,12 @@ searchGame.addEventListener('input', function () {
 
   galleryItems.forEach(item => {
       const title = item.querySelector('p').innerText.toLowerCase();
-      const image = item.querySelector('img');
-
       if (title.includes(searchText)) {
-          item.style.display = 'block';
+        item.style.display = 'block';
       } else {
-          item.style.display = 'none';
+        item.style.display = 'none';
       }
   });
 });
+
+onLoad()

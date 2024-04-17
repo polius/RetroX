@@ -73,7 +73,7 @@ async function saveGoogleAPICredentials(event) {
     }
     else {
       showAlert("success", json['message'])
-      setTimeout(() => googleDriveAuth(client_id, 'games'), 1000)
+      setTimeout(() => googleDriveAuth(client_id), 1000)
     }
   }
   catch (error) {
