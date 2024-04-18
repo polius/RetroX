@@ -97,7 +97,7 @@ class GoogleDriveAPI {
   async listFiles(query, size=100, nextPageToken) {
     if (!this.#accessToken) await this.#init()
     const encodedQuery = query === undefined ? encodeURIComponent("trashed = false") : encodeURIComponent(query)
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}&orderBy=name${size ? `&pageSize=${size}` : ''}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`, {
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}&orderBy=name&fields=${encodeURIComponent('files(id,name,appProperties')}${size ? `&pageSize=${size}` : ''}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`, {
       method: 'GET',
       headers: {
         "Authorization": `Bearer ${this.#accessToken}`,
@@ -134,7 +134,7 @@ class GoogleDriveAPI {
   }
 
   // Upload file to Google Drive
-  async createFile(fileName, fileContent, parentFolderName, onProgress, element) {
+  async createFile(fileName, fileContent, fileMetadata, parentFolderName, onProgress, element) {
     if (!this.#accessToken) await this.#init()
     return new Promise((resolve, reject) => {
       // Initialize a new XMLHttpRequest object
@@ -144,13 +144,8 @@ class GoogleDriveAPI {
 
       // Track Upload progress
       this.#xhr.upload.onprogress = (event) => { onProgress(event, element) };
-      // this.#xhr.upload.onprogress = function(event) {
-      //   console.log(`Uploaded ${event.loaded} of ${event.total}`);
-      //   console.log(`Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed(2)}%`)
-      // };
 
       // Track Completion
-      // this.#xhr.onloadend = onCompletion // (event) => { onCompletion(event, resolve, reject) };
       this.#xhr.onloadend = () => {
         if (this.#xhr.status == 200) {
           console.log("Success");
@@ -166,18 +161,10 @@ class GoogleDriveAPI {
         }
       };
 
-      // Track abort
-      // this.#xhr.onabort = function () {
-      //   console.log("Request aborted.")
-      //   reject("Request aborted.")
-      // }
-
       // Define body parameters
       var metadata = {
         'name': fileName,
-        'appProperties': {
-          'name': fileName.substring(0, fileName.lastIndexOf('.')),
-        },
+        'appProperties': fileMetadata,
         'mimeType': fileContent.type,
         'parents': parentFolderName === undefined ? [] : [this.#folders[parentFolderName]],
       };

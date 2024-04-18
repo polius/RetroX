@@ -1,7 +1,7 @@
 // Variables
 var mode = 'new';
 var disks = 1;
-var nextPageToken = null;
+var nextPageToken = undefined;
 
 // Get elements
 const gamesGallery = document.getElementById("gamesGallery");
@@ -78,11 +78,11 @@ function showAlert(type, message) {
   `
 }
 
-async function loadGames() {
+async function loadGames(nextToken) {
   const div = gamesGallery.querySelector('div')
 
   // Show loading
-  if (nextPageToken == null) {
+  if (nextToken === undefined) {
     div.innerHTML = `
       <p style="text-align: center; margin-top:30px; margin-bottom: 0;">Loading games...</p>
       <div class="spinner-border" role="status" style="border-width: 2px">
@@ -92,17 +92,16 @@ async function loadGames() {
   }
 
   // Get images metadata
-  const images = await googleDriveAPI.getImages(nextPageToken)
-  console.log(images)
+  const images = await googleDriveAPI.getImages(nextToken)
 
   // Check if there are games to show
-  if (nextPageToken == null && images.files.length == 0) {
+  if (nextToken === undefined && images.files.length == 0) {
     gamesGallery.innerHTML = `<p style="text-align: center; margin-top: 10px">There are no games in the library.</p>`
     return
   }
 
   // Load images metadata - first layer
-  if (nextPageToken == null) div.innerHTML = ''
+  if (nextToken === undefined) div.innerHTML = ''
   images.files.forEach((element) => {
     div.innerHTML += `
       <div id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
@@ -119,10 +118,11 @@ async function loadGames() {
   // Load images content - second layer
   await Promise.all(images.files.map(async (element) => {
     const file = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
+    const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     const div = document.getElementById(element.id)
     div.innerHTML = `
-      <img onclick="editGame('${element.id}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
-      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.name.substring(0, element.name.lastIndexOf('.'))}</p>
+      <img onclick="editGame('${gameName}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${gameName}</p>
     `
   }))
 
@@ -133,7 +133,7 @@ async function loadGames() {
     gamesLoadMoreDiv.style.visibility = 'visible'
   }
   else {
-    nextPageToken = null
+    nextPageToken = undefined
     gamesLoadMoreDiv.style.visibility = 'hidden'
   }
 }
@@ -163,14 +163,29 @@ function addGame() {
   modal.show()
 }
 
-function editGame(gameID) {
-  console.log(gameID)
+async function editGame(gameName) {
+  showAlert('info', "Loading game details ...")
+  console.log(gameName)
+  mode = 'edit'
+  gamesModalTitle.innerHTML = 'Edit Game'
+  gamesModalName.value = ''
+  const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
+  modal._config.backdrop = 'static'; // Prevents closing by clicking outside
+  modal._config.keyboard = false; // Prevents closing by pressing Esc key
+  modal.show()
+  // Retrieve image and disks
+  // Check if a game exists with the same name
+  const query = `appProperties has { key='name' and value='${gameName}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+  const filter = await googleDriveAPI.listFiles(query)
+  // TBD: The filter should return the parentID
+  manageAlert.innerHTML = ''
+  console.log(filter)
 }
 
 async function loadMoreGames() {
   gamesLoadMoreSubmit.setAttribute("disabled", "");
   gamesLoadMoreLoading.style.display = 'inline-flex';
-  await loadGames()
+  await loadGames(nextPageToken)
   gamesLoadMoreSubmit.removeAttribute("disabled");
   gamesLoadMoreLoading.style.display = 'none';
 }
@@ -264,7 +279,6 @@ async function gamesModalSubmitNew() {
   // Check if a game exists with the same name
   const query = `appProperties has { key='name' and value='${gamesModalName.value.trim()}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
   const filter = await googleDriveAPI.listFiles(query, 1)
-  console.log(filter)
   if (filter.files.length != 0) {
     showAlert('warning', "This game already exists.")
     return
@@ -273,17 +287,19 @@ async function gamesModalSubmitNew() {
   // 1. Upload image
   let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
   let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
+  let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
   let parentFolderName = 'Images'
-  let image_id = await googleDriveAPI.createFile(fileName, fileContent, parentFolderName, trackUploadProgress, 'Image')
+  let image_id = await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, 'Image')
   // await googleDriveAPI.addPermissions(image_id)
 
   // 2. Upload ROM files
   for (let i = 1; i <= disks; ++i) {
     let element = document.getElementById(`gamesModalRomInput_${i}`);
-    let fileName = gamesModalName.value.trim() + element.files[0].name.substring(element.files[0].name.lastIndexOf('.'));
+    let fileName = `${gamesModalName.value.trim()}_${disks[i]}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
     let fileContent = await googleDriveAPI.compress(element.files[0])
+    let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
     let parentFolderName = 'Games'
-    let game_id = await googleDriveAPI.createFile(fileName, fileContent, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
+    let game_id = await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
     // const file = await (await googleDriveAPI.getFile(response)).blob()
     // const decompressedFile = await googleDriveAPI.decompress(file)
     // console.log(await decompressedFile.text())
@@ -339,7 +355,6 @@ searchGame.addEventListener('input', function () {
   let itemsVisible = 0
 
   galleryItems.forEach(item => {
-    console.log(item)
     const title = item.querySelector('p').innerText.toLowerCase();
     if (title.includes(searchText)) {
       item.style.display = 'block';
