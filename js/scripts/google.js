@@ -97,7 +97,7 @@ class GoogleDriveAPI {
   async listFiles(query, size=100, nextPageToken) {
     if (!this.#accessToken) await this.#init()
     const encodedQuery = query === undefined ? encodeURIComponent("trashed = false") : encodeURIComponent(query)
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}&orderBy=name&fields=${encodeURIComponent('files(id,name,appProperties')}${size ? `&pageSize=${size}` : ''}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`, {
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}&orderBy=name&fields=${encodeURIComponent('files(id,name,size,appProperties)')}${size ? `&pageSize=${size}` : ''}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`, {
       method: 'GET',
       headers: {
         "Authorization": `Bearer ${this.#accessToken}`,

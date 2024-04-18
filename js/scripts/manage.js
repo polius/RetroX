@@ -1,5 +1,6 @@
 // Variables
 var mode = 'new';
+var currentGame;
 var disks = 1;
 var nextPageToken = undefined;
 
@@ -13,7 +14,6 @@ const gamesModalAddDisk = document.getElementById('gamesModalAddDisk');
 const gamesModalTitle = document.getElementById('gamesModalTitle');
 const gamesModalName = document.getElementById('gamesModalName');
 const gamesModalDisks = document.getElementById('gamesModalDisks');
-const gamesModalPathDiv = document.getElementById('gamesModalPathDiv');
 const gamesModalGameName = document.getElementById('gamesModalGameName');
 const gamesModalRom = document.getElementById('gamesModalRom');
 const gamesModalImage = document.getElementById('gamesModalImage');
@@ -23,6 +23,7 @@ const gamesModalDeleteLoading = document.getElementById('gamesModalDeleteLoading
 const gamesModalCloseSubmit = document.getElementById('gamesModalCloseSubmit');
 const gamesModalSaveSubmit = document.getElementById('gamesModalSaveSubmit');
 const gamesModalSaveLoading = document.getElementById('gamesModalSaveLoading');
+const gamesModalSelectCover = document.getElementById('gamesModalSelectCover');
 
 const searchGame = document.getElementById('searchGame');
 
@@ -147,7 +148,6 @@ function addGame() {
   manageAlert.innerHTML = ''
   gamesModalTitle.innerHTML = 'New Game'
   gamesModalName.value = ''
-  gamesModalPathDiv.style.display = 'none'
   gamesModalImage.style.display = 'none'
   gamesModalDeleteSubmit.style.display = 'none'
   gamesModalDeleteLoading.style.display = 'none'
@@ -164,22 +164,56 @@ function addGame() {
 }
 
 async function editGame(gameName) {
+  // Init elements
   showAlert('info', "Loading game details ...")
-  console.log(gameName)
   mode = 'edit'
+  currentGame = gameName;
+  disks = 0;
   gamesModalTitle.innerHTML = 'Edit Game'
   gamesModalName.value = ''
+  gamesModalImage.style.display = 'none'
+  gamesModalDisks.innerHTML = '';
+  gamesModalSaveSubmit.setAttribute("disabled", "");
+  gamesModalDeleteSubmit.setAttribute("disabled", "");
+  gamesModalAddDisk.setAttribute("disabled", "");
+  gamesModalSelectCover.setAttribute("disabled", "");
+
+  // Open modal
   const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
-  modal._config.backdrop = 'static'; // Prevents closing by clicking outside
-  modal._config.keyboard = false; // Prevents closing by pressing Esc key
+  modal._config.backdrop = 'static';
+  modal._config.keyboard = false;
   modal.show()
+
   // Retrieve image and disks
-  // Check if a game exists with the same name
   const query = `appProperties has { key='name' and value='${gameName}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
-  const filter = await googleDriveAPI.listFiles(query)
-  // TBD: The filter should return the parentID
-  manageAlert.innerHTML = ''
-  console.log(filter)
+  const response = await googleDriveAPI.listFiles(query)
+  const imageId = response.files.filter(obj => obj.appProperties.type === 'image')[0]['id']
+  const romDisks = response.files
+    .filter(obj => obj.appProperties.type === 'rom')
+    .sort((a,b) => parseInt(a.appProperties.disk) - parseInt(b.appProperties.disk))
+    .map(obj => ({'name': obj['name'], 'size': obj['size']}))
+  const imageFile = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(imageId)).blob())
+
+  // Enable elements
+  manageAlert.innerHTML = ''  
+  gamesModalSaveSubmit.removeAttribute("disabled");
+  gamesModalDeleteSubmit.removeAttribute("disabled");
+  gamesModalAddDisk.removeAttribute("disabled");
+  gamesModalSelectCover.removeAttribute("disabled");
+  gamesModalName.value = response.files[0].appProperties.name;
+
+  // Init Disks
+  for (let i = 0; i < romDisks.length; ++i) {
+    addDisk()
+    let gamesModalGameName = document.getElementById('gamesModalGameName_' + (i+1))
+    console.log(gamesModalGameName)
+    gamesModalGameName.value = `${romDisks[i].name} (${calculateSize(romDisks[i].size)})`;
+    gamesModalGameName.style.display = 'block';
+  }
+
+  // Init Image
+  gamesModalImage.src = URL.createObjectURL(imageFile)
+  gamesModalImage.style.display = 'block'
 }
 
 async function loadMoreGames() {
@@ -237,15 +271,17 @@ async function gamesModalSubmit() {
     showAlert('warning', 'The game name contains invalid characters.')
     return
   }
-  if (gamesModalImageInput.files.length == 0) {
+  if (mode == 'new' && gamesModalImageInput.files.length == 0) {
     showAlert('warning', 'Please upload the ROM cover image.')
     return
   }
-  for (let i = 1; i <= disks; ++i) {
-    let element = document.getElementById(`gamesModalRomInput_${i}`);
-    if (element.files.length == 0) {
-      showAlert('warning', `Please upload the ROM file for Disk ${i}.`)
-      return
+  if (mode == 'new') {
+    for (let i = 1; i <= disks; ++i) {
+      let element = document.getElementById(`gamesModalRomInput_${i}`);
+      if (element.files.length == 0) {
+        showAlert('warning', `Please upload the ROM file for Disk ${i}.`)
+        return
+      }
     }
   }
 
@@ -255,11 +291,14 @@ async function gamesModalSubmit() {
   gamesModalCloseSubmit.setAttribute("disabled", "");
   gamesModalSaveSubmit.setAttribute("disabled", "");
 
-  // Check mode
   try {
+    // Check mode
     if (mode == 'new') await gamesModalSubmitNew()
-    else if (mode == 'edit') {}
-    else if (mode == 'delete') {}
+    else if (mode == 'edit') await gamesModalSubmitEdit()
+    else if (mode == 'delete') await gamesModalDelete()
+
+    // Load games
+    await loadGames()
   } catch (error) {
     showAlert('danger', error)
   }
@@ -276,7 +315,7 @@ async function gamesModalSubmitNew() {
   // Show loading alert
   showAlert('info', "Preparing files to upload it into Google Drive...")
 
-  // Check if a game exists with the same name
+  // 0. Check if a game exists with the same name
   const query = `appProperties has { key='name' and value='${gamesModalName.value.trim()}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
   const filter = await googleDriveAPI.listFiles(query, 1)
   if (filter.files.length != 0) {
@@ -289,20 +328,16 @@ async function gamesModalSubmitNew() {
   let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
   let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
   let parentFolderName = 'Images'
-  let image_id = await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, 'Image')
-  // await googleDriveAPI.addPermissions(image_id)
+  await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, 'Image')
 
   // 2. Upload ROM files
   for (let i = 1; i <= disks; ++i) {
     let element = document.getElementById(`gamesModalRomInput_${i}`);
-    let fileName = `${gamesModalName.value.trim()}_${disks[i]}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
+    let fileName = `${gamesModalName.value.trim()}_${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
     let fileContent = await googleDriveAPI.compress(element.files[0])
     let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
     let parentFolderName = 'Games'
-    let game_id = await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
-    // const file = await (await googleDriveAPI.getFile(response)).blob()
-    // const decompressedFile = await googleDriveAPI.decompress(file)
-    // console.log(await decompressedFile.text())
+    await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
   }
 
   // 3. Show success
@@ -310,6 +345,25 @@ async function gamesModalSubmitNew() {
   await new Promise(resolve => setTimeout(resolve, 1500));
   const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
   modal.hide()
+}
+
+async function gamesModalSubmitEdit() {
+  console.log(currentGame)
+
+  // If rom different but existed (eg: Disk 1), use updateFile(). Otherwise use createFile()
+
+  // If image different, use updateFile.
+
+  // Check if the name has changed
+    // If so... rename image, roms, saves and states, for existing files.
+}
+
+async function gamesModalDelete() {
+
+}
+
+async function gamesModalSubmitDelete() {
+
 }
 
 async function trackUploadProgress(event, element) {
