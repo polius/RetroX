@@ -1,3 +1,6 @@
+// 12000 queries per minute.
+// 200 queries per second.
+
 // Profile
 // Games
 // --> Playing a game. /play.html?game=encodeURIComponent({Google Drive File ID})
@@ -19,8 +22,8 @@ class GoogleDriveAPI {
 
     // Get folder IDs
     const query = "name != 'RetroX' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-    this.#folders = (await googleDriveAPI.listFiles(query)).reduce((acc, obj) => ({ ...acc, [obj.name]: obj.id }), {});
-    console.log(this.#folders)
+    this.#folders = (await googleDriveAPI.listFiles(query)).files.reduce((acc, obj) => ({ ...acc, [obj.name]: obj.id }), {});
+
     // Init Skeleton Folders
     if (Object.keys(this.#folders).length == 0) {
       let retrox_id = await this.createFolder('RetroX');
@@ -35,8 +38,14 @@ class GoogleDriveAPI {
         "Saves": saves_id,
         "States": states_id
       }
-      console.log(this.#folders)
     }
+  }
+
+  // Return images
+  async getImages(nextPageToken) {
+    if (!this.#accessToken) await this.#init()
+    const query = `mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Images']}' in parents and trashed = false`
+    return await this.listFiles(query, 1, nextPageToken)
   }
 
   // Start Google authentication process
@@ -85,10 +94,10 @@ class GoogleDriveAPI {
   }
 
   // List files
-  async listFiles(query, size) {
+  async listFiles(query, size=100, nextPageToken) {
     if (!this.#accessToken) await this.#init()
     const encodedQuery = query === undefined ? encodeURIComponent("trashed = false") : encodeURIComponent(query)
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}&orderBy=name${size ? `&pageSize=${size}` : ''}`, {
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodedQuery}&orderBy=name${size ? `&pageSize=${size}` : ''}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`, {
       method: 'GET',
       headers: {
         "Authorization": `Bearer ${this.#accessToken}`,
@@ -96,7 +105,7 @@ class GoogleDriveAPI {
     })
 
     const json = await response.json()
-    if (response.ok) return json.files
+    if (response.ok) return json
     else throw new Error(json['error']['message'])
   }
 
@@ -152,8 +161,8 @@ class GoogleDriveAPI {
           reject("The upload operation has been aborted.");
         }
         else {
-          console.error(`Error ${this.#xhr.status}: ${this.#xhr.statusText}`);
-          reject(this.#xhr.statusText);
+          console.error(`Error ${this.#xhr.status}: ${JSON.parse(this.#xhr.responseText)['error']['message']}`);
+          reject(JSON.parse(this.#xhr.responseText)['error']['message']);
         }
       };
 
@@ -182,6 +191,24 @@ class GoogleDriveAPI {
     })
   }
 
+  async addPermissions(fileID) {
+    if (!this.#accessToken) await this.#init()
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileID}/permissions?fields=id`, {
+      method: 'POST',
+      headers: {
+        "Authorization": `Bearer ${this.#accessToken}`,
+      },
+      body: JSON.stringify({
+        'role': 'reader',
+        'type': 'anyone',
+      })
+    })
+
+    const json = await response.json()
+    if (response.ok) return json['id']
+    else throw new Error(json['error']['message'])
+  }
+
   async updateFile(fileID, fileName, onProgress) {
     if (!this.#accessToken) await this.#init()
     return new Promise((resolve, reject) => {
@@ -208,8 +235,8 @@ class GoogleDriveAPI {
           reject("The upload operation has been aborted.");
         }
         else {
-          console.error(`Error ${this.#xhr.status}: ${this.#xhr.statusText}`);
-          reject(this.#xhr.statusText);
+          console.error(`Error ${this.#xhr.status}: ${JSON.parse(this.#xhr.responseText)['error']['message']}`);
+          reject(JSON.parse(this.#xhr.responseText)['error']['message']);
         }
       };
 
@@ -257,7 +284,7 @@ class GoogleDriveAPI {
     const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileID}`, {
       method: 'DELETE',
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        "Authorization": `Bearer ${this.#accessToken}`,
       },
     })
 
@@ -286,6 +313,23 @@ class GoogleDriveAPI {
     let decompressionStream = new DecompressionStream("gzip");
     let decompressedStream = blob.stream().pipeThrough(decompressionStream);
     return await new Response(decompressedStream).blob();
+  }
+
+  async test2() {
+    await this.#init()
+    // List all items
+    console.log("List items:")
+    // let list = await this.listFiles("mimeType != 'application/vnd.google-apps.folder' and trashed = false", undefined, 'files/*')
+    let list = await this.listFiles(`mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Images']}' in parents and trashed = false`, undefined, 'files/thumbnailLink,files/name')
+    let images = list.reduce((acc, obj) => { 
+      acc.push({
+        name: obj['name'].substring(0, obj['name'].lastIndexOf('.')),
+        src: obj['thumbnailLink'].substring(0, obj['thumbnailLink'].lastIndexOf('='))
+      });
+      return acc;
+    }, []);
+    console.log(list)
+    console.log(images)
   }
 
   async test() {
@@ -362,3 +406,4 @@ class GoogleDriveAPI {
 
 const googleDriveAPI = new GoogleDriveAPI();
 // googleDriveAPI.test()
+// googleDriveAPI.test2()

@@ -1,8 +1,11 @@
 // Variables
 var mode = 'new';
 var disks = 1;
+var nextPageToken = null;
 
 // Get elements
+const gamesGallery = document.getElementById("gamesGallery");
+
 const manageAlert = document.getElementById("manageAlert");
 const gamesModal = document.getElementById('gamesModal');
 const gamesModalClose = document.getElementById('gamesModalClose');
@@ -23,16 +26,24 @@ const gamesModalSaveLoading = document.getElementById('gamesModalSaveLoading');
 
 const searchGame = document.getElementById('searchGame');
 
+const gamesLoadMoreDiv = document.getElementById('gamesLoadMoreDiv');
+const gamesLoadMoreSubmit = document.getElementById('gamesLoadMoreSubmit');
+const gamesLoadMoreLoading = document.getElementById('gamesLoadMoreLoading');
+
 const gamesManageList = document.getElementById('gamesManageList');
+const gamesNumber = document.getElementById('gamesNumber');
 const gamesManageSubmitButton = document.getElementById('gamesManageSubmitButton');
 const gamesManageCloseButton = document.getElementById('gamesManageCloseButton');
 const gamesManageAddButton = document.getElementById('gamesManageAddButton');
 
-function onLoad() {
+async function onLoad() {
   // Check if user is not logged in
   if (!localStorage.getItem('expires')) {
     window.location.href = `${window.location.origin}`
   }
+
+  // Load games
+  await loadGames()
 }
 
 function showAlert(type, message) {
@@ -59,11 +70,72 @@ function showAlert(type, message) {
       </div>
       ${type == 'info' ? 
         `<!-- <button onclick="cancelUpload()" type="button" class="btn btn-danger" style="position: relative; margin-left: auto;">Cancel</button> -->`
-      :
+      : type != 'success' ? 
         `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`
+      : ''
       }
     </div>
   `
+}
+
+async function loadGames() {
+  const div = gamesGallery.querySelector('div')
+
+  // Show loading
+  if (nextPageToken == null) {
+    div.innerHTML = `
+      <p style="text-align: center; margin-top:30px; margin-bottom: 0;">Loading games...</p>
+      <div class="spinner-border" role="status" style="border-width: 2px">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    `
+  }
+
+  // Get images metadata
+  const images = await googleDriveAPI.getImages(nextPageToken)
+  console.log(images)
+
+  // Check if there are games to show
+  if (nextPageToken == null && images.files.length == 0) {
+    gamesGallery.innerHTML = `<p style="text-align: center; margin-top: 10px">There are no games in the library.</p>`
+    return
+  }
+
+  // Load images metadata - first layer
+  if (nextPageToken == null) div.innerHTML = ''
+  images.files.forEach((element) => {
+    div.innerHTML += `
+      <div id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+        <div class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px;">
+          <div class="spinner-border" style="width: 3rem; height: 3rem; border-width: 2px;" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.name.substring(0, element.name.lastIndexOf('.'))}</p>
+      </div>
+    `
+  })
+
+  // Load images content - second layer
+  await Promise.all(images.files.map(async (element) => {
+    const file = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
+    const div = document.getElementById(element.id)
+    div.innerHTML = `
+      <img onclick="editGame('${element.id}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.name.substring(0, element.name.lastIndexOf('.'))}</p>
+    `
+  }))
+
+  // Check if there are more games to load
+  if (images.nextPageToken !== undefined) {
+    nextPageToken = images.nextPageToken
+    gamesLoadMoreSubmit.removeAttribute("disabled");
+    gamesLoadMoreDiv.style.visibility = 'visible'
+  }
+  else {
+    nextPageToken = null
+    gamesLoadMoreDiv.style.visibility = 'hidden'
+  }
 }
 
 function manageGamesClose() {
@@ -71,7 +143,6 @@ function manageGamesClose() {
 }
 
 function addGame() {
-  // setTimeout(() => showAlert('info', "Uploading Game (Disk 1). Progress: 10%"), 1000)
   mode = 'new'
   manageAlert.innerHTML = ''
   gamesModalTitle.innerHTML = 'New Game'
@@ -90,6 +161,18 @@ function addGame() {
   disks = 0;
   addDisk()
   modal.show()
+}
+
+function editGame(gameID) {
+  console.log(gameID)
+}
+
+async function loadMoreGames() {
+  gamesLoadMoreSubmit.setAttribute("disabled", "");
+  gamesLoadMoreLoading.style.display = 'inline-flex';
+  await loadGames()
+  gamesLoadMoreSubmit.removeAttribute("disabled");
+  gamesLoadMoreLoading.style.display = 'none';
 }
 
 function addDisk() {
@@ -182,7 +265,7 @@ async function gamesModalSubmitNew() {
   const query = `appProperties has { key='name' and value='${gamesModalName.value.trim()}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
   const filter = await googleDriveAPI.listFiles(query, 1)
   console.log(filter)
-  if (filter.length != 0) {
+  if (filter.files.length != 0) {
     showAlert('warning', "This game already exists.")
     return
   }
@@ -192,6 +275,7 @@ async function gamesModalSubmitNew() {
   let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
   let parentFolderName = 'Images'
   let image_id = await googleDriveAPI.createFile(fileName, fileContent, parentFolderName, trackUploadProgress, 'Image')
+  // await googleDriveAPI.addPermissions(image_id)
 
   // 2. Upload ROM files
   for (let i = 1; i <= disks; ++i) {
@@ -207,7 +291,7 @@ async function gamesModalSubmitNew() {
 
   // 3. Show success
   showAlert("success", "Game successfully stored in Google Drive.")
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1500));
   const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
   modal.hide()
 }
@@ -252,15 +336,19 @@ document.addEventListener("change", function(event) {
 searchGame.addEventListener('input', function () {
   const searchText = this.value.toLowerCase();
   const galleryItems = document.querySelectorAll('.gallery-item');
+  let itemsVisible = 0
 
   galleryItems.forEach(item => {
-      const title = item.querySelector('p').innerText.toLowerCase();
-      if (title.includes(searchText)) {
-        item.style.display = 'block';
-      } else {
-        item.style.display = 'none';
-      }
+    console.log(item)
+    const title = item.querySelector('p').innerText.toLowerCase();
+    if (title.includes(searchText)) {
+      item.style.display = 'block';
+      itemsVisible += 1
+    } else {
+      item.style.display = 'none';
+    }
   });
+  gamesNumber.innerHTML = `(${itemsVisible})`
 });
 
 onLoad()

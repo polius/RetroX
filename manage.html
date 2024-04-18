@@ -24,6 +24,12 @@
     <style>
       body {
         background-color: rgb(37, 40, 41);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      main {
+        flex: 1;
       }
       .card {
         box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
@@ -110,7 +116,6 @@
             <button onclick="manageGamesClose()" id="gamesManageCloseButton" class="btn btn-dark" style="padding:8px 22px 8px 22px; margin-top:5px" type="button">Close</button>
           </p>
 
-          
           <!-- Games Manage List -->
           <div id="gamesManageList" class="container-xl">
             <div class="alert alert-dismissible fade show d-flex align-items-center" style="background-color: rgb(31, 33, 34); padding:5px" role="alert">
@@ -133,60 +138,48 @@
               </div>
             </div>
 
-            <!-- <p id="gamesListEmpty2" style="text-align: center; margin-top: 40px; margin-bottom: 50px">There are no games in the library.</p> -->
+            <!-- <p id="gamesListEmpty" style="text-align: center; margin-top: 40px; margin-bottom: 50px">There are no games in the library.</p> -->
 
-            <section id="gallery" class="gallery pt-2">
-              <div class="container">
-                <div class="row gy-4 justify-content-center align-items-center">
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/pokemon-red.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Red</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/pokemon-blue.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Blue</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/pokemon-gold.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Gold</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/pokemon-silver.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Silver</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/zelda-the-minish-cap.png" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">The Legend of Zelda - The Minish Cap</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/final-fantasy-tactics-advance.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Final Fantasy Tactivs Advance</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/final-fantasy-ix.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Final Fantasy IX</p>
-                    </div>
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6 col-10">
-                    <div class="gallery-item">
-                      <img src="images/roms/super-smash-bros.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
-                      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Super Smash Bros</p>
-                    </div>
-                  </div>
+            <section id="gamesGallery" class="container gallery pt-2">
+              <div class="row gy-4 justify-content-center align-items-center">                
+                <!-- <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/pokemon-red.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Red</p>
                 </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/pokemon-blue.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Blue</p>
+                </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/pokemon-gold.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Gold</p>
+                </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/pokemon-silver.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Pokemon Silver</p>
+                </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/zelda-the-minish-cap.png" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">The Legend of Zelda - The Minish Cap</p>
+                </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/final-fantasy-tactics-advance.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Final Fantasy Tactivs Advance</p>
+                </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/final-fantasy-ix.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Final Fantasy IX</p>
+                </div>
+                <div class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+                  <img src="images/roms/super-smash-bros.jpg" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px;" alt="">
+                  <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">Super Smash Bros</p>
+                </div> -->
+              </div>
+              <div id="gamesLoadMoreDiv" class="d-flex justify-content-center align-items-center" style="visibility: hidden; margin-top: 10px">
+                <button id="gamesLoadMoreSubmit" onclick="loadMoreGames()" type="button" class="btn btn-primary" style="height: 40px; width:200px">
+                  <span id="gamesLoadMoreLoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
+                  Load more games
+                </button>
               </div>
             </section>
           </div>
@@ -248,11 +241,11 @@
             </div>
           </div>
         </div>
-        <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
-          RetroX Emulator &copy; 2024
-        </footer>
       </div>
     </main>
+    <footer class="py-4 text-muted border-top d-flex justify-content-center">
+      RetroX Emulator &copy; 2024
+    </footer>
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/scripts/common.js"></script>
     <script src="js/scripts/google.js"></script>
