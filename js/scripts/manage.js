@@ -116,9 +116,10 @@ async function loadGames(name, nextToken) {
   // Load images metadata - first layer
   if (nextToken === undefined) div.innerHTML = ''
   images.files.forEach((element) => {
+    const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     div.innerHTML += `
-      <div id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
-        <div class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px;">
+      <div onclick="editGame('${gameName}')" id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+        <div class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px; cursor:pointer;">
           <div class="spinner-border" style="width: 3rem; height: 3rem; border-width: 2px;" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
@@ -595,22 +596,5 @@ document.addEventListener("change", function(event) {
     }
   }
 });
-
-// searchGame.addEventListener('input', function () {
-//   const searchText = this.value.toLowerCase();
-//   const galleryItems = document.querySelectorAll('.gallery-item');
-//   let itemsVisible = 0
-
-//   galleryItems.forEach(item => {
-//     const title = item.querySelector('p').innerText.toLowerCase();
-//     if (title.includes(searchText)) {
-//       item.style.display = 'block';
-//       itemsVisible += 1
-//     } else {
-//       item.style.display = 'none';
-//     }
-//   });
-//   gamesNumber.innerHTML = `(${itemsVisible})`
-// });
 
 onLoad()

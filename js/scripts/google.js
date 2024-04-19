@@ -45,7 +45,7 @@ class GoogleDriveAPI {
   async getImages(name, nextPageToken) {
     if (!this.#accessToken) await this.#init()
     const query = `mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Images']}' in parents and trashed = false${name ? ` and name contains '${name}'` : ''}`
-    return await this.listFiles(query, 1, nextPageToken)
+    return await this.listFiles(query, 16, nextPageToken)
   }
 
   // Start Google authentication process

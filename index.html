@@ -26,6 +26,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style>
+      body {
+        background-color: rgb(37, 40, 41);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      main {
+        flex: 1;
+      }
       .img-enlarge {
         transition: transform 0.3s ease;
       }
@@ -141,12 +150,11 @@
         </div>
 
         <img src="images/gdrive.png" class="img-fluid pb-4" style="border-radius:10px" alt="">
-
-        <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
-          The images displayed on this website are not proprietary and are used for illustrative purposes only. All rights belong to their respective owners.
-        </footer>
       </div>
     </main>
+    <footer class="py-4 text-muted border-top d-flex justify-content-center">
+      The images displayed on this website are not proprietary and are used for illustrative purposes only. All rights belong to their respective owners.
+    </footer>
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/scripts/common.js"></script>
     <script src="js/scripts/index.js"></script>

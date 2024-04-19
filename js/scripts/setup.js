@@ -1,7 +1,7 @@
 function onLoad() {
   // Check if user is not logged in or if has already finished the setup
   if (!localStorage.getItem('expires') || localStorage.getItem('google_client_id') != null) {
-    // window.location.href = `${window.location.origin}`
+    window.location.href = `${window.location.origin}`
   }
 }
 

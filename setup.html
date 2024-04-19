@@ -23,7 +23,13 @@
     <meta name="theme-color" content="#712cf9">
     <style>
       body {
+        display: flex;
         background-color: rgb(37, 40, 41);
+        min-height: 100vh;
+        flex-direction: column;
+      }
+      main {
+        flex: 1;
       }
       .card {
         box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
@@ -366,11 +372,11 @@
             </div>
           </div>
         </div>
-        <footer class="pt-3 mt-4 text-muted border-top d-flex justify-content-center">
-          RetroX Emulator &copy; 2024
-        </footer>
       </div>
     </main>
+    <footer class="py-4 text-muted border-top d-flex justify-content-center">
+      RetroX Emulator &copy; 2024
+    </footer>
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/scripts/common.js"></script>
     <script src="js/scripts/google.js"></script>

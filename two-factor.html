@@ -21,16 +21,14 @@
     <meta property="author" content="Pol Alzina" />
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <style>
-        html,
-        body {
-          height: 100%;
-        }
         body {
           display: flex;
-          align-items: center;
-          padding-top: 40px;
-          padding-bottom: 40px;
           background-color: rgb(37, 40, 41);
+          min-height: 100vh;
+          flex-direction: column;
+        }
+        main {
+          flex: 1;
         }
         .form-signin {
           max-width: 330px;
@@ -43,7 +41,7 @@
 </head>
 
 <body class="text-center">
-  <main class="form-signin w-100 m-auto">
+  <main class="form-signin w-100 m-auto mt-5">
     <form onsubmit="twoFactor(event)" >
       <a href="/" style="text-decoration: none;">
         <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
@@ -64,11 +62,10 @@
         Log in
       </button>
     </form>
-    <footer class="pt-3 text-muted border-top d-flex justify-content-center" style="margin-top: 50px">
-      RetroX Emulator &copy; 2024
-    </footer>
   </main>
-
+  <footer class="py-4 text-muted border-top d-flex justify-content-center">
+    RetroX Emulator &copy; 2024
+  </footer>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   <script src="js/bootstrap.bundle.min.js"></script>
   <script src="js/scripts/common.js"></script>
