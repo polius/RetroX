@@ -25,6 +25,14 @@ const gamesModalSaveSubmit = document.getElementById('gamesModalSaveSubmit');
 const gamesModalSaveLoading = document.getElementById('gamesModalSaveLoading');
 const gamesModalSelectCover = document.getElementById('gamesModalSelectCover');
 
+const confirmModal = document.getElementById('confirmModal');
+const confirmAlert = document.getElementById('confirmAlert');
+const confirmModalClose = document.getElementById('confirmModalClose');
+const confirmModalGameName = document.getElementById('confirmModalGameName');
+const confirmModalCloseSubmit = document.getElementById('confirmModalCloseSubmit');
+const confirmModalSubmit = document.getElementById('confirmModalSubmit');
+const confirmModalLoading = document.getElementById('confirmModalLoading');
+
 const searchGame = document.getElementById('searchGame');
 
 const gamesLoadMoreDiv = document.getElementById('gamesLoadMoreDiv');
@@ -47,8 +55,12 @@ async function onLoad() {
   await loadGames()
 }
 
-function showAlert(type, message) {
-  manageAlert.innerHTML = `
+function manageGamesClose() {
+  window.location.href = `${window.location.origin}/games.html`
+}
+
+function showAlert(element, type, message) {
+  element.innerHTML = `
     <div class="alert alert-${type} ${type != 'info' ? 'alert-dismissible' : ''} d-flex align-items-center" role="alert">
       <div style="text-align:left">
         ${type == 'success' ?
@@ -79,7 +91,7 @@ function showAlert(type, message) {
   `
 }
 
-async function loadGames(nextToken) {
+async function loadGames(name, nextToken) {
   const div = gamesGallery.querySelector('div')
 
   // Show loading
@@ -93,11 +105,11 @@ async function loadGames(nextToken) {
   }
 
   // Get images metadata
-  const images = await googleDriveAPI.getImages(nextToken)
+  const images = await googleDriveAPI.getImages(name, nextToken)
 
   // Check if there are games to show
   if (nextToken === undefined && images.files.length == 0) {
-    gamesGallery.innerHTML = `<p style="text-align: center; margin-top: 10px">There are no games in the library.</p>`
+    div.innerHTML = `<p style="text-align: center; margin-top: 40px">There are no games in the library.</p>`
     return
   }
 
@@ -118,6 +130,8 @@ async function loadGames(nextToken) {
 
   // Load images content - second layer
   await Promise.all(images.files.map(async (element) => {
+    await (await googleDriveAPI.getFile(element.id)).blob()
+    await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
     const file = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
     const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     const div = document.getElementById(element.id)
@@ -139,8 +153,19 @@ async function loadGames(nextToken) {
   }
 }
 
-function manageGamesClose() {
-  window.location.href = `${window.location.origin}/games.html`
+const searchGames = debounce(searchGamesSubmit);
+
+function debounce(func, delay=500) {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+async function searchGamesSubmit() {
+  googleDriveAPI.abort()
+  await loadGames(searchGame.value)
 }
 
 function addGame() {
@@ -165,14 +190,16 @@ function addGame() {
 
 async function editGame(gameName) {
   // Init elements
-  showAlert('info', "Loading game details ...")
+  showAlert(manageAlert, 'info', "Loading game details ...")
   mode = 'edit'
-  currentGame = gameName;
   disks = 0;
   gamesModalTitle.innerHTML = 'Edit Game'
   gamesModalName.value = ''
   gamesModalImage.style.display = 'none'
   gamesModalDisks.innerHTML = '';
+  gamesModalDeleteSubmit.style.display = 'block'
+  gamesModalClose.setAttribute("disabled", "");
+  gamesModalCloseSubmit.setAttribute("disabled", "");
   gamesModalSaveSubmit.setAttribute("disabled", "");
   gamesModalDeleteSubmit.setAttribute("disabled", "");
   gamesModalAddDisk.setAttribute("disabled", "");
@@ -187,15 +214,27 @@ async function editGame(gameName) {
   // Retrieve image and disks
   const query = `appProperties has { key='name' and value='${gameName}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
   const response = await googleDriveAPI.listFiles(query)
-  const imageId = response.files.filter(obj => obj.appProperties.type === 'image')[0]['id']
   const romDisks = response.files
     .filter(obj => obj.appProperties.type === 'rom')
     .sort((a,b) => parseInt(a.appProperties.disk) - parseInt(b.appProperties.disk))
-    .map(obj => ({'name': obj['name'], 'size': obj['size']}))
-  const imageFile = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(imageId)).blob())
+    .map(obj => ({'id': obj['id'], 'name': obj['name'], 'size': obj['size']}))
+
+  // Save current game metadata
+  currentGame = {
+    'name': response.files.filter(obj => obj.appProperties.type === 'image')[0].appProperties.name,
+    'image': {...response.files.filter(obj => obj.appProperties.type === 'image')[0], 'modified': false},
+    'roms': romDisks,
+    'save': response.files.filter(obj => obj.appProperties.type === 'save')[0] || null,
+    'state': response.files.filter(obj => obj.appProperties.type === 'state')[0] || null,
+  }
+  
+  // Get image file
+  const imageFile = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(currentGame.image.id)).blob())
 
   // Enable elements
-  manageAlert.innerHTML = ''  
+  manageAlert.innerHTML = ''
+  gamesModalClose.removeAttribute("disabled");
+  gamesModalCloseSubmit.removeAttribute("disabled");
   gamesModalSaveSubmit.removeAttribute("disabled");
   gamesModalDeleteSubmit.removeAttribute("disabled");
   gamesModalAddDisk.removeAttribute("disabled");
@@ -206,7 +245,6 @@ async function editGame(gameName) {
   for (let i = 0; i < romDisks.length; ++i) {
     addDisk()
     let gamesModalGameName = document.getElementById('gamesModalGameName_' + (i+1))
-    console.log(gamesModalGameName)
     gamesModalGameName.value = `${romDisks[i].name} (${calculateSize(romDisks[i].size)})`;
     gamesModalGameName.style.display = 'block';
   }
@@ -219,34 +257,43 @@ async function editGame(gameName) {
 async function loadMoreGames() {
   gamesLoadMoreSubmit.setAttribute("disabled", "");
   gamesLoadMoreLoading.style.display = 'inline-flex';
-  await loadGames(nextPageToken)
+  await loadGames(searchGame.value, nextPageToken)
   gamesLoadMoreSubmit.removeAttribute("disabled");
   gamesLoadMoreLoading.style.display = 'none';
 }
 
 function addDisk() {
   disks += 1;
-  gamesModalDisks.innerHTML += `
-    <div id="gamesModalGameDisk_${disks}" class="row mb-2" style="background-color: rgb(31, 33, 34); padding: 15px; border-radius: 5px; margin: 0;">
-      <div class="col-auto d-flex align-items-center" style="font-size: 0.88rem; font-weight:500; padding:0">
-        Disk ${disks}
-      </div>
-      <div class="col" style="padding-left:20px; padding-right:0">
-        <input id="gamesModalGameName_${disks}" disabled class="form-control mb-2" style="display: none;" type="text" placeholder="pokemon-red (16MB)">
-        <button onclick="document.getElementById('gamesModalRomInput_${disks}').click()" type="button" class="btn btn-primary btn-sm my-1" style="width: 150px; height:38px; margin-right: 5px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-upload-fill" viewBox="0 0 16 16" style="margin-right:8px">
-            <path fill-rule="evenodd" d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0"/>
-          </svg>
-          Select ROM
-        </button>
-        <input id='gamesModalRomInput_${disks}' type='file' hidden/>
-      </div>
-      <div id="gamesModalGameRemove_${disks}" onclick="removeDisk(${disks})" class="col-auto d-flex align-items-center justify-content-end" style="cursor:pointer; padding-left:25px" title="Remove disk">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="red" class="bi bi-x-lg" viewBox="0 0 16 16">
-          <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+
+  const newDiv = document.createElement('div');
+  newDiv.id = `gamesModalGameDisk_${disks}`;
+  newDiv.classList.add('row', 'mb-2');
+  newDiv.style.backgroundColor = 'rgb(31, 33, 34)';
+  newDiv.style.padding = '15px';
+  newDiv.style.borderRadius = '5px';
+  newDiv.style.margin = '0';
+  newDiv.innerHTML = `
+    <div class="col-auto d-flex align-items-center" style="font-size: 0.88rem; font-weight:500; padding:0">
+      Disk ${disks}
+    </div>
+    <div class="col" style="padding-left:20px; padding-right:0">
+      <input id="gamesModalGameName_${disks}" disabled class="form-control mb-2" style="display: none;" type="text">
+      <button id="gamesModalGameSelect_${disks}" onclick="document.getElementById('gamesModalRomInput_${disks}').click()" type="button" class="btn btn-primary btn-sm my-1" style="width: 150px; height:38px; margin-right: 5px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-upload-fill" viewBox="0 0 16 16" style="margin-right:8px">
+          <path fill-rule="evenodd" d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0"/>
         </svg>
-      </div>
-    </div>`
+        Select ROM
+      </button>
+      <input id='gamesModalRomInput_${disks}' type='file' hidden/>
+    </div>
+    <button id="gamesModalGameRemove_${disks}" onclick="removeDisk(${disks})" title="Remove disk" class="col-auto d-flex align-items-center justify-content-end" style="cursor:pointer; padding-left:25px; background-color:transparent; border:none">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="red" class="bi bi-x-lg" viewBox="0 0 16 16">
+        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+      </svg>
+    </button>
+  `
+  gamesModalDisks.appendChild(newDiv);
+
   if (disks == 1) document.getElementById(`gamesModalGameRemove_${disks}`).style.visibility = 'hidden'
   else document.getElementById(`gamesModalGameRemove_${disks-1}`).style.visibility = 'hidden'
   if (disks == 5) gamesModalAddDisk.setAttribute("disabled", "");
@@ -264,28 +311,36 @@ function removeDisk(disk) {
 async function gamesModalSubmit() {
   // Validate inputs
   if (gamesModalName.value.trim().length == 0) {
-    showAlert('warning', 'Please enter the ROM name.')
+    showAlert(manageAlert, 'warning', 'Please enter the ROM name.')
     return
   }
-  if (!/^[0-9a-zA-Z\-_\: ]+$/.test(gamesModalName.value.trim())) {
-    showAlert('warning', 'The game name contains invalid characters.')
+  if (!/^[0-9a-zA-Z\-_\: áéíóúÁÉÍÓÚàèìòùÀÈÌÒÙ]+$/.test(gamesModalName.value.trim())) {
+    showAlert(manageAlert, 'warning', 'The game name contains invalid characters.')
     return
   }
   if (mode == 'new' && gamesModalImageInput.files.length == 0) {
-    showAlert('warning', 'Please upload the ROM cover image.')
+    showAlert(manageAlert, 'warning', 'Please upload the ROM cover image.')
     return
   }
   if (mode == 'new') {
     for (let i = 1; i <= disks; ++i) {
       let element = document.getElementById(`gamesModalRomInput_${i}`);
       if (element.files.length == 0) {
-        showAlert('warning', `Please upload the ROM file for Disk ${i}.`)
+        showAlert(manageAlert, 'warning', `Please upload the ROM file for Disk ${i}.`)
         return
       }
     }
   }
 
-  // Disable buttons and apply loading effect
+  // Disable elements and apply loading effect
+  gamesModalName.disabled = true;
+  for (let i = 1; i <= disks; ++i) {
+    document.getElementById(`gamesModalGameSelect_${i}`).setAttribute("disabled", "")
+    document.getElementById(`gamesModalGameRemove_${i}`).setAttribute("disabled", "")
+  }
+  gamesModalAddDisk.setAttribute("disabled", "");
+  gamesModalSelectCover.setAttribute("disabled", "");
+  gamesModalDeleteSubmit.setAttribute("disabled", "");
   gamesModalSaveLoading.style.display = 'inline-flex'
   gamesModalClose.setAttribute("disabled", "");
   gamesModalCloseSubmit.setAttribute("disabled", "");
@@ -297,30 +352,45 @@ async function gamesModalSubmit() {
     else if (mode == 'edit') await gamesModalSubmitEdit()
     else if (mode == 'delete') await gamesModalDelete()
 
+    // Show success
+    showAlert(manageAlert, "success", "Game successfully stored in Google Drive.")
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
+    modal.hide()
+
     // Load games
     await loadGames()
+
   } catch (error) {
-    showAlert('danger', error)
+    showAlert(manageAlert, 'danger', error.message)
   }
   finally {
-    // Enable buttons and disable loading effect
+    // Enable elements and disable loading effect
+    gamesModalName.disabled = false;
+    for (let i = 1; i <= disks; ++i) {
+      document.getElementById(`gamesModalGameSelect_${i}`).removeAttribute("disabled")
+      document.getElementById(`gamesModalGameRemove_${i}`).removeAttribute("disabled")
+    }
+    gamesModalAddDisk.removeAttribute("disabled");
+    gamesModalSelectCover.removeAttribute("disabled");
+    gamesModalDeleteSubmit.removeAttribute("disabled");
     gamesModalSaveLoading.style.display = 'none'
     gamesModalClose.removeAttribute("disabled");
     gamesModalCloseSubmit.removeAttribute("disabled");
     gamesModalSaveSubmit.removeAttribute("disabled");
+    searchGame.value = '';
   }
 }
 
 async function gamesModalSubmitNew() {
   // Show loading alert
-  showAlert('info', "Preparing files to upload it into Google Drive...")
+  showAlert(manageAlert, 'info', "Preparing files to upload it into Google Drive...")
 
   // 0. Check if a game exists with the same name
   const query = `appProperties has { key='name' and value='${gamesModalName.value.trim()}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
   const filter = await googleDriveAPI.listFiles(query, 1)
   if (filter.files.length != 0) {
-    showAlert('warning', "This game already exists.")
-    return
+    throw new Error("This game already exists.")
   }
 
   // 1. Upload image
@@ -333,43 +403,165 @@ async function gamesModalSubmitNew() {
   // 2. Upload ROM files
   for (let i = 1; i <= disks; ++i) {
     let element = document.getElementById(`gamesModalRomInput_${i}`);
-    let fileName = `${gamesModalName.value.trim()}_${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
+    let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
     let fileContent = await googleDriveAPI.compress(element.files[0])
     let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
     let parentFolderName = 'Games'
     await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
   }
-
-  // 3. Show success
-  showAlert("success", "Game successfully stored in Google Drive.")
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
-  modal.hide()
 }
 
 async function gamesModalSubmitEdit() {
-  console.log(currentGame)
+  // Show loading alert
+  showAlert(manageAlert, 'info', "Connecting to Google Drive ...")
 
-  // If rom different but existed (eg: Disk 1), use updateFile(). Otherwise use createFile()
+  // Check if a game exists with the same name
+  if (gamesModalName.value.trim() != currentGame.name) {
+    const query = `appProperties has { key='name' and value='${gamesModalName.value.trim()}' } and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+    const filter = await googleDriveAPI.listFiles(query, 1)
+    if (filter.files.length != 0) {
+      throw new Error("This game already exists.")
+    }
+  }
 
-  // If image different, use updateFile.
+  // Upload updated ROMS
+  for (let i = 1; i <= disks; ++i) {
+    let element = document.getElementById(`gamesModalRomInput_${i}`)
+    if (element.files.length != 0) {
+      let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
+      let fileContent = await googleDriveAPI.compress(element.files[0])
+      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
+      let parentFolderName = 'Games'
+      if (i <= currentGame.roms.length) await googleDriveAPI.deleteFile(currentGame.roms[i-1].id)
+      await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
+    }
+  }
+
+  // Remove ROMS / Disks deleted from user  disks = 1 | currentGame.roms.length = 2
+  if (disks < currentGame.roms.length) {
+    for (let i = disks; i < currentGame.roms.length; ++i) {
+      await googleDriveAPI.deleteFile(currentGame.roms[i].id)
+    }
+  }
+
+  // Upload updated image
+  if (currentGame.image.modified) {
+    let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
+    let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
+    let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+    let parentFolderName = 'Images'
+    await googleDriveAPI.deleteFile(currentGame.image.id)
+    await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, 'Image')
+  }
 
   // Check if the name has changed
-    // If so... rename image, roms, saves and states, for existing files.
+  if (gamesModalName.value.trim() != currentGame.name) {
+    // Rename existing disks
+    for (let i = 1; i <= disks; ++i) {
+      let element = document.getElementById(`gamesModalRomInput_${i}`)
+      if (element.files.length == 0) {
+        let fileId = currentGame.roms[i-1].id
+        let fileName = `${gamesModalName.value.trim()}_Disk${i}${currentGame.roms[i-1].name.substring(currentGame.roms[i-1].name.lastIndexOf('.'))}`;
+        let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
+        await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
+      }
+    }
+
+    // Rename existing image
+    if (!currentGame.image.modified) {
+      let fileId = currentGame.image.id
+      let fileName = gamesModalName.value.trim() + currentGame.image.name.substring(currentGame.image.name.lastIndexOf('.'));
+      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+      await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
+    }
+
+    // Rename Save Game
+    if (currentGame.save != null) {
+      let fileId = currentGame.save.id
+      let fileName = gamesModalName.value.trim() + currentGame.save.name.substring(currentGame.save.name.lastIndexOf('.'));
+      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+      await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
+    }
+
+    // Rename Game State
+    if (currentGame.state != null) {
+      let fileId = currentGame.state.id
+      let fileName = gamesModalName.value.trim() + currentGame.state.name.substring(currentGame.state.name.lastIndexOf('.'));
+      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+      await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
+    }
+  }
 }
 
 async function gamesModalDelete() {
+  // Close current modal
+  const gamesModalObject = bootstrap.Modal.getOrCreateInstance(gamesModal);
+  gamesModalObject.hide()
 
+  // Assign game name
+  confirmModalGameName.innerHTML = currentGame.name;
+
+  // Open confirm modal
+  const confirmModalObject = bootstrap.Modal.getOrCreateInstance(confirmModal);
+  confirmModalObject._config.backdrop = 'static';
+  confirmModalObject._config.keyboard = false;
+  confirmModalObject.show()
+}
+
+function closeConfirmModal() {
+  // Close confirm modal
+  const confirmModalObject = bootstrap.Modal.getOrCreateInstance(confirmModal);
+  confirmModalObject.hide()
 }
 
 async function gamesModalSubmitDelete() {
+  // Disable elements
+  confirmModalClose.setAttribute("disabled", "");
+  confirmModalLoading.style.display = 'inline-flex'
+  confirmModalCloseSubmit.setAttribute("disabled", "");
+  confirmModalSubmit.setAttribute("disabled", "");
 
+  try {
+    // Delete roms
+    for (let i = 0; i < currentGame.roms.length; ++i) {
+      await googleDriveAPI.deleteFile(currentGame.roms[i].id)
+    }
+
+    // Delete save
+    if (currentGame.save != null) await googleDriveAPI.deleteFile(currentGame.save.id)
+
+    // Delete state
+    if (currentGame.state != null) await googleDriveAPI.deleteFile(currentGame.state.id)
+
+    // Delete image
+    await googleDriveAPI.deleteFile(currentGame.image.id)
+
+    // Show success
+    showAlert(confirmAlert, "success", "Game successfully removed from Google Drive.")
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const modal = bootstrap.Modal.getOrCreateInstance(confirmModal);
+    modal.hide()
+
+    // Load games
+    await loadGames()
+  }
+  catch (error) {
+    showAlert(confirmAlert, 'danger', error.message)
+  }
+  finally {
+    // Enable elements
+    confirmModalClose.removeAttribute("disabled");
+    confirmModalLoading.style.display = 'none'
+    confirmModalCloseSubmit.removeAttribute("disabled");
+    confirmModalSubmit.removeAttribute("disabled");
+    searchGame.value = '';
+  }
 }
 
 async function trackUploadProgress(event, element) {
-  showAlert('info', `Uploading ${element}. Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
-  console.log(`Uploaded ${event.loaded} of ${event.total}`);
-  console.log(`Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
+  showAlert(manageAlert, 'info', `Uploading ${element}. Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
+  // console.log(`Uploaded ${event.loaded} of ${event.total}`);
+  // console.log(`Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
 }
 
 async function cancelUpload() {
@@ -383,6 +575,7 @@ gamesModal.addEventListener('shown.bs.modal', () => {
 gamesModalImageInput.addEventListener("change", (event) => {
   const file = event.target.files[0];
   if (file) {
+    if (mode == 'edit') currentGame.image.modified = true
     const reader = new FileReader();  
     reader.onload = function(e) {
       gamesModalImage.src = e.target.result;
@@ -403,21 +596,21 @@ document.addEventListener("change", function(event) {
   }
 });
 
-searchGame.addEventListener('input', function () {
-  const searchText = this.value.toLowerCase();
-  const galleryItems = document.querySelectorAll('.gallery-item');
-  let itemsVisible = 0
+// searchGame.addEventListener('input', function () {
+//   const searchText = this.value.toLowerCase();
+//   const galleryItems = document.querySelectorAll('.gallery-item');
+//   let itemsVisible = 0
 
-  galleryItems.forEach(item => {
-    const title = item.querySelector('p').innerText.toLowerCase();
-    if (title.includes(searchText)) {
-      item.style.display = 'block';
-      itemsVisible += 1
-    } else {
-      item.style.display = 'none';
-    }
-  });
-  gamesNumber.innerHTML = `(${itemsVisible})`
-});
+//   galleryItems.forEach(item => {
+//     const title = item.querySelector('p').innerText.toLowerCase();
+//     if (title.includes(searchText)) {
+//       item.style.display = 'block';
+//       itemsVisible += 1
+//     } else {
+//       item.style.display = 'none';
+//     }
+//   });
+//   gamesNumber.innerHTML = `(${itemsVisible})`
+// });
 
 onLoad()
