@@ -1134,3 +1134,10 @@ body.swal2-toast-shown .swal2-container {
   .swal2-label {
     color: #e1e1e1!important;
   }
+  .swal2-checkbox {
+    background-color: transparent!important;
+  }
+  .swal2-validation-message {
+    margin: 0;
+    border-radius: 5px;
+  }

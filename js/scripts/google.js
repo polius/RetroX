@@ -47,10 +47,10 @@ class GoogleDriveAPI {
     const query = `mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Images']}' in parents and trashed = false${name ? ` and name contains '${name}'` : ''}`
     return await this.listFiles(query, 16, nextPageToken)
   }
-  // Get game disks
-  async getDisks(name) {
+  // Get game
+  async getGame(name) {
     if (!this.#accessToken) await this.#init()
-    const query = `mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Games']}' in parents and trashed = false and appProperties has { key='name' and value='${name}' }`
+    const query = `mimeType != 'application/vnd.google-apps.folder' and ('${this.#folders['Games']}' in parents or '${this.#folders['Saves']}' in parents or '${this.#folders['States']}' in parents) and trashed = false and appProperties has { key='name' and value='${name}' }`
     return await this.listFiles(query)
   }
 
@@ -149,7 +149,7 @@ class GoogleDriveAPI {
       this.#xhr.setRequestHeader('Authorization', `Bearer ${this.#accessToken}`);
 
       // Track Upload progress
-      this.#xhr.upload.onprogress = (event) => { onProgress(event, element) };
+      if (onProgress !== undefined) this.#xhr.upload.onprogress = (event) => { onProgress(event, element) };
 
       // Track Completion
       this.#xhr.onloadend = () => {
@@ -257,53 +257,6 @@ class GoogleDriveAPI {
     let decompressedStream = blob.stream().pipeThrough(decompressionStream);
     return await new Response(decompressedStream).blob();
   }
-
-  async test() {
-    // List all items (again)
-    console.log("List items:")
-    list = await this.listFiles()
-    console.log(list)
-
-    // Get item content
-    console.log(`Getting file: ${fileId}...`)
-    try {
-      // Start the fetch, obtain a reader and get total length
-      const response = await this.getFile(fileId)
-      const reader = response.body.getReader();
-      const contentLength = +response.headers.get('Content-Length');
-
-      // Read the data
-      let receivedLength = 0;
-      let chunks = [];
-      while (true) {
-        const {done, value} = await reader.read();
-        if (done) {
-          break;
-        }
-        chunks.push(value);
-        receivedLength += value.length;
-        console.log(`Progress: ${(Math.round(receivedLength * 100) / contentLength).toFixed(2)}%`)
-      }
-
-      // Convert chunks to blob
-      let blob_compressed = new Blob(chunks);
-
-      // Decompress
-      let blob = await this.decompress(blob_compressed)
-
-      // Read text
-      let text = await blob.text()
-      console.log(text)
-
-    } catch (error) {
-      if (error.name == 'AbortError') {
-        console.error("Get file aborted.");
-      } else {
-        console.error(error)
-      }
-    }
-  }
 }
 
 const googleDriveAPI = new GoogleDriveAPI();
-// googleDriveAPI.test()

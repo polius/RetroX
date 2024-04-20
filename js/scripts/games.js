@@ -3,7 +3,6 @@ var nextPageToken = undefined;
 
 // Get elements
 const gamesNumber = document.getElementById("gamesNumber")
-const gamesManageSubmitButton = document.getElementById("gamesManageSubmitButton")
 const searchGame = document.getElementById("searchGame")
 const gamesListDiv = document.getElementById("gamesListDiv")
 const gamesGallery = document.getElementById("gamesGallery")
@@ -21,9 +20,6 @@ async function onLoad() {
   if (localStorage.getItem('google_client_id') == null) {
     window.location.href = `${window.location.origin}/setup.html`
     gamesSetupDiv.style.display = 'block';
-  }
-  else {
-    gamesManageSubmitButton.removeAttribute("disabled");
   }
 
   // Load games
@@ -148,8 +144,6 @@ async function loadMoreGames() {
 }
 
 function playGame(gameName) {
-  // Open "play.html?game={gameName}" in same page
-  console.log(gameName)
   window.location.href = `${window.location.origin}/play.html?game=${encodeURIComponent(gameName)}`
 }
 

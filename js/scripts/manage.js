@@ -51,6 +51,12 @@ async function onLoad() {
     window.location.href = `${window.location.origin}`
   }
 
+  // Check if Google Drive API is setup
+  if (localStorage.getItem('google_client_id') == null) {
+    window.location.href = `${window.location.origin}/setup.html`
+    gamesSetupDiv.style.display = 'block';
+  }
+
   // Load games
   await loadGames()
 }
@@ -406,7 +412,7 @@ async function gamesModalSubmitNew() {
     let fileContent = await googleDriveAPI.compress(element.files[0])
     let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
     let parentFolderName = 'Games'
-    let fileId = await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
+    await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
   }
 
   // 2. Upload image

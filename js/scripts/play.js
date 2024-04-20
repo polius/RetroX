@@ -32,15 +32,17 @@ async function playGame(gameName) {
   Swal.fire({
     position: "center",
     icon: "info",
-    title: "Retrieving disks...",
+    title: "Retrieving disks",
     showConfirmButton: false,
     allowOutsideClick: false,
     allowEscapeKey: false,
   })
   Swal.showLoading();
 
-  // Retrieve disks
-  const disks = (await googleDriveAPI.getDisks(gameName)).files.map((obj) => ({"id": obj.id, "name": obj.name}))
+  // Retrieve game
+  const game = await googleDriveAPI.getGame(gameName)
+  const disks = game.files.filter(obj => obj.appProperties.type == 'rom').map(obj => ({"id": obj.id, "name": obj.name}))
+  const saveGame = game.files.filter(obj => obj.appProperties.type == 'save')
 
   // Check if serch retrieved a game
   if (disks.length == 0) {
@@ -74,7 +76,7 @@ async function playGame(gameName) {
     Swal.fire({
       position: "center",
       icon: "info",
-      title: "Retrieving game...",
+      title: "Retrieving game",
       html: "Progress: 0%",
       showConfirmButton: false,
       allowOutsideClick: false,
@@ -82,7 +84,7 @@ async function playGame(gameName) {
     })
     Swal.showLoading();
   }
-  else Swal.getTitle().innerHTML = 'Retrieving game...'
+  else Swal.getTitle().innerHTML = 'Retrieving game'
 
   // Retrieve rom file
   try {
@@ -103,7 +105,7 @@ async function playGame(gameName) {
       Swal.getHtmlContainer().innerHTML = `Progress: ${(Math.round(receivedLength * 100) / contentLength).toFixed(2)}%`
     }
 
-    Swal.getHtmlContainer().innerHTML = "Starting game..."
+    Swal.getHtmlContainer().innerHTML = "Starting game"
 
     // Convert chunks to blob
     let blob_compressed = new Blob(chunks);
@@ -112,8 +114,7 @@ async function playGame(gameName) {
     let blob = await googleDriveAPI.decompress(blob_compressed)
 
     // Start game
-    startGame(diskSelected.name, blob)
-
+    startGame(gameName, diskSelected.name, blob, saveGame)
   }
   catch (error) {
     console.error(error)
@@ -126,8 +127,8 @@ async function playGame(gameName) {
   }
 }
 
-async function startGame(name, game) {
-  const parts = name.split(".")
+async function startGame(gameName, fileName, fileData, saveGame) {
+  const parts = fileName.split(".")
   const core = await (async (ext) => {
     if (["fds", "nes", "unif", "unf"].includes(ext)) return "nes"
     if (["smc", "fig", "sfc", "gd3", "gd7", "dx2", "bsx", "swc"].includes(ext)) return "snes"
@@ -201,16 +202,16 @@ async function startGame(name, game) {
   window.EJS_player = "#game";
   window.EJS_gameName = parts.shift();
   window.EJS_biosUrl = "";
-  window.EJS_gameUrl = game;
+  window.EJS_gameUrl = fileData;
   window.EJS_core = core;
   window.EJS_pathtodata = "emulatorjs/";
   window.EJS_startOnLoaded = true;
   // if (window.SharedArrayBuffer) window.EJS_threads = true;
 
   // Override methods
-  window.EJS_onGameStart = onGameStart
-  window.EJS_onSaveState = onSaveState
-  window.EJS_onLoadState = onLoadState
+  window.EJS_onGameStart = () => onGameStart(saveGame)
+  window.EJS_onSaveState = (e) => onSaveState(gameName, e)
+  window.EJS_onLoadState = () => onLoadState(gameName)
 
   script.src = "emulatorjs/loader.js";
   document.body.appendChild(script);
@@ -219,8 +220,22 @@ async function startGame(name, game) {
 // --------------
 // Cloud Methods
 // --------------
-async function onGameStart() {
+async function onGameStart(saveGame) {
   try {
+    // Check if exists a save
+    if (saveGame.length == 0) {
+      Swal.fire({
+        position: "center",
+        icon: "warning",
+        title: 'No saves found',
+        timer: 1500,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      })
+      return
+    }
+
     // Pause emulator and hide menu
     EJS_emulator.elements.menu.style.display = 'none';
     EJS_emulator.pause();
@@ -230,12 +245,11 @@ async function onGameStart() {
     Swal.getHtmlContainer().innerHTML = ""
     Swal.showLoading();
 
-    // Get Presigned Urls for Save file
-    let presigned_url = await apigateway.game(game_selected, 'load_save');
-    // Download and decompress save file
-    let file = await decompress(await s3.download(presigned_url));
+    // Get save game
+    const saveFile = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(saveGame[0].id)).blob())
+
     // Load save file to emulator
-    const save = new Uint8Array(await file.arrayBuffer());
+    const save = new Uint8Array(await saveFile.arrayBuffer());
     const path = EJS_emulator.gameManager.getSaveFilePath();
     const paths = path.split("/");
     let cp = "";
@@ -268,18 +282,17 @@ async function onGameStart() {
     EJS_emulator.play();
     Swal.fire({
       position: "center",
-      icon: err.status == 429 ? "error" : "warning",
-      title: err.status == 429 ? err.message : 'No saves found',
-      text: err.status == 429 ? "Please try again in a few minutes.": '',
-      timer: err.status == 429 ? 0 : 1500,
-      showConfirmButton: err.status == 429,
+      icon: "error",
+      title: "An error occurred retrieving the save game.",
+      text: "Please try again in a few minutes.",
+      showConfirmButton: true,
       allowOutsideClick: false,
       allowEscapeKey: false,
     })
   }
 }
 
-async function onSaveState(e) {
+async function onSaveState(gameName, e) {
   const { value: accept } = await Swal.fire({
     title: "Confirm saving game",
     text: "Existing saves will be replaced",
@@ -289,7 +302,7 @@ async function onSaveState(e) {
     inputPlaceholder: "I confirm",
     confirmButtonText: "Save game",
     inputValidator: (result) => {
-      return !result && "You need to confirm to save the game to the cloud";
+      return !result && "Please confirm to save the game to the cloud.";
     }
   });
   if (accept) {
@@ -304,16 +317,29 @@ async function onSaveState(e) {
         allowEscapeKey: false,
       })
       Swal.showLoading();
-      // Get Presigned Urls for Save and State files
-      const presigned_url = await apigateway.game(game_selected, 'save');
-      // Get Game State
-      const state_file = await compress(e.state)
-      // Get Game Save
-      const save_file = await compress(EJS_emulator.gameManager.getSaveFile());
-      // Upload Game Save
-      await s3.upload(presigned_url['save'], save_file)
-      // Upload Game State
-      await s3.upload(presigned_url['state'], state_file)
+
+      // Retrieve game metadata
+      const gameMetadata = (await googleDriveAPI.getGame(gameName)).files.filter(obj => obj.appProperties.type in ['state','save'])
+
+      // Delete save and state files
+      for (let i = 0; i < gameMetadata.length; ++i) {
+        await googleDriveAPI.deleteFile(gameMetadata[i].id)
+      }
+
+      // Store save
+      let saveName = `${gameName}.save`
+      let saveContent = await googleDriveAPI.compress(EJS_emulator.gameManager.getSaveFile())
+      let saveMetadata = {"name": gameName, "type": "save"}
+      let saveFolder = 'Saves'
+      await googleDriveAPI.createFile(saveName, saveContent, saveMetadata, saveFolder)
+
+      // Store state
+      let stateName = `${gameName}.state`
+      let stateContent = await googleDriveAPI.compress(e.state)
+      let stateMetadata = {"name": gameName, "type": "state"}
+      let stateFolder = 'States'
+      await googleDriveAPI.createFile(stateName, stateContent, stateMetadata, stateFolder)
+
       // Show success notification
       Swal.fire({
         position: "center",
@@ -325,23 +351,22 @@ async function onSaveState(e) {
         allowEscapeKey: false,
       })
     }
-    catch (err) {
-      let check_login = apigateway.check_login()
-      if (!check_login['status']) {
-        Swal.fire({
-          position: "center",
-          icon: "warning",
-          title: 'The session has expired',
-          confirmButtonText: 'Login'
-        }).then((result) => {
-          if (result.isConfirmed) show_login()
-        })
-      }
+    catch (error) {
+      console.error(error)
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: "An error occurred retrieving the save game.",
+        text: "Please try again in a few minutes.",
+        showConfirmButton: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      })
     }
   }
 }
 
-async function onLoadState() {
+async function onLoadState(gameName) {
   // Show loading notification
   Swal.fire({
     title: "Confirm loading game",
@@ -356,17 +381,33 @@ async function onLoadState() {
         Swal.fire({
           position: "center",
           icon: "info",
-          title: "Loading game from Cloud",
+          title: "Loading save from Cloud",
           showConfirmButton: false,
           allowOutsideClick: false,
           allowEscapeKey: false,
         })
         Swal.showLoading();
-        // Get Presigned Urls for Save and State files
-        let presigned_url = await apigateway.game(game_selected, 'load_state');
-        let file = await decompress(await s3.download(presigned_url));
-        const state = new Uint8Array(await file.arrayBuffer());
-        EJS_emulator.gameManager.loadState(state);
+
+        // Retrieve game metadata
+        const gameStateMetadata = (await googleDriveAPI.getGame(gameName)).files.filter(obj => obj.appProperties.type == 'state')
+
+        // Check if exists a game save
+        if (gameStateMetadata.length == 0) {
+          Swal.fire({
+            position: "center",
+            icon: "error",
+            title: 'No Cloud saves found',
+            showConfirmButton: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          })
+          return
+        }
+
+        // Retrieve game state
+        const gameState = new Uint8Array(await (await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(gameStateMetadata[0].id)).blob())).arrayBuffer())
+        EJS_emulator.gameManager.loadState(gameState);
+
         // Show success notification
         Swal.fire({
           position: "center",
@@ -378,18 +419,17 @@ async function onLoadState() {
           allowEscapeKey: false,
         })
       }
-      catch (err) {
-        let check_login = apigateway.check_login()
-        if (!check_login['status']) {
-          Swal.fire({
-            position: "center",
-            icon: "warning",
-            title: 'The session has expired',
-            confirmButtonText: 'Login'
-          }).then((result) => {
-            if (result.isConfirmed) show_login()
-          })
-        }
+      catch (error) {
+        console.error(error)
+        Swal.fire({
+          position: "center",
+          icon: "error",
+          title: "An error occurred retrieving the save game.",
+          text: "Please try again in a few minutes.",
+          showConfirmButton: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        })
       }
     }
   });
