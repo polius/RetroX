@@ -32,7 +32,7 @@ async function playGame(gameName) {
   Swal.fire({
     position: "center",
     icon: "info",
-    title: "Retrieving disks",
+    title: "Fetching game information",
     showConfirmButton: false,
     allowOutsideClick: false,
     allowEscapeKey: false,
@@ -117,6 +117,7 @@ async function playGame(gameName) {
     startGame(gameName, diskSelected.name, blob, saveGame)
   }
   catch (error) {
+    // TBD: Handle session expired or Google Drive Expired Refresh Token
     console.error(error)
     Swal.fire({
       position: "center",
@@ -277,6 +278,7 @@ async function onGameStart(saveGame) {
     })
   }
   catch (err) {
+    // TBD: Handle session expired or Google Drive Expired Refresh Token
     console.error(err)
     EJS_emulator.elements.menu.style.display = 'flex';
     EJS_emulator.play();
@@ -352,6 +354,7 @@ async function onSaveState(gameName, e) {
       })
     }
     catch (error) {
+      // TBD: Handle session expired or Google Drive Expired Refresh Token
       console.error(error)
       Swal.fire({
         position: "center",
@@ -420,6 +423,7 @@ async function onLoadState(gameName) {
         })
       }
       catch (error) {
+        // TBD: Handle session expired or Google Drive Expired Refresh Token
         console.error(error)
         Swal.fire({
           position: "center",
