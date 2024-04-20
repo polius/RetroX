@@ -1,28 +1,17 @@
 // Variables
-var disks = 1;
+var nextPageToken = undefined;
 
 // Get elements
-const gamesModal = document.getElementById('gamesModal');
-const gamesModalTitle = document.getElementById('gamesModalTitle');
-const gamesModalName = document.getElementById('gamesModalName');
-const gamesModalDisks = document.getElementById('gamesModalDisks');
-const gamesModalPathDiv = document.getElementById('gamesModalPathDiv');
-const gamesModalGameName = document.getElementById('gamesModalGameName');
-const gamesModalRom = document.getElementById('gamesModalRom');
-const gamesModalImage = document.getElementById('gamesModalImage');
-const gamesModalDelete = document.getElementById('gamesModalDelete');
-const searchGame = document.getElementById('searchGame');
+const gamesNumber = document.getElementById("gamesNumber")
+const gamesManageSubmitButton = document.getElementById("gamesManageSubmitButton")
+const searchGame = document.getElementById("searchGame")
+const gamesListDiv = document.getElementById("gamesListDiv")
+const gamesGallery = document.getElementById("gamesGallery")
+const gamesLoadMoreDiv = document.getElementById("gamesLoadMoreDiv")
+const gamesLoadMoreSubmit = document.getElementById("gamesLoadMoreSubmit")
+const gamesLoadMoreLoading = document.getElementById("gamesLoadMoreLoading")
 
-const gamesManageList = document.getElementById('gamesManageList');
-const gamesManageSubmitButton = document.getElementById('gamesManageSubmitButton');
-const gamesManageCloseButton = document.getElementById('gamesManageCloseButton');
-const gamesManageAddButton = document.getElementById('gamesManageAddButton');
-const gamesListDiv = document.getElementById('gamesListDiv');
-const gamesListEmpty = document.getElementById('gamesListEmpty');
-const gamesListSearchDiv = document.getElementById('gamesListSearchDiv');
-const gamesSetupDiv = document.getElementById('gamesSetupDiv');
-
-function onLoad() {
+async function onLoad() {
   // Check if user is not logged in
   if (!localStorage.getItem('expires')) {
     window.location.href = `${window.location.origin}`
@@ -35,9 +24,10 @@ function onLoad() {
   }
   else {
     gamesManageSubmitButton.removeAttribute("disabled");
-    gamesListDiv.style.display = 'block';
-    gamesListEmpty.style.display = 'block';
   }
+
+  // Load games
+  await loadGames()
 }
 
 function showAlert(type, message) {
@@ -62,99 +52,105 @@ function showAlert(type, message) {
   `
 }
 
-async function saveGoogleAPICredentials(event) {
-  // Prevent page to refresh
-  event.preventDefault();
-
-  // Get elements
-  const googleAPIClientID = document.getElementById("googleAPIClientID");
-  const googleAPIClientSecret = document.getElementById("googleAPIClientSecret");
-  const googleAPISubmit = document.getElementById("googleAPISubmit");
-  const googleAPILoading = document.getElementById("googleAPILoading");
-
-  // Get values
-  const client_id = googleAPIClientID.value.trim()
-  const client_secret = googleAPIClientSecret.value.trim()
-
-  // Check if all values are filled
-  if (googleAPIClientID.value.trim().length == 0 || googleAPIClientSecret.value.trim().length == 0) {
-    showAlert(passwordAlert, "warning", "Please fill out all fields.")
-    return
-  }
-
-  // Disable the submit button
-  googleAPISubmit.setAttribute("disabled", "");
-  googleAPILoading.style.display = 'inline-flex';
-
-  // Store the client_id and client_secret
-  try {
-    await checkLogin()
-    const response = await fetch("https://api.retrox.app/profile/google", {
-      method: "POST",
-      credentials: 'include',
-      // headers: {
-      //   'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //   'Content-Type': 'application/json',
-      // },
-      body: JSON.stringify({
-        mode: 'init',
-        google_client_id: client_id,
-        google_client_secret: client_secret
-      })
-    })
-
-    const json = await response.json()
-    if (!response.ok) {
-      showAlert("danger", json['message'])
-      googleAPIClientID.value = ''
-      googleAPIClientSecret.value = ''
-      googleAPIClientID.focus()
-    }
-    else {
-      showAlert("success", json['message'])
-      setTimeout(() => googleDriveAuth(client_id, 'games'), 1000)
-    }
-  }
-  catch (error) {
-    console.log(error)
-    showAlert("danger", "An error occurred. Please try again.")
-  }
-  finally {
-    googleAPISubmit.removeAttribute("disabled");
-    googleAPILoading.style.display = 'none';
-  }
-}
-
 function manageGames() {
   window.location.href = `${window.location.origin}/manage.html`
 }
 
+async function loadGames(name, nextToken) {
+  const div = gamesGallery.querySelector('div')
+
+  // Show loading
+  if (nextToken === undefined) {
+    div.innerHTML = `
+      <p style="text-align: center; margin-top:30px; margin-bottom: 0;">Loading games...</p>
+      <div class="spinner-border" role="status" style="border-width: 2px">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    `
+  }
+
+  // Get images metadata
+  const images = await googleDriveAPI.getImages(name, nextToken)
+
+  // Add counter
+  if (nextToken === undefined) gamesNumber.innerHTML = `(${images.files.length})`
+  else gamesNumber.innerHTML = `(${parseInt(gamesNumber.innerHTML.slice(1,-1)) + images.files.length})`
+
+  // Check if there are games to show
+  if (nextToken === undefined && images.files.length == 0) {
+    if (name === undefined) div.innerHTML = `<p style="text-align: center; margin-top: 40px">There are no games in the library. To get started, click the <b>Manage</b> button to start adding games.</p>`
+    else div.innerHTML = `<p style="text-align: center; margin-top: 40px">There are no games containing this name.</p>`
+    return
+  }
+
+  // Load images metadata - first layer
+  if (nextToken === undefined) div.innerHTML = ''
+  images.files.forEach((element) => {
+    const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
+    div.innerHTML += `
+      <div onclick="playGame('${gameName}')" id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+        <div class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px; cursor:pointer;">
+          <div class="spinner-border" style="width: 3rem; height: 3rem; border-width: 2px;" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.name.substring(0, element.name.lastIndexOf('.'))}</p>
+      </div>
+    `
+  })
+
+  // Load images content - second layer
+  await Promise.all(images.files.map(async (element) => {
+    await (await googleDriveAPI.getFile(element.id)).blob()
+    await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
+    const file = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
+    const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
+    const div = document.getElementById(element.id)
+    div.innerHTML = `
+      <img src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${gameName}</p>
+    `
+  }))
+
+  // Check if there are more games to load
+  if (images.nextPageToken !== undefined) {
+    nextPageToken = images.nextPageToken
+    gamesLoadMoreSubmit.removeAttribute("disabled");
+    gamesLoadMoreDiv.style.visibility = 'visible'
+  }
+  else {
+    nextPageToken = undefined
+    gamesLoadMoreDiv.style.visibility = 'hidden'
+  }
+}
+
+const searchGames = debounce(searchGamesSubmit);
+
+function debounce(func, delay=500) {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+async function searchGamesSubmit() {
+  googleDriveAPI.abort()
+  await loadGames(searchGame.value)
+}
+
+async function loadMoreGames() {
+  gamesLoadMoreSubmit.setAttribute("disabled", "");
+  gamesLoadMoreLoading.style.display = 'inline-flex';
+  await loadGames(searchGame.value, nextPageToken)
+  gamesLoadMoreSubmit.removeAttribute("disabled");
+  gamesLoadMoreLoading.style.display = 'none';
+}
+
+function playGame(gameName) {
+  // Open "play.html?game={gameName}" in same page
+  console.log(gameName)
+  window.location.href = `${window.location.origin}/play.html?game=${encodeURIComponent(gameName)}`
+}
+
 onLoad()
-
-gamesModal.addEventListener('shown.bs.modal', () => {
-  gamesModalName.focus();
-});
-
-gamesModalImageInput.addEventListener("change", (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();  
-    reader.onload = function(e) {
-      gamesModalImage.src = e.target.result;
-      gamesModalImage.style.display = 'block';
-    }
-    reader.readAsDataURL(file);
-  }
-})
-
-document.addEventListener("change", function(event) {
-  if (event.target && event.target.id.startsWith('gamesModalRomInput')) {
-    const file = event.target.files[0];
-    if (file) {
-      console.log(file)
-      let gamesModalGameName = document.getElementById('gamesModalGameName_' + event.target.id.slice(-1))
-      gamesModalGameName.value = `${file.name} (${calculateSize(file.size)})`;
-      gamesModalGameName.style.display = 'block';
-    }
-  }
-});

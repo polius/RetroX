@@ -107,9 +107,14 @@ async function loadGames(name, nextToken) {
   // Get images metadata
   const images = await googleDriveAPI.getImages(name, nextToken)
 
+  // Add counter
+  if (nextToken === undefined) gamesNumber.innerHTML = `(${images.files.length})`
+  else gamesNumber.innerHTML = `(${parseInt(gamesNumber.innerHTML.slice(1,-1)) + images.files.length})`
+
   // Check if there are games to show
   if (nextToken === undefined && images.files.length == 0) {
-    div.innerHTML = `<p style="text-align: center; margin-top: 40px">There are no games in the library.</p>`
+    if (name === undefined) div.innerHTML = `<p style="text-align: center; margin-top: 40px">There are no games in the library.</p>`
+    else div.innerHTML = `<p style="text-align: center; margin-top: 40px">There are no games containing this name.</p>`
     return
   }
 
@@ -137,7 +142,7 @@ async function loadGames(name, nextToken) {
     const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     const div = document.getElementById(element.id)
     div.innerHTML = `
-      <img onclick="editGame('${gameName}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+      <img src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
       <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${gameName}</p>
     `
   }))
@@ -394,22 +399,22 @@ async function gamesModalSubmitNew() {
     throw new Error("This game already exists.")
   }
 
-  // 1. Upload image
-  let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
-  let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
-  let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
-  let parentFolderName = 'Images'
-  await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, 'Image')
-
-  // 2. Upload ROM files
+  // 1. Upload ROM files
   for (let i = 1; i <= disks; ++i) {
     let element = document.getElementById(`gamesModalRomInput_${i}`);
     let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
     let fileContent = await googleDriveAPI.compress(element.files[0])
     let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
     let parentFolderName = 'Games'
-    await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
+    let fileId = await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, `Game (Disk ${i})`)
   }
+
+  // 2. Upload image
+  let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
+  let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
+  let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+  let parentFolderName = 'Images'
+  await googleDriveAPI.createFile(fileName, fileContent, fileMetadata, parentFolderName, trackUploadProgress, 'Image')
 }
 
 async function gamesModalSubmitEdit() {
@@ -438,7 +443,7 @@ async function gamesModalSubmitEdit() {
     }
   }
 
-  // Remove ROMS / Disks deleted from user  disks = 1 | currentGame.roms.length = 2
+  // Remove ROMS / Disks deleted from user
   if (disks < currentGame.roms.length) {
     for (let i = disks; i < currentGame.roms.length; ++i) {
       await googleDriveAPI.deleteFile(currentGame.roms[i].id)

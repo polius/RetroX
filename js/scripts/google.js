@@ -41,11 +41,17 @@ class GoogleDriveAPI {
     }
   }
 
-  // Return images
+  // Get images
   async getImages(name, nextPageToken) {
     if (!this.#accessToken) await this.#init()
     const query = `mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Images']}' in parents and trashed = false${name ? ` and name contains '${name}'` : ''}`
     return await this.listFiles(query, 16, nextPageToken)
+  }
+  // Get game disks
+  async getDisks(name) {
+    if (!this.#accessToken) await this.#init()
+    const query = `mimeType != 'application/vnd.google-apps.folder' and '${this.#folders['Games']}' in parents and trashed = false and appProperties has { key='name' and value='${name}' }`
+    return await this.listFiles(query)
   }
 
   // Start Google authentication process
