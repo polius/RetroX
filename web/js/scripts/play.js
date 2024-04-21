@@ -114,18 +114,22 @@ async function playGame(gameName) {
     let blob = await googleDriveAPI.decompress(blob_compressed)
 
     // Start game
-    startGame(gameName, diskSelected.name, blob, saveGame)
+    await startGame(gameName, diskSelected.name, blob, saveGame)
   }
   catch (error) {
-    console.error(error)
     let isError = await handleCatch(false);
     if (!isError) {
+      console.log("HERE")
       Swal.fire({
         position: "center",
         icon: "error",
         title: "An error occurred",
+        confirmButtonText: "Go back",
         text: error.message,
-      })
+        showConfirmButton: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(() => window.location.href = `${window.location.origin}/games.html`)
     }
   }
 }
@@ -143,51 +147,9 @@ async function startGame(gameName, fileName, fileData, saveGame) {
     if (["gbc"].includes(ext)) return "gb"
     if (["bin"].includes(ext)) return "psx"
     if (["nds", "gba", "gb", "z64", "n64"].includes(ext)) return ext
-
-    return await new Promise(resolve => {
-      const cores = {
-        "Nintendo 64": "n64",
-        "Nintendo Game Boy": "gb",
-        "Nintendo Game Boy Advance": "gba",
-        "Nintendo DS": "nds",
-        "Nintendo Entertainment System": "nes",
-        "Super Nintendo Entertainment System": "snes",
-        "PlayStation": "psx",
-        "Virtual Boy": "vb",
-        "Sega Mega Drive": "segaMD",
-        "Sega Master System": "segaMS",
-        "Sega CD": "segaCD",
-        "Atari Lynx": "lynx",
-        "Sega 32X": "sega32x",
-        "Atari Jaguar": "jaguar",
-        "Sega Game Gear": "segaGG",
-        "Sega Saturn": "segaSaturn",
-        "Atari 7800": "atari7800",
-        "Atari 2600": "atari2600",
-        "NEC TurboGrafx-16/SuperGrafx/PC Engine": "pce",
-        "NEC PC-FX": "pcfx",
-        "SNK NeoGeo Pocket (Color)": "ngp",
-        "Bandai WonderSwan (Color)": "ws",
-        "ColecoVision": "coleco"
-      }
-
-      const button = document.createElement("button")
-      const select = document.createElement("select")
-
-      for (const type in cores) {
-        const option = document.createElement("option")
-        option.value = cores[type]
-        option.textContent = type
-        select.appendChild(option)
-      }
-
-      button.onclick = () => resolve(select[select.selectedIndex].value)
-      button.textContent = "Load game"
-      box.innerHTML = ""
-      box.appendChild(select)
-      box.appendChild(button)
-    })
   })(parts.pop())
+
+  if (core === undefined) throw new Error("This file can not be loaded.")
 
   const div = document.createElement("div")
   const sub = document.createElement("div")
@@ -476,7 +438,7 @@ async function handleCatch(newTab) {
     })
     return true
   }
-  return error
+  return false
 }
 
 onLoad()
