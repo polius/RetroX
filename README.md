@@ -13,16 +13,15 @@
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
-
 <br>
 
-RetroX Emulator is a cross-platform web application to play games from Gameboy, Gameboy Color, Gameboy Advance, Nintendo 64, PSX, and much more...
+RetroX Emulator lets you play old-school games from Gameboy, Gameboy Color, Gameboy Advance, Nintendo 64, PSX, and more on any device.
 
 ![RetroX Emulator](web/images/emu.png)
 
 </div>
 
-## Seamless Google Drive Integration
+## Google Drive Integration
 
 Take full control of your ROMs. Build your gaming library effortlessly on Google Drive and dive into playing your favorite classics instantly.
 
