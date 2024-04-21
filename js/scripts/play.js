@@ -10,84 +10,84 @@ async function onLoad() {
 }
 
 async function playGame(gameName) {
-  // Check if gameName parameter is provided
-  if (gameName == null) {
-    Swal.fire({
-      position: "center",
-      icon: "error",
-      title: "Invalid URL",
-      confirmButtonText: "Go back",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-    }).then(() => {
-      window.location.href = `${window.location.origin}/games.html`
-    })
-    return
-  }
+  try {
+    // Check if gameName parameter is provided
+    if (gameName == null) {
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: "Invalid URL",
+        confirmButtonText: "Go back",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(() => {
+        window.location.href = `${window.location.origin}/games.html`
+      })
+      return
+    }
 
-  // Change webpage title
-  document.title = `${gameName} | RetroX Emulator`
+    // Change webpage title
+    document.title = `${gameName} | RetroX Emulator`
 
-  // Show loading
-  Swal.fire({
-    position: "center",
-    icon: "info",
-    title: "Fetching game information",
-    showConfirmButton: false,
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-  })
-  Swal.showLoading();
-
-  // Retrieve game
-  const game = await googleDriveAPI.getGame(gameName)
-  const disks = game.files.filter(obj => obj.appProperties.type == 'rom').map(obj => ({"id": obj.id, "name": obj.name}))
-  const saveGame = game.files.filter(obj => obj.appProperties.type == 'save')
-
-  // Check if serch retrieved a game
-  if (disks.length == 0) {
-    Swal.fire({
-      position: "center",
-      icon: "error",
-      title: "This game does not exist",
-      confirmButtonText: "Go back",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-    }).then(() => {
-      window.location.href = `${window.location.origin}/games.html`
-    })
-    return
-  }
-
-  // Selecting disk
-  let diskSelected =  disks[0]
-  if (disks.length > 1) {
-    const response = await Swal.fire({
-      title: "Which disk you want to play?",
-      input: "radio",
-      inputOptions: Object.fromEntries(disks.map((item, index) => [item, `Disk ${index + 1}`])),
-      inputValue: disks[0],
-    });
-    if (response.isConfirmed) diskSelected = response.value
-    else return
-  }
-
-  if (disks.length > 1) {
+    // Show loading
     Swal.fire({
       position: "center",
       icon: "info",
-      title: "Retrieving game",
-      html: "Progress: 0%",
+      title: "Fetching game information",
       showConfirmButton: false,
       allowOutsideClick: false,
       allowEscapeKey: false,
     })
     Swal.showLoading();
-  }
-  else Swal.getTitle().innerHTML = 'Retrieving game'
 
-  // Retrieve rom file
-  try {
+    // Retrieve game
+    const game = await googleDriveAPI.getGame(gameName)
+    const disks = game.files.filter(obj => obj.appProperties.type == 'rom').map(obj => ({"id": obj.id, "name": obj.name}))
+    const saveGame = game.files.filter(obj => obj.appProperties.type == 'save')
+
+    // Check if serch retrieved a game
+    if (disks.length == 0) {
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: "This game does not exist",
+        confirmButtonText: "Go back",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(() => {
+        window.location.href = `${window.location.origin}/games.html`
+      })
+      return
+    }
+
+    // Selecting disk
+    let diskSelected =  disks[0]
+    if (disks.length > 1) {
+      const response = await Swal.fire({
+        title: "Which disk you want to play?",
+        input: "radio",
+        inputOptions: Object.fromEntries(disks.map((item, index) => [item, `Disk ${index + 1}`])),
+        inputValue: disks[0],
+      });
+      if (response.isConfirmed) diskSelected = response.value
+      else return
+    }
+
+    if (disks.length > 1) {
+      Swal.fire({
+        position: "center",
+        icon: "info",
+        title: "Retrieving game",
+        html: "Progress: 0%",
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      })
+      Swal.showLoading();
+    }
+    else Swal.getTitle().innerHTML = 'Retrieving game'
+
+    // Retrieve rom file
     const response = await googleDriveAPI.getFile(diskSelected.id)
     const reader = response.body.getReader();
     const contentLength = +response.headers.get('Content-Length');
@@ -117,14 +117,16 @@ async function playGame(gameName) {
     startGame(gameName, diskSelected.name, blob, saveGame)
   }
   catch (error) {
-    // TBD: Handle session expired or Google Drive Expired Refresh Token
     console.error(error)
-    Swal.fire({
-      position: "center",
-      icon: "error",
-      title: "An error occurred",
-      text: error,
-    })
+    let isError = await handleCatch(false);
+    if (!isError) {
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: "An error occurred",
+        text: error.message,
+      })
+    }
   }
 }
 
@@ -278,8 +280,6 @@ async function onGameStart(saveGame) {
     })
   }
   catch (err) {
-    // TBD: Handle session expired or Google Drive Expired Refresh Token
-    console.error(err)
     EJS_emulator.elements.menu.style.display = 'flex';
     EJS_emulator.play();
     Swal.fire({
@@ -354,17 +354,19 @@ async function onSaveState(gameName, e) {
       })
     }
     catch (error) {
-      // TBD: Handle session expired or Google Drive Expired Refresh Token
       console.error(error)
-      Swal.fire({
-        position: "center",
-        icon: "error",
-        title: "An error occurred retrieving the save game.",
-        text: "Please try again in a few minutes.",
-        showConfirmButton: true,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-      })
+      let isError = await handleCatch(true)
+      if (!isError) {
+        Swal.fire({
+          position: "center",
+          icon: "error",
+          title: "An error occurred retrieving the save game.",
+          text: "Please try again in a few minutes.",
+          showConfirmButton: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        })
+      }
     }
   }
 }
@@ -423,20 +425,58 @@ async function onLoadState(gameName) {
         })
       }
       catch (error) {
-        // TBD: Handle session expired or Google Drive Expired Refresh Token
         console.error(error)
-        Swal.fire({
-          position: "center",
-          icon: "error",
-          title: "An error occurred retrieving the save game.",
-          text: "Please try again in a few minutes.",
-          showConfirmButton: true,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-        })
+        let isError = await handleCatch(true)
+        if (!isError) {
+          Swal.fire({
+            position: "center",
+            icon: "error",
+            title: "An error occurred retrieving the save game.",
+            text: "Please try again in a few minutes.",
+            showConfirmButton: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          })
+        }
       }
     }
   });
+}
+
+async function handleCatch(newTab) {
+  // Check session
+  if (!isLogged()) {
+    Swal.fire({
+      position: "center",
+      icon: "error",
+      title: "An error occurred",
+      text: "The session has expired. Please log in again.",
+      confirmButtonText: "Login",
+      showConfirmButton: true,
+    }).then(() => {
+      if (newTab) window.open(`${window.location.origin}/login.html`, '_blank');
+      else window.location.href = `${window.location.origin}/login.html`
+    })
+    return true
+  }
+  // Check if Google Credentials have expired
+  try {
+    await googleDriveAPI.getToken()
+  }
+  catch (err) {
+    Swal.fire({
+      position: "center",
+      icon: "error",
+      title: "An error occurred",
+      text: err.message,
+      confirmButtonText: "Login to Google Drive",
+      showConfirmButton: true,
+    }).then(async () => {
+      await googleDriveAPI.auth(localStorage.getItem('google_client_id'), newTab)
+    })
+    return true
+  }
+  return error
 }
 
 onLoad()

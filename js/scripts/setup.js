@@ -53,7 +53,6 @@ async function saveGoogleAPICredentials(event) {
 
   // Store the client_id and client_secret
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/google", {
       method: "POST",
       credentials: 'include',
@@ -66,6 +65,7 @@ async function saveGoogleAPICredentials(event) {
 
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401) await logout()
       showAlert("danger", json['message'])
       googleAPIClientID.value = ''
       googleAPIClientSecret.value = ''
@@ -73,7 +73,7 @@ async function saveGoogleAPICredentials(event) {
     }
     else {
       showAlert("success", json['message'])
-      setTimeout(() => googleDriveAuth(client_id), 1000)
+      setTimeout(() => googleDriveAPI.auth(client_id), 1000)
     }
   }
   catch (error) {

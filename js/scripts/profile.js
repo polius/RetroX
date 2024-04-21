@@ -74,7 +74,6 @@ async function changeEmail(event) {
   // Perform the Change Email request
   const newEmailValue = newEmail.value.trim()
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/email", {
       method: "POST",
       credentials: 'include',
@@ -85,6 +84,7 @@ async function changeEmail(event) {
 
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401) await logout()
       showAlert(emailAlert, "danger", json['message'])
     }
     else {
@@ -135,7 +135,6 @@ async function changePassword(event) {
 
   // Perform the Change Password request
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/password", {
       method: "POST",
       credentials: 'include',
@@ -146,6 +145,7 @@ async function changePassword(event) {
 
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401) await logout()
       showAlert(passwordAlert, "danger", json['message'])
     }
     else {
@@ -193,7 +193,6 @@ async function changeGoogleDriveAPI(event) {
 
   // Store the client_id and client_secret
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/google", {
       method: "POST",
       credentials: 'include',
@@ -206,6 +205,7 @@ async function changeGoogleDriveAPI(event) {
 
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401) await logout()
       showAlert(googleAlert, "danger", json['message'])
       googleAPIClientID.value = ''
       googleAPIClientSecret.value = ''
@@ -264,7 +264,6 @@ async function changeTwoFactor(event) {
     // Enable two-factor - Step 1/2
     if (twoFactorKey == null) {
       try {
-        await checkLogin()
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
           credentials: 'include',
@@ -275,6 +274,7 @@ async function changeTwoFactor(event) {
 
         const json = await response.json()
         if (!response.ok) {
+          if (response.status == 401) await logout()
           showAlert(twoFactorAlert, "danger", json['message'])
         }
         else {
@@ -314,7 +314,6 @@ async function changeTwoFactor(event) {
         return
       }
       try {
-        await checkLogin()
         const response = await fetch("https://api.retrox.app/profile/2fa", {
           method: "POST",
           credentials: 'include',
@@ -327,6 +326,7 @@ async function changeTwoFactor(event) {
 
         const json = await response.json()
         if (!response.ok) {
+          if (response.status == 401) await logout()
           showAlert(twoFactorAlert, "danger", json['message'])
         }
         else {
@@ -361,7 +361,6 @@ async function disable2FASubmit() {
 
   // Disable 2FA
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/2fa", {
       method: "POST",
       credentials: 'include',
@@ -372,6 +371,7 @@ async function disable2FASubmit() {
 
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401) await logout()
       showAlert(modalAlert, "danger", json['message'])
     }
     else {
@@ -413,13 +413,13 @@ async function deleteAccountSubmit() {
 
   // Perform the Change Password request
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/delete", {
       method: "POST",
       credentials: 'include',
     })
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401) await logout()
       showAlert(modalAlert, "danger", json['message'])
     }
     else {

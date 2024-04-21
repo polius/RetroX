@@ -51,7 +51,6 @@ async function confirmIdentity() {
 
   // Store Google API callback code
   try {
-    await checkLogin()
     const response = await fetch("https://api.retrox.app/profile/google", {
       method: "POST",
       credentials: 'include',
@@ -63,6 +62,7 @@ async function confirmIdentity() {
 
     const json = await response.json()
     if (!response.ok) {
+      if (response.status == 401 && !('google' in json)) await logout()
       showAlert("danger", json['message'])
       callbackButton.style.display = 'block'
     }
@@ -90,11 +90,8 @@ async function callbackSubmit(event) {
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
 
-  // Get Parameters
-  const state = urlParams.get('state')
-
-  // Go to the Games Page
-  window.location.href = `${window.location.origin}/${state == null ? 'index' : state}.html`
+  // Go to the Previous Page
+  window.location.href = urlParams.get('state')
 }
 
 onLoad()

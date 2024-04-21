@@ -232,7 +232,7 @@ def get_google_drive_token(event):
     if not response.ok:
         return {
             'statusCode': 401,
-            'body': json.dumps({"message": "The google credentials are no longer valid."})
+            'body': json.dumps({"message": "The Google session has expired.", "google": True})
         }
 
     # Return Google API Token
@@ -277,17 +277,50 @@ def change_google_drive_api(event):
 
     if body['mode'] == 'verify':
         # Check parameters
-        if not {'google_client_id','google_client_secret'}.issubset(cookies.keys()) or 'google_client_code' not in body:
+        if 'google_client_code' not in body:
             return {
                 'statusCode': 400,
                 'body': json.dumps({"message": "Invalid parameters."})
             }
 
+        # Build parameters
+        parameters = {
+            'google_client_id': cookies.get('google_client_id'),
+            'google_client_secret': cookies.get('google_client_secret'),
+            'google_client_code': body['google_client_code'],
+        }
+
+        # Check if cookies are present
+        if parameters['google_client_id'] is None or parameters['google_client_secret'] is None:
+            # Get DynamoDB user
+            response = dynamodb.get_item(
+                TableName='retrox-users',
+                Key={'username': {'S': username}},
+                ProjectionExpression='#google_client_id, #google_client_secret',
+                ExpressionAttributeNames={
+                    '#google_client_id': 'google_client_id',
+                    '#google_client_secret': 'google_client_secret',
+                }
+            )
+            user = response.get('Item')
+
+            # Check if user exists
+            if not user:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"message": "Invalid username or password."})
+                }
+
+            # Assign parameters
+            parameters['google_client_id'] = user['google_client_id']['S']
+            parameters['google_client_secret'] = user['google_client_secret']['S']
+
+
         # Verify Google Oauth Code
         data = {
-            "client_id": cookies['google_client_id'],
-            "client_secret": cookies['google_client_secret'],
-            "code": body['google_client_code'],
+            "client_id": parameters['google_client_id'],
+            "client_secret": parameters['google_client_secret'],
+            "code": parameters['google_client_code'],
             "redirect_uri": "http://localhost:5500/callback.html",
             "grant_type": 'authorization_code',
         }
@@ -312,10 +345,10 @@ def change_google_drive_api(event):
                 },
                 ExpressionAttributeValues={
                     ':google_client_id': {
-                        'S': cookies['google_client_id']
+                        'S': parameters['google_client_id']
                     },
                     ':google_client_secret': {
-                        'S': cookies['google_client_secret']
+                        'S': parameters['google_client_secret']
                     },
                     ':google_refresh_token': {
                         'S': response_data['refresh_token']
@@ -343,7 +376,7 @@ def change_google_drive_api(event):
                 f"google_client_id=; Max-Age=0; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
                 f"google_client_secret=;  Max-Age=0; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
             ],
-            'body': json.dumps({'message': "Identity verified.", 'google_client_id': cookies['google_client_id']})
+            'body': json.dumps({'message': "Identity verified.", 'google_client_id': parameters['google_client_id']})
         }
 
 def change_two_factor(event):

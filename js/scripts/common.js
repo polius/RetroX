@@ -1,4 +1,4 @@
-async function logout(page) {
+async function logout() {
   // Perform the Logout request
   await fetch("https://api.retrox.app/logout/", {
     method: "POST",
@@ -10,12 +10,18 @@ async function logout(page) {
   localStorage.removeItem('email')
   localStorage.removeItem('2fa')
   localStorage.removeItem('expires')
-  window.location.href = `${window.location.origin}/${page}.html`
+
+  // Open new page if user was playing
+  if (window.location.pathname.startsWith('/play')) {
+    window.open(`${window.location.origin}/login.html`, '_blank');
+  }
+  else window.location.href = `${window.location.origin}/login.html`
 }
 
-async function checkLogin() {
+function isLogged() {
   const expires = localStorage.getItem('expires')
-  if (expires != null && expires + '000' < Date.now()) await logout('login')
+  if (expires != null && expires + '000' < Date.now()) return false
+  return true
 }
 
 function calculateSize(bytes) {

@@ -1,10 +1,3 @@
-// 12000 queries per minute.
-// 200 queries per second.
-
-// Profile
-// Games
-// --> Playing a game. /play.html?game=encodeURIComponent({Google Drive File ID})
-
 class GoogleDriveAPI {
   #accessToken;
   #controller;
@@ -49,17 +42,17 @@ class GoogleDriveAPI {
   }
   // Get game
   async getGame(name) {
-    if (!this.#accessToken) await this.#init()
+    await this.#init()
     const query = `mimeType != 'application/vnd.google-apps.folder' and ('${this.#folders['Games']}' in parents or '${this.#folders['Saves']}' in parents or '${this.#folders['States']}' in parents) and trashed = false and appProperties has { key='name' and value='${name}' }`
     return await this.listFiles(query)
   }
 
   // Start Google authentication process
-  auth(clientID = localStorage.getItem('google_client_id')) {
+  auth(clientID = localStorage.getItem('google_client_id'), newTab = false) {
     var form = document.createElement('form');
     form.setAttribute('method', 'GET');
     form.setAttribute('action', 'https://accounts.google.com/o/oauth2/v2/auth');
-    if (window.location.pathname.startsWith('/play')) form.setAttribute('target', '_blank');
+    if (newTab) form.setAttribute('target', '_blank');
 
     var params = {
       'client_id': clientID,
@@ -69,7 +62,7 @@ class GoogleDriveAPI {
       'access_type': 'offline',
       'prompt': 'consent',
       'response_type': 'code',
-      'state': window.location.pathname,
+      'state': newTab ? window.location.origin : window.location.href,
     };
 
     for (var p in params) {
@@ -94,8 +87,11 @@ class GoogleDriveAPI {
     const json = await response.json()
     if (response.ok) this.#accessToken = json['token']
     else {
-      if (response.status == 401) this.auth()
-      throw new Error({"message": json['message']})
+      if (response.status == 401 && !(location.pathname.startsWith('/play'))) {
+        if ('google' in json) this.auth()
+        else await logout()
+      }
+      throw new Error(json['message'])
     }
   }
 
@@ -157,11 +153,9 @@ class GoogleDriveAPI {
           resolve(JSON.parse(this.#xhr.responseText)['id']);
         }
         else if (this.#xhr.status == 0) {
-          console.error("The upload operation has been aborted.");
           reject("The upload operation has been aborted.");
         }
         else {
-          console.error(`Error ${this.#xhr.status}: ${JSON.parse(this.#xhr.responseText)['error']['message']}`);
           reject(JSON.parse(this.#xhr.responseText)['error']['message']);
         }
       };
