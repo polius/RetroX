@@ -10,6 +10,7 @@
 <br>
 
 [![RetroX Emulator](https://img.shields.io/badge/Website-736e9b?style=for-the-badge)](https://www.retrox.app)
+
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
 
