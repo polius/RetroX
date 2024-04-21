@@ -106,7 +106,7 @@
         <div class="container-xl px-4 mt-4">
           <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px; color:white;">
             <b>GAMES</b><span id="gamesNumber" style="margin-left: 5px; font-size: 1rem">(0)</span>
-            <button onclick="manageGames()" id="gamesManageSubmitButton" class="btn btn-primary" disabled style="margin-left:auto; padding:8px 22px 8px 22px; margin-top:5px" type="button">Manage</button>
+            <button onclick="manageGames()" class="btn btn-primary" style="margin-left:auto; padding:8px 22px 8px 22px; margin-top:5px" type="button">Manage</button>
           </p>
 
           <!-- Games Manage List -->
@@ -139,7 +139,7 @@
       </div>
     </main>
     <footer class="py-4 text-muted border-top d-flex justify-content-center">
-      RetroX Emulator &copy; 2024
+      RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
     </footer>
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/scripts/common.js"></script>
