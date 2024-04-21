@@ -17,6 +17,8 @@
 
 RetroX Emulator lets you play old-school games from Gameboy, Gameboy Color, Gameboy Advance, Nintendo 64, PSX, and more on any device.
 
+<br>
+
 ![RetroX Emulator](web/images/emu.png)
 
 </div>
