@@ -1,7 +1,7 @@
 function onLoad() {
   // Check if user is already logged in
   if (localStorage.getItem('expires')) {
-    window.location.href = `${window.location.origin}/games.html`
+    window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
   }
 }
   
@@ -78,7 +78,7 @@ async function twoFactor(event) {
       localStorage.setItem('2fa', json['2fa'])
       localStorage.setItem('google_client_id', json['google_client_id'])
       localStorage.setItem('expires', json['expires'])
-      window.location.href = `${window.location.origin}/games.html`
+      window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
     }
   }
   catch (error) {

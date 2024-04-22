@@ -23,12 +23,11 @@
     <style>
       body {
         display: flex;
+        justify-content: center;
+        align-items: flex-start;
         background-color: rgb(37, 40, 41);
         min-height: 100vh;
         flex-direction: column;
-      }
-      main {
-        flex: 1;
       }
       .form-signin {
         max-width: 330px;
@@ -51,7 +50,7 @@
 </head>
 
 <body class="text-center">
-  <main class="form-signin w-100 m-auto" style="padding-top: max(100px, 20vh)">
+  <main class="form-signin w-100 m-auto">
     <form onsubmit="login(event)" >
       <a href="/" style="text-decoration: none;">
         <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
@@ -80,10 +79,10 @@
         <span id="loading" class="spinner-border spinner-border-sm"  style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
         Log in
       </button>
-      <a href="recover.html" style="text-decoration: none">Forgot password</a>
+      <a href="recover" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none">Forgot password</a>
     </form>
   </main>
-  <footer class="py-3 text-muted border-top d-flex justify-content-center">
+  <footer class="w-100 py-3 text-muted border-top d-flex justify-content-center">
     RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
   </footer>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>

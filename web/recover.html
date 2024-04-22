@@ -23,12 +23,11 @@
     <style>
       body {
         display: flex;
+        justify-content: center;
+        align-items: flex-start;
         background-color: rgb(37, 40, 41);
         min-height: 100vh;
         flex-direction: column;
-      }
-      main {
-        flex: 1;
       }
       .form-signin {
         max-width: 330px;
@@ -51,7 +50,7 @@
 </head>
 
 <body class="text-center">
-  <main class="form-signin w-100 m-auto" style="padding-top: max(100px, 20vh)">
+  <main class="form-signin w-100 m-auto">
     <a href="/" style="text-decoration: none;">
       <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
       <h1 class="h1 fw-normal mb-3 pt-4"><b>RetroX</b> Emulator</h1>
@@ -68,7 +67,7 @@
           <p class="mt-3" style="margin:0;">You can change it in the <b>Profile</b> section.</p>
         </div>
       </div>
-      <a href="login.html">
+      <a href="login" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'">
         <button class="w-100 btn btn-lg btn-primary mt-4">
           Login
         </button>
@@ -99,7 +98,7 @@
       </button>
     </form>
   </main>
-  <footer class="py-3 text-muted border-top d-flex justify-content-center">
+  <footer class="w-100 py-3 text-muted border-top d-flex justify-content-center">
     RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
   </footer>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>

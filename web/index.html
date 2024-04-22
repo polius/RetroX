@@ -51,21 +51,19 @@
             <img src="images/emulator-logo-transparent.png" width="55">
             <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
           </a>
-          <a href="register.html" style="text-decoration: none; color: inherit;">
+          <a href="register" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit;">
             <span id="register" style="padding:10px; margin-right:15px; display: none;" type="button">Register</span>
           </a>
-          <a href="login.html" style="text-decoration: none; color: inherit">
+          <a href="login" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <button id="login" class="btn btn-primary" style="padding-bottom:10px; padding-top:6px; padding-left: 15px; padding-right: 15px; display: none;" type="button">Login</button>
           </a>
-          <a href="games.html" style="text-decoration: none; color: inherit">
+          <a href="games" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span id="games" style="padding:10px; margin-right:12px; margin-left:20px; display: none;" type="button">Games</span>
           </a>
-          <a href="profile.html" style="text-decoration: none; color: inherit">
+          <a href="profile" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span id="profile" style="padding:10px; margin-right:12px; display: none;" type="button">Profile</span>
           </a>
-          <a href="#" onclick="logout('index')" style="text-decoration: none; color: inherit">
-            <span id="logout" style="padding:10px; margin-right:12px; display: none;" type="button">Logout</span>
-          </a>
+          <span onclick="logout('index')" id="logout" style="padding:10px; margin-right:12px; display: none;" type="button">Logout</span>
         </header>
         
         <p class="px-1 py-3 pb-4 fs-3" style="margin:0; text-align: center">
@@ -155,11 +153,12 @@
     <footer class="py-4 text-muted border-top d-flex justify-content-center">
       <div>
         <p style="text-align: center">The images displayed on this website are not proprietary and are used for illustrative purposes only. All rights belong to their respective owners.</p>
-        <p style="text-align: center; margin: 0">
+        <p style="text-align: center; margin-bottom: 12px">
           <a href="https://github.com/polius/RetroX" target="_blank" title="Github">
             <img src="images/github.png" width="30">
           </a>
         </p>
+        <p style="text-align: center; margin: 0">RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script></p>
       </div>
     </footer>
     <script src="js/bootstrap.bundle.min.js"></script>

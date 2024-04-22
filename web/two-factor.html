@@ -21,53 +21,53 @@
     <meta property="author" content="Pol Alzina" />
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-          display: flex;
-          background-color: rgb(37, 40, 41);
-          min-height: 100vh;
-          flex-direction: column;
-        }
-        main {
-          flex: 1;
-        }
-        .form-signin {
-          max-width: 330px;
-          padding: 15px;
-        }
-        .form-signin .form-floating:focus-within {
-          z-index: 2;
-        }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        background-color: rgb(37, 40, 41);
+        min-height: 100vh;
+        flex-direction: column;
+      }
+      .form-signin {
+        max-width: 330px;
+        padding: 15px;
+      }
+      .form-signin .form-floating:focus-within {
+        z-index: 2;
+      }
     </style>
-</head>
+  </head>
 
-<body class="text-center">
-  <main class="form-signin w-100 m-auto" style="padding-top: max(100px, 20vh)">
-    <form onsubmit="twoFactor(event)" >
-      <a href="/" style="text-decoration: none;">
-        <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
-        <h1 class="h1 fw-normal mb-3 pt-4"><b>RetroX</b> Emulator</h1>
-      </a>
-      <p class="mb-5 fw-normal" style="margin-top: 30px; font-size: 24px; cursor:default; font-weight: 600;">Two-Factor Authentication</p>
+  <body class="text-center">
+    <main class="form-signin w-100 m-auto">
+      <form onsubmit="twoFactor(event)" >
+        <a href="/" style="text-decoration: none;">
+          <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
+          <h1 class="h1 fw-normal mb-3 pt-4"><b>RetroX</b> Emulator</h1>
+        </a>
+        <p class="mb-5 fw-normal" style="margin-top: 30px; font-size: 24px; cursor:default; font-weight: 600;">Two-Factor Authentication</p>
 
-      <div id="twoFactorAlert"></div>
-      <div class="form-floating">
-        <input id="twoFactorCode" autofocus type="text" class="form-control" id="floatingInput" placeholder="Two-Factor Code">
-        <label for="floatingInput">Two-Factor Code</label>
-      </div>
-      
-      <div class="cf-turnstile" style="margin-top:20px" data-sitekey="0x4AAAAAAAV5uNntU0ymmp6t" data-callback="turnstileCallback"></div>
+        <div id="twoFactorAlert"></div>
+        <div class="form-floating">
+          <input id="twoFactorCode" autofocus type="text" class="form-control" id="floatingInput" placeholder="Two-Factor Code">
+          <label for="floatingInput">Two-Factor Code</label>
+        </div>
+        
+        <div class="cf-turnstile" style="margin-top:20px" data-sitekey="0x4AAAAAAAV5uNntU0ymmp6t" data-callback="turnstileCallback"></div>
 
-      <button id="twoFactorSubmit" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-3 mb-4">
-        <span id="twoFactorLoading" class="spinner-border spinner-border-sm"  style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
-        Log in
-      </button>
-    </form>
-  </main>
-  <footer class="py-4 text-muted border-top d-flex justify-content-center">
-    RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
-  </footer>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
-  <script src="js/scripts/common.js"></script>
-  <script src="js/scripts/two-factor.js"></script>
+        <button id="twoFactorSubmit" type="submit" disabled class="w-100 btn btn-lg btn-primary mt-3 mb-4">
+          <span id="twoFactorLoading" class="spinner-border spinner-border-sm"  style="display: none; border-width: 2px; margin-right: 5px; margin-bottom: 1px" aria-hidden="true"></span>
+          Log in
+        </button>
+      </form>
+    </main>
+    <footer class="w-100 py-4 text-muted border-top d-flex justify-content-center">
+      RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
+    </footer>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/scripts/common.js"></script>
+    <script src="js/scripts/two-factor.js"></script>
+  </body>
 </html>

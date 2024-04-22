@@ -21,7 +21,7 @@ async function playGame(gameName) {
         allowOutsideClick: false,
         allowEscapeKey: false,
       }).then(() => {
-        window.location.href = `${window.location.origin}/games.html`
+        window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
       })
       return
     }
@@ -55,7 +55,7 @@ async function playGame(gameName) {
         allowOutsideClick: false,
         allowEscapeKey: false,
       }).then(() => {
-        window.location.href = `${window.location.origin}/games.html`
+        window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
       })
       return
     }
@@ -129,7 +129,7 @@ async function playGame(gameName) {
         showConfirmButton: true,
         allowOutsideClick: false,
         allowEscapeKey: false,
-      }).then(() => window.location.href = `${window.location.origin}/games.html`)
+      }).then(() => window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`)
     }
   }
 }
@@ -416,8 +416,8 @@ async function handleCatch(newTab) {
       confirmButtonText: "Login",
       showConfirmButton: true,
     }).then(() => {
-      if (newTab) window.open(`${window.location.origin}/login.html`, '_blank');
-      else window.location.href = `${window.location.origin}/login.html`
+      if (newTab) window.open(`${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`, '_blank');
+      else window.location.href = `${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
     })
     return true
   }

@@ -1,7 +1,7 @@
 function onLoad() {
   // Check if user is already logged in
   if (localStorage.getItem('expires')) {
-    window.location.href = `${window.location.origin}/games.html`
+    window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
   }
 
   // Check remember me option
@@ -87,7 +87,7 @@ async function login(event) {
       showAlert("danger", json['message'])
     }
     else if (json['2FA'] == 'Required') {
-      window.location.href = `${window.location.origin}/two-factor.html`
+      window.location.href = `${window.location.origin}/two-factor${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
     }
     else {
       localStorage.setItem('email', json['email'])
@@ -96,7 +96,7 @@ async function login(event) {
       localStorage.setItem('2fa', json['2fa'])
       localStorage.setItem('google_client_id', json['google_client_id'])
       localStorage.setItem('expires', json['expires'])
-      window.location.href = `${window.location.origin}/games.html`
+      window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
     }
   }
   catch (error) {

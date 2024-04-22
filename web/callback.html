@@ -22,13 +22,12 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <style>
       body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
         background-color: rgb(37, 40, 41);
         min-height: 100vh;
-        display: flex;
         flex-direction: column;
-      }
-      main {
-        flex: 1;
       }
       .form-signin {
         max-width: 330px;
@@ -38,7 +37,7 @@
   </head>
 
   <body class="text-center">
-    <main class="form-signin w-100 m-auto" style="padding-top: max(100px, 20vh)">
+    <main class="form-signin w-100 m-auto">
       <form onsubmit="callbackSubmit(event)" >
         <a href="#" style="text-decoration: none;">
           <img src="images/emulator-logo-transparent.png" alt="" width="90" height="90">
@@ -55,7 +54,7 @@
         </button>
       </form>
     </main>
-    <footer class="py-4 text-muted border-top d-flex justify-content-center" style="margin-top: 50px">
+    <footer class="w-100 py-4 text-muted border-top d-flex justify-content-center" style="margin-top: 50px">
       RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
     </footer>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>

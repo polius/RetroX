@@ -91,15 +91,13 @@
               <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
             </a>
           </div>
-          <a href="setup.html" style="text-decoration: none; color: inherit">
+          <a href="setup" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span style="padding:10px; margin-right:12px; margin-left:20px;" type="button"><b>Setup</b></span>
           </a>
-          <a href="profile.html" style="text-decoration: none; color: inherit">
+          <a href="profile" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span style="padding:10px; margin-right:12px" type="button">Profile</span>
           </a>
-          <a href="#" onclick="logout('index')" style="text-decoration: none; color: inherit">
-            <span style="padding:10px; margin-right:12px" type="button">Logout</span>
-          </a>
+          <span onclick="logout('index')" style="padding:10px; margin-right:12px" type="button">Logout</span>
         </header>
 
         <!-- Games Header -->

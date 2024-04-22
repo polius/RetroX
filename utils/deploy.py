@@ -1,27 +1,20 @@
 import os
 import boto3
 import time
-import mimetypes
 
 class transfer:
     def __init__(self):
+        # Boto3 Session
+        session = boto3.Session(profile_name='retrox')
+
         # S3
         self.bucket_name = 'retrox.app'
-        self.upload_path = '/home/ec2-user/git/retrox/web/'
-        self.s3 = boto3.client(
-            service_name='s3',
-            aws_access_key_id='',
-            aws_secret_access_key='',
-            region_name='eu-west-1'
-        )
+        self.upload_path = '../web'
+        self.s3 = session.client(service_name='s3')
+
         # Cloudfront
-        self.cloudfront = boto3.client(
-            service_name='cloudfront',
-            aws_access_key_id='',
-            aws_secret_access_key='',
-            region_name='eu-west-1'
-        )
-        self.distribution_id = ''
+        self.cloudfront = session.client(service_name='cloudfront')
+        self.distribution_id = 'ELG0J3S0M95FF'
 
     def start(self):
         print("- Cleaning bucket...")
@@ -34,13 +27,13 @@ class transfer:
 
     def clean(self):
         while True:
-            params = { "Bucket": self.bucket_name, "Prefix": '/'}
+            params = {"Bucket": self.bucket_name}
             response = self.s3.list_objects_v2(**params)
-            if response['KeyCount'] == 0:
-                print("-- No files found.")
-                return
-            for object in response['Contents']:
-                self.s3.delete_object(Bucket=self.bucket_name, Key=object['Key'])
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    self.s3.delete_object(Bucket=self.bucket_name, Key=obj['Key'])
+            else:
+                print("The bucket is already empty.")
             
             if response['IsTruncated']:
                 params['ContinuationToken'] = response['NextContinuationToken']
@@ -59,9 +52,10 @@ class transfer:
                 if not file.startswith('.'):
                     disk_file = os.path.join(path, file)
                     s3_file = os.path.join(path[len(self.upload_path):], file)
-                    print(f"-- [{i}/{total}] Uploading '{s3_file}'...")
-                    mimetype = mimetypes.MimeTypes().guess_type(disk_file)[0]
-                    self.s3.upload_file(disk_file, self.bucket_name, s3_file, ExtraArgs={'ContentType': mimetype}) # text/html
+                    extra_args = {'ContentType': 'text/html'} if s3_file.endswith('.html') else {}
+                    s3_file = s3_file.replace('.html','')[1:] if s3_file.startswith('/') else s3_file.replace('.html','')
+                    print(f"-- [{i}/{total}] Uploading '{s3_file}' ...")
+                    self.s3.upload_file(disk_file, self.bucket_name, s3_file, ExtraArgs=extra_args)
                     i += 1
 
     def invalidate(self):

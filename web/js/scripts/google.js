@@ -56,7 +56,7 @@ class GoogleDriveAPI {
 
     var params = {
       'client_id': clientID,
-      'redirect_uri': `${window.location.origin}/callback.html`,
+      'redirect_uri': `${window.location.origin}/callback${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`,
       'scope': 'https://www.googleapis.com/auth/drive.file',
       'include_granted_scopes': 'true',
       'access_type': 'offline',

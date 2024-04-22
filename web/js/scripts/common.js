@@ -13,9 +13,9 @@ async function logout() {
 
   // Open new page if user was playing
   if (window.location.pathname.startsWith('/play')) {
-    window.open(`${window.location.origin}/login.html`, '_blank');
+    window.open(`${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`, '_blank');
   }
-  else window.location.href = `${window.location.origin}/login.html`
+  else window.location.href = `${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
 }
 
 function isLogged() {

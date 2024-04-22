@@ -1,7 +1,7 @@
 function onLoad() {
   // Check if user is already logged in
   if (localStorage.getItem('expires')) {
-    window.location.href = `${window.location.origin}/games.html`
+    window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
   }
 }
 

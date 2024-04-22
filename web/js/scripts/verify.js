@@ -100,5 +100,5 @@ async function login() {
   localStorage.removeItem('token')
 
   // Redirect to the home page
-  window.location.href = `${window.location.origin}/login.html`
+  window.location.href = `${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
 }
