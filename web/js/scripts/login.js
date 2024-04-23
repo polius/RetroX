@@ -90,7 +90,6 @@ async function login(event) {
       window.location.href = `${window.location.origin}/two-factor${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
     }
     else {
-      localStorage.setItem('email', json['email'])
       localStorage.setItem('username', json['username'])
       localStorage.setItem('remember', json['remember'])
       localStorage.setItem('2fa', json['2fa'])

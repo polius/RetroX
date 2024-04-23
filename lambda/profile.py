@@ -12,6 +12,37 @@ from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 
+def get_email(event):
+    # Initialize DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+
+    # Get variables
+    username = event['requestContext']['authorizer']['lambda']['username']
+
+    # Get DynamoDB user
+    response = dynamodb.get_item(
+        TableName='retrox-users',
+        Key={'username': {'S': username}},
+        ProjectionExpression='#email',
+        ExpressionAttributeNames={
+            '#email': 'email',
+        }
+    )
+    user = response.get('Item')
+
+    # Check if user exists
+    if not user:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({"message": "This user no longer exists."})
+        }
+
+    # Return email
+    return {
+        'statusCode': 200,
+        'body': json.dumps({"email": user['email']['S']})
+    }
+
 def change_email(event):
     # Initialize DynamoDB client
     dynamodb = boto3.client('dynamodb')
@@ -92,7 +123,7 @@ def change_email(event):
         }
 
     # Build Verify URL
-    verify_url = f"https://www.retrox.app/verify.html?username={username}&code={verify_code}&origin=profile"
+    verify_url = f"https://www.retrox.app/verify?username={username}&code={verify_code}&origin=profile"
 
     # Get the Verify email template
     with open("verify_email.html", "r") as fopen:
@@ -128,7 +159,7 @@ def change_email(event):
     # Return success
     return {
         'statusCode': 200,
-        'body': json.dumps({"message": "Check your mail to verify this new email."})
+        'body': json.dumps({"message": "Check your email to verify this change."})
     }
 
 def change_password(event):
@@ -216,7 +247,7 @@ def get_google_drive_token(event):
     if not user:
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Invalid username or password."})
+            'body': json.dumps({"message": "This user no longer exists."})
         }
 
     # Get Google API Token
@@ -269,8 +300,8 @@ def change_google_drive_api(event):
         return {
             'statusCode': 200,
             "cookies": [
-                f"google_client_id={body['google_client_id']}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
-                f"google_client_secret={body['google_client_secret']}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
+                f"google_client_id={body['google_client_id']}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=Strict; Path=/",
+                f"google_client_secret={body['google_client_secret']}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=Strict; Path=/",
             ],
             'body': json.dumps({'message': "Please confirm your identity."})
         }
@@ -321,7 +352,7 @@ def change_google_drive_api(event):
             "client_id": parameters['google_client_id'],
             "client_secret": parameters['google_client_secret'],
             "code": parameters['google_client_code'],
-            "redirect_uri": "http://localhost:5500/callback.html",
+            "redirect_uri": "https://www.retrox.app/callback",
             "grant_type": 'authorization_code',
         }
         response = requests.post("https://oauth2.googleapis.com/token", data=data)
@@ -373,8 +404,8 @@ def change_google_drive_api(event):
         return {
             'statusCode': 200,
             "cookies": [
-                f"google_client_id=; Max-Age=0; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
-                f"google_client_secret=;  Max-Age=0; Secure; HttpOnly; SameSite=None; Path=/", # Change None to Strict for Production
+                f"google_client_id=; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Path=/",
+                f"google_client_secret=;  Max-Age=0; Secure; HttpOnly; SameSite=Strict; Path=/",
             ],
             'body': json.dumps({'message': "Identity verified.", 'google_client_id': parameters['google_client_id']})
         }
@@ -520,8 +551,11 @@ def delete_account(event):
     }
 
 def lambda_handler(event, context):
-    if event['requestContext']['http']['method'] == 'POST' and event['requestContext']['http']['path'] == '/profile/email':
-        return change_email(event)
+    if event['requestContext']['http']['path'] == '/profile/email':
+        if event['requestContext']['http']['method'] == 'GET':
+            return get_email(event)
+        if event['requestContext']['http']['method'] == 'POST':
+            return change_email(event)
     elif event['requestContext']['http']['method'] == 'POST' and event['requestContext']['http']['path'] == '/profile/password':
         return change_password(event)
     elif event['requestContext']['http']['path'] == '/profile/google':

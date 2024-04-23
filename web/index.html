@@ -52,18 +52,18 @@
             <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
           </a>
           <a href="register" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit;">
-            <span id="register" style="padding:10px; margin-right:15px; display: none;" type="button">Register</span>
+            <span id="registerButton" style="padding:10px; margin-right:15px; display: none;" type="button">Register</span>
           </a>
           <a href="login" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
-            <button id="login" class="btn btn-primary" style="padding-bottom:10px; padding-top:6px; padding-left: 15px; padding-right: 15px; display: none;" type="button">Login</button>
+            <button id="loginButton" class="btn btn-primary" style="padding-bottom:10px; padding-top:6px; padding-left: 15px; padding-right: 15px; display: none;" type="button">Login</button>
           </a>
           <a href="games" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
-            <span id="games" style="padding:10px; margin-right:12px; margin-left:20px; display: none;" type="button">Games</span>
+            <span id="gamesButton" style="padding:10px; margin-right:12px; margin-left:16px; display: none;" type="button">Games</span>
           </a>
           <a href="profile" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
-            <span id="profile" style="padding:10px; margin-right:12px; display: none;" type="button">Profile</span>
+            <span id="profileButton" style="padding:10px; margin-right:12px; display: none;" type="button">Profile</span>
           </a>
-          <span onclick="logout('index')" id="logout" style="padding:10px; margin-right:12px; display: none;" type="button">Logout</span>
+          <span id="logoutButton" onclick="logout('index')" style="padding:10px; margin-right:12px; display: none;" type="button">Logout</span>
         </header>
         
         <p class="px-1 py-3 pb-4 fs-3" style="margin:0; text-align: center">
@@ -143,7 +143,7 @@
         <div class="pb-4 pt-4">
           <div class="container-fluid">
             <p class="fs-3 pt-3"><b>Seamless Google Drive Integration</b></p>
-            <p class="pt-2" style="font-size: 1.15rem"> Take full control of your ROMs. Build your gaming library effortlessly on Google Drive and dive into playing your favorite classics instantly.</p>
+            <p class="pt-2" style="font-size: 1.15rem">Take full control of your ROMs. Build your gaming library effortlessly on Google Drive and dive into playing your favorite classics instantly.</p>
           </div>
         </div>
 

@@ -114,7 +114,7 @@ def lambda_handler(event, context):
         }
 
     # Build Verify URL
-    verify_url = f"https://www.retrox.app/verify.html?username={username}&code={verify_code}&origin=register"
+    verify_url = f"https://www.retrox.app/verify?username={username}&code={verify_code}&origin=register"
 
     # Get the Verify email template
     with open("verify_email.html", "r") as fopen:

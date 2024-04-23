@@ -7,10 +7,6 @@ function onLoad() {
     window.location.href = `${window.location.origin}`
   }
 
-  // Add current email
-  const currentEmail = document.getElementById('currentEmail')
-  currentEmail.value = localStorage.getItem('email')
-
   // Check two factor
   const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
   const twoFactorLabel = document.getElementById('twoFactorLabel');
@@ -20,7 +16,10 @@ function onLoad() {
 
   // Check Google API
   const currentClientID = document.getElementById('currentClientID');
-  currentClientID.value = localStorage.getItem('google_client_id')
+  currentClientID.value = localStorage.getItem('google_client_id');
+
+  // Get current email
+  getEmail()
 }
 
 function showAlert(component, type, message) {
@@ -42,6 +41,29 @@ function showAlert(component, type, message) {
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
   `
+}
+
+async function getEmail() {
+  // Get current email
+  try {
+    const response = await fetch("https://api.retrox.app/profile/email", {
+      method: "GET",
+      credentials: 'include',
+    })
+
+    const json = await response.json()
+    if (response.ok) {
+      const currentEmail = document.getElementById('currentEmail')
+      currentEmail.value = json['email']
+    }
+    else {
+      showAlert(emailAlert, "danger", "An error occurred retriving the current email.")
+    }
+  }
+  catch (error) {
+    console.error(error)
+    showAlert(emailAlert, "danger", "An error occurred retriving the current email.")
+  }
 }
 
 async function changeEmail(event) {
@@ -93,7 +115,7 @@ async function changeEmail(event) {
     }
   }
   catch (error) {
-    console.log(error)
+    console.error(error)
     showAlert(emailAlert, "danger", "An error occurred. Please try again.")
   }
   finally {
@@ -434,7 +456,6 @@ async function deleteAccountSubmit() {
       // Clean local storage
       localStorage.removeItem('token')
       localStorage.removeItem('username')
-      localStorage.removeItem('email')
       localStorage.removeItem('remember')
 
       setTimeout(() => {

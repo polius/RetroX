@@ -82,7 +82,7 @@ def request(body):
         }
 
     # Build Verify URL
-    verify_url = f"https://www.retrox.app/recover.html?username={username}&code={recover_code}"
+    verify_url = f"https://www.retrox.app/recover?username={username}&code={recover_code}"
 
     # Get the Verify email template
     with open("recover_account.html", "r") as fopen:

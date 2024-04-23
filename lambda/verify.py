@@ -104,5 +104,5 @@ def lambda_handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps({"message": "Account verified!"})
+        'body': json.dumps({"message": f"{'Account' if origin == 'register' else 'Email'} verified!"})
     }

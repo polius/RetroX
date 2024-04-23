@@ -186,10 +186,9 @@ def lambda_handler(event, context):
     return {
         'statusCode': 200,
         "cookies": [
-            f"token={token}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=None; Path=/" # Change None to Strict for Production
+            f"token={token}; Expires={expiration.strftime('%a, %d %b %Y %H:%M:%S GMT')}; Secure; HttpOnly; SameSite=Strict; Path=/"
         ],
         'body': json.dumps({
-            'email': user['email']['S'],
             'username': params['username'],
             'remember': params['remember'],
             '2fa': '2fa_secret' in user,

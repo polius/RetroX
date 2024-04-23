@@ -92,10 +92,10 @@
           <a href="profile" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span style="padding:10px; margin-right:12px" type="button"><b>Profile</b></span>
           </a>
-          <span onclick="logout('index')" style="padding:10px; margin-right:12px" type="button">Logout</span>
+          <span id="logoutButton" onclick="logout('index')" style="padding:10px; margin-right:12px" type="button">Logout</span>
         </header>
 
-        <div class="container-xl px-4 mt-4">
+        <div class="container-xl mt-4">
           <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px; color: white;"><b>PROFILE</b></p>
 
           <div class="row">
@@ -108,7 +108,7 @@
                     <form onsubmit="changeEmail(event)">
                       <div class="mb-3">
                         <label class="small mb-1" for="newEmail">Current Email</label>
-                        <input id="currentEmail" disabled class="form-control" type="email" placeholder="Current Email">
+                        <input id="currentEmail" disabled class="form-control" type="email" placeholder="Loading ...">
                       </div>
                       <div class="mb-3">
                         <label class="small mb-1" for="newEmail">New Email</label>
@@ -247,7 +247,7 @@
         </div>
       </div>
     </main>
-    <footer class="py-4 text-muted border-top d-flex justify-content-center">
+    <footer class="py-3 text-muted border-top d-flex justify-content-center">
       RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
     </footer>
     <script src="js/bootstrap.bundle.min.js"></script>

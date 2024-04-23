@@ -88,7 +88,7 @@ async function recoverRequest(event) {
       body: JSON.stringify({
         email: email.value.trim(),
         username: username.value.trim(),
-        token: cfToken,
+        turnstile: cfToken,
       })
     })
 
@@ -146,7 +146,7 @@ async function recoverSubmit(event) {
       body: JSON.stringify({
         username: urlParams.get('username'),
         code: urlParams.get('code'),
-        token: cfToken,
+        turnstile: cfToken,
       })
     })
 

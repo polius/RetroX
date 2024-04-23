@@ -92,19 +92,19 @@
             </a>
           </div>
           <a href="games" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
-            <span style="padding:10px; margin-right:12px; margin-left:20px;" type="button"><b>Games</b></span>
+            <span style="padding:10px; margin-right:12px; margin-left:20px; font-weight: 600" type="button">Games</span>
           </a>
           <a href="profile" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span style="padding:10px; margin-right:12px" type="button">Profile</span>
           </a>
-          <span onclick="logout('index')" style="padding:10px; margin-right:12px" type="button">Logout</span>
+          <span id="logoutButton" onclick="logout('index')" style="padding:10px; margin-right:12px" type="button">Logout</span>
         </header>
 
         <!-- Games Header -->
-        <div class="container-xl px-4 mt-4">
-          <p class="fs-5" style="display:flex; align-items:center; padding:20px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px; color:white;">
-            <b>GAMES</b><span id="gamesNumber" style="margin-left: 5px; font-size: 1rem">(0)</span>
-            <button onclick="addGame()" id="gamesManageAddButton" class="btn btn-primary" style="margin-left:auto; padding:8px 22px 8px 22px; margin-top:5px; margin-right: 8px" type="button">
+        <div class="container-xl mt-4">
+          <p class="fs-5" style="display:flex; align-items:center; padding:15px; background-color: rgb(31, 33, 34); border: 1px solid rgba(156, 145, 129, 0.13); border-radius: 10px; color:white;">
+            <b style="margin-left: 5px">GAMES</b><span id="gamesNumber" style="margin-left: 5px; font-size: 1rem">(0)</span>
+            <button onclick="addGame()" id="gamesManageAddButton" class="btn btn-primary" style="margin-left:auto; padding:8px 22px 8px 22px; margin-right: 3px" type="button">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16" style="margin-bottom: 3px">
                 <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
               </svg>
@@ -113,7 +113,7 @@
           </p>
 
           <!-- Games Manage List -->
-          <div id="gamesManageList" class="container-xl">
+          <div id="gamesManageList" class="container-xl" style="padding:0">
             <div class="alert alert-dismissible fade show d-flex align-items-center" style="background-color: rgb(31, 33, 34); padding:5px" role="alert">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="orange" class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" viewBox="0 0 16 16" role="img" aria-label="Warning:" style="margin-left:15px">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
@@ -155,28 +155,30 @@
                 </div>
                 <div class="modal-body" style="padding: 1.2rem">
                   <div class="row align-items-center justify-content-center" style="padding-left: 10px; padding-right: 10px">
-                    <button onclick="playGame()" type="button" class="btn btn-primary btn-sm mt-2" style="height:60px; margin-top:0px!important;">
+                    <button onclick="playGame()" type="button" class="btn btn-primary btn-sm mt-2" style="height:50px; margin-top:0px!important;">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16" style="margin-bottom:2px">
                         <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
                       </svg>
                       Play game
                     </button>
                   </div>
-                  <div class="row align-items-center justify-content-center" style="padding-left: 10px; padding-right: 10px">
-                    <button onclick="editGame()" type="button" class="btn btn-warning btn-sm mt-2" style="height:40px">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16" style="margin-bottom:2px; margin-right:3px">
-                        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/>
-                      </svg>
-                      Edit game
-                    </button>
-                  </div>
-                  <div class="row align-items-center justify-content-center" style="padding-left: 10px; padding-right: 10px">
-                    <button onclick="gamesModalDelete()" type="button" class="btn btn-danger btn-sm mt-2" style="height:40px">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16" style="margin-bottom: 3px; margin-right:3px">
-                        <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
-                      </svg>
-                      Delete game
-                    </button>
+                  <div class="row" style="padding-left: 10px; padding-right: 10px">
+                    <div class="col" style="padding-left:0px; padding-right:4px">
+                      <button onclick="editGame()" type="button" class="btn btn-warning btn-sm mt-2" style="width:100%; height:40px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16" style="margin-bottom:2px; margin-right:3px">
+                          <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/>
+                        </svg>
+                        Edit game
+                      </button>
+                    </div>
+                    <div class="col" style="padding-left:4px; padding-right:0px">
+                      <button onclick="gamesModalDelete()" type="button" class="btn btn-danger btn-sm mt-2" style="width:100%; height:40px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16" style="margin-bottom: 3px; margin-right:3px">
+                          <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
+                        </svg>
+                        Delete game
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -257,7 +259,7 @@
         </div>
       </div>
     </main>
-    <footer class="py-4 text-muted border-top d-flex justify-content-center">
+    <footer class="py-3 text-muted border-top d-flex justify-content-center">
       RetroX Emulator &copy; <script>document.write(new Date().getFullYear())</script>
     </footer>
     <script src="js/bootstrap.bundle.min.js"></script>

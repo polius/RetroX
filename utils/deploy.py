@@ -1,6 +1,7 @@
 import os
 import boto3
 import time
+import mimetypes
 
 class transfer:
     def __init__(self):
@@ -51,11 +52,10 @@ class transfer:
             for file in files:
                 if not file.startswith('.'):
                     disk_file = os.path.join(path, file)
-                    s3_file = os.path.join(path[len(self.upload_path):], file)
-                    extra_args = {'ContentType': 'text/html'} if s3_file.endswith('.html') else {}
-                    s3_file = s3_file.replace('.html','')[1:] if s3_file.startswith('/') else s3_file.replace('.html','')
-                    print(f"-- [{i}/{total}] Uploading '{s3_file}' ...")
-                    self.s3.upload_file(disk_file, self.bucket_name, s3_file, ExtraArgs=extra_args)
+                    s3_file = os.path.join(path[len(self.upload_path):], file).lstrip('/').replace('.html', '')
+                    mimetype = mimetypes.MimeTypes().guess_type(disk_file)[0] or 'application/octet-stream'
+                    print(f"-- [{i}/{total}] Uploading '{s3_file}' ('{mimetype}')...")
+                    self.s3.upload_file(disk_file, self.bucket_name, s3_file, ExtraArgs={'ContentType': mimetype})
                     i += 1
 
     def invalidate(self):

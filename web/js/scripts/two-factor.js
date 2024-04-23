@@ -72,7 +72,6 @@ async function twoFactor(event) {
       twoFactorCode.focus()
     }
     else {
-      localStorage.setItem('email', json['email'])
       localStorage.setItem('username', json['username'])
       localStorage.setItem('remember', json['remember'])
       localStorage.setItem('2fa', json['2fa'])

@@ -85,20 +85,20 @@ async function verify(event) {
   }
 }
 
-async function login() {
+function proceed() {
   // Show loading spinner
   const startLoading = document.getElementById('startLoading');
   startLoading.style.display = 'inline-flex'
 
-  // Perform the Logout request
-  await fetch("https://api.retrox.app/logout/", {
-    method: "POST",
-    credentials: 'include',
-  })
+  // Get URL Parameters
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
 
-  // Remove token from local storage
-  localStorage.removeItem('token')
-
-  // Redirect to the home page
-  window.location.href = `${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
+  // Check origin to redirect to the according page
+  if (urlParams.get('origin') == 'register') {
+    window.location.href = `${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
+  }
+  else if (urlParams.get('origin') == 'profile') {
+    window.location.href = `${window.location.origin}/profile${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
+  }
 }
