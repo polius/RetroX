@@ -54,7 +54,7 @@ async function onLoad() {
   }
 
   // Check if Google Drive API is setup
-  if (localStorage.getItem('google_client_id') == null) {
+  if (localStorage.getItem('google_client_id') == "null") {
     window.location.href = `${window.location.origin}/setup${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
   }
 

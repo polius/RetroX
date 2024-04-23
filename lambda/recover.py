@@ -118,7 +118,7 @@ def request(body):
     # Return success
     return {
         'statusCode': 200,
-        'body': json.dumps({"message": "The recover account email has been sent."})
+        'body': json.dumps({"message": "Check your email to recover the account."})
     }
 
 def submit(body):

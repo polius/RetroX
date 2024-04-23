@@ -16,7 +16,7 @@ function onLoad() {
 
   // Check Google API
   const currentClientID = document.getElementById('currentClientID');
-  currentClientID.value = localStorage.getItem('google_client_id');
+  currentClientID.value = localStorage.getItem('google_client_id') == 'null' ? 'Not yet configured.' : localStorage.getItem('google_client_id')
 
   // Get current email
   getEmail()
@@ -440,10 +440,7 @@ async function deleteAccountSubmit() {
       credentials: 'include',
     })
     const json = await response.json()
-    if (!response.ok) {
-      if (response.status == 401) await logout()
-      showAlert(modalAlert, "danger", json['message'])
-    }
+    if (!response.ok) showAlert(modalAlert, "danger", json['message'])
     else {
       showAlert(modalAlert, "success", json['message'])
 
@@ -455,12 +452,18 @@ async function deleteAccountSubmit() {
 
       // Clean local storage
       localStorage.removeItem('token')
+      localStorage.removeItem('2fa')
+      localStorage.removeItem('expires')
       localStorage.removeItem('username')
       localStorage.removeItem('remember')
+      localStorage.removeItem('google_client_id')
 
-      setTimeout(() => {
-        window.location.href = `${window.location.origin}`
-      }, 1500)
+      return await new Promise(resolve => {
+        setTimeout(() => {
+          window.location.href = `${window.location.origin}`
+          resolve()
+        }, 1500)
+      })
     }
   }
   catch (error) {
@@ -481,7 +484,6 @@ async function modalConfirm() {
   cancelModal.setAttribute("disabled", "");
   submitButton.setAttribute("disabled", "");
   submitLoading.style.display = 'inline-flex';
-
 
   if (modalMode == 'delete') await deleteAccountSubmit()
   else if (modalMode == '2fa') await disable2FASubmit()

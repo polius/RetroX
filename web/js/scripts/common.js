@@ -9,6 +9,7 @@ async function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('2fa')
   localStorage.removeItem('expires')
+  localStorage.removeItem('google_client_id')
 
   // Open new page if user was playing
   if (window.location.pathname.startsWith('/play')) {
