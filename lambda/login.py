@@ -91,7 +91,7 @@ def lambda_handler(event, context):
     if not user:
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Invalid username or password."})
+            'body': json.dumps({"message": "Invalid credentials."})
         }
 
     # Check if user is not yet verified
@@ -109,7 +109,7 @@ def lambda_handler(event, context):
     if params['password'] != password_decrypted:
         return {
             'statusCode': 400,
-            'body': json.dumps({"message": "Invalid username or password."})
+            'body': json.dumps({"message": "Invalid credentials."})
         }
 
     # Check if 2FA is enabled and user is requesting to log in

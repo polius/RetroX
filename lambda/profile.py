@@ -339,7 +339,7 @@ def change_google_drive_api(event):
             if not user:
                 return {
                     'statusCode': 400,
-                    'body': json.dumps({"message": "Invalid username or password."})
+                    'body': json.dumps({"message": "This user does not exists."})
                 }
 
             # Assign parameters
