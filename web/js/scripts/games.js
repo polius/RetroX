@@ -126,8 +126,8 @@ async function loadGames(name, nextToken) {
   images.files.forEach((element) => {
     const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     div.innerHTML += `
-      <div onclick="gameAction('${gameName}')" id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
-        <div class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px; cursor:pointer;">
+      <div id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
+        <div onclick="gameAction('${gameName}')" class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px; cursor:pointer;">
           <div class="spinner-border" style="width: 3rem; height: 3rem; border-width: 2px;" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
@@ -145,7 +145,7 @@ async function loadGames(name, nextToken) {
     const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     const div = document.getElementById(element.id)
     div.innerHTML = `
-      <img src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+      <img onclick="gameAction('${gameName}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
       <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${gameName}</p>
     `
   }))

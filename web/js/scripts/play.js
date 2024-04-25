@@ -119,7 +119,6 @@ async function playGame(gameName) {
   catch (error) {
     let isError = await handleCatch(false);
     if (!isError) {
-      console.log("HERE")
       Swal.fire({
         position: "center",
         icon: "error",
