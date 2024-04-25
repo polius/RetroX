@@ -95,7 +95,7 @@ async function login(event) {
       localStorage.setItem('2fa', json['2fa'])
       localStorage.setItem('google_client_id', json['google_client_id'])
       localStorage.setItem('expires', json['expires'])
-      window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
+      window.location.href = `${window.location.origin}/${json['google_client_id'] == null ? 'setup' : 'games'}${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
     }
   }
   catch (error) {

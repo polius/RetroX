@@ -86,8 +86,11 @@
               <span style="margin-left: 15px; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: min(5vw, 30px);">RetroX Emulator</span>
             </a>
           </div>
+          <a href="setup" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
+            <span id="setupButton" style="padding:10px; margin-right:12px; margin-left:12px; display: none" type="button">Setup</span>
+          </a>
           <a href="games" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
-            <span style="padding:10px; margin-right:12px; margin-left:20px;" type="button">Games</span>
+            <span id="gamesButton" style="padding:10px; margin-right:12px; margin-left:12px; display: none" type="button">Games</span>
           </a>
           <a href="profile" onclick="if(window.location.hostname != 'www.retrox.app') this.href += '.html'" style="text-decoration: none; color: inherit">
             <span style="padding:10px; margin-right:12px" type="button"><b>Profile</b></span>

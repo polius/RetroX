@@ -101,7 +101,7 @@
         </header>
 
         <!-- Games Header -->
-        <div class="container-xl mt-4">
+        <div class="container-xl mt-4" style="padding:0">
           <p style="font-size: 4rem; text-align: center;">🎉</p>
           <p style="font-size: 2rem; text-align: center; font-weight: 600;">Welcome aboard, <script>document.write(localStorage.getItem('username'))</script></p>
           <p style="font-size: 1.2rem; text-align: center; margin-top: 30px; margin-bottom:50px; font-weight: 500;">It's nice to have you here!</p>
@@ -115,7 +115,7 @@
                     <div class="card-body">
                       <p class="pt-2 px-1">Before starting adding new ROMs into your library, please follow the next steps to enable the connectivity between <b style="color: orange">RetroX</b> and <b style="color: orange">Google Drive</b>.</p>
                       <p class="pt-1 px-1">After completion, a folder named 'Retrox' will be created in your Google Drive. This folder will be used to store all the games you add.</p>
-                      <p class="pt-1 px-1"><b>Note</b>: RetroX will NOT have access to your personal files. The following steps will allow this app to have permissions limited to managing the 'RetroX' folder.</p>
+                      <p class="pt-1 px-1"><b>Note</b>: RetroX will NOT have access to your personal files. The following steps will allow this app to have permissions limited to managing the <b style="color: orange">RetroX</b> folder.</p>
                     </div>
                   </div>
                 </div>
@@ -133,7 +133,7 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 1</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Log in into your Google Drive, then open <a href="https://console.cloud.google.com/apis/" target="_blank">https://console.cloud.google.com/apis/</a> and click the button <b style="color: orange">+ ENABLE APIS AND SERVICES</b>.</p>
+                      <p class="py-2 px-1">Log in into your Google Drive, then open <a href="https://console.cloud.google.com/apis/" target="_blank">https://console.cloud.google.com/apis/</a> and click the <b style="color: orange">+ ENABLE APIS AND SERVICES</b> button.</p>
                       <img src="images/setup/step1.png" class="img-fluid">
                     </div>
                   </div>
@@ -185,7 +185,7 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 5</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Go to the <b style="color: orange">OAuth consent screen</b> section, select <b style="color: orange">External</b> and click the CREATE button.</p>
+                      <p class="py-2 px-1">Click the <b style="color: orange">CREATE CREDENTIALS</b> button.</p>
                       <img src="images/setup/step5.png" class="img-fluid">
                     </div>
                   </div>
@@ -194,22 +194,15 @@
             </div>
             <div class="container-xl">  
               <div class="row">
-                  <div class="col-lg-12">
-                    <div class="card mb-4">
-                      <div class="card-header">STEP 6</div>
-                      <div class="card-body">
-                        <p class="pt-2 px-1">Here you will need to enter some values:</p>
-                        <ul>
-                          <li>App name: <b style="color: orange">RetroX</b></li>
-                          <li>User support email: <span style="color: orange">Select your gmail address from the list</span></li>
-                          <li>Authorized domains: <span style="color: orange">Click <span style="font-weight: 700">+ ADD DOMAIN</span> and type <span style="font-weight: 700">retrox.app</span></span></li>
-                          <li>Developer contact information: <span style="color: orange">Type your gmail address</span></li>
-                        </ul>
-                        <p class="py-2 px-1">Finally click the button <b style="color: orange">SAVE AND CONTINUE</b>.</p>
-                        <img src="images/setup/step6.png" class="img-fluid">
-                      </div>
+                <div class="col-lg-12">
+                  <div class="card mb-4">
+                    <div class="card-header">STEP 6</div>
+                    <div class="card-body">
+                      <p class="py-2 px-1">Select <b style="color: orange">User data</b> and then click the <b style="color: orange">NEXT</b> button.</p>
+                      <img src="images/setup/step6.png" class="img-fluid">
                     </div>
                   </div>
+                </div>
               </div>
             </div>
             <div class="container-xl">  
@@ -218,8 +211,12 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 7</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Click the button <b style="color: orange">ADD OR REMOVE SCOPES</b>.</p>
-                      <img src="images/setup/step7.png" class="img-fluid">
+                      <p class="py-2 px-1">Click the <b style="color: orange">ADD OR REMOVE SCOPES</b> button, then search for <b style="color: orange">Google Drive API</b> and select the <b style="color: orange">../auth/drive.file</b> option.</p>
+                      <img src="images/setup/step7.1.png" class="img-fluid">
+                      <p class="py-2 pt-4 px-1">Scroll to the bottom and click the <b style="color: orange">UPDATE</b> button.</p>
+                      <img src="images/setup/step7.2.png" class="img-fluid">
+                      <p class="py-2 pt-4 px-1">Finally, click the <b style="color: orange">SAVE AND CONTINUE</b> button.</p>
+                      <img src="images/setup/step7.3.png" class="img-fluid">
                     </div>
                   </div>
                 </div>
@@ -231,8 +228,10 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 8</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Select <b style="color: orange">.../auth/drive.file</b> and then click the <b style="color: orange">UPDATE</b> button. Finally click <b style="color: orange">SAVE AND CONTINUE</b>.</p>
-                      <img src="images/setup/step8.png" class="img-fluid">
+                      <p class="py-2 px-1">Choose <b style="color: orange">Web application</b> and type <b style="color: orange">RetroX</b> as a name. Under the "Authorized Javascript origins", enter the <b style="color: orange">https://www.retrox.app</b> URI.</p>
+                      <img src="images/setup/step8.1.png" class="img-fluid">
+                      <p class="py-2 pt-4 px-1">Scroll to the bottom and under "Authorized redirect URIs" enter the <b style="color: orange">https://www.retrox.app/callback</b> URI. Finally click the <b style="color: orange">CREATE</b> button.</p>
+                      <img src="images/setup/step8.2.png" class="img-fluid">
                     </div>
                   </div>
                 </div>
@@ -244,7 +243,7 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 9</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Click the <b style="color: orange">SAVE AND CONTINUE</b> button.</p>
+                      <p class="py-2 px-1">Click the <b style="color: orange">DONE</b> button.</p>
                       <img src="images/setup/step9.png" class="img-fluid">
                     </div>
                   </div>
@@ -257,8 +256,10 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 10</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Click the <b style="color: orange">PUBLISH APP</b> button.</p>
-                      <img src="images/setup/step10.png" class="img-fluid">
+                      <p class="py-2 px-1">Go to the <b style="color: orange">OAuth consent screen</b> section and click the <b style="color: orange">PUBLISH APP</b> button.</p>
+                      <img src="images/setup/step10.1.png" class="img-fluid">
+                      <p class="py-2 pt-4 px-1">Click the <b style="color: orange">CONFIRM</b> button.</p>
+                      <img src="images/setup/step10.2.png" class="img-fluid">
                     </div>
                   </div>
                 </div>
@@ -270,70 +271,13 @@
                   <div class="card mb-4">
                     <div class="card-header">STEP 11</div>
                     <div class="card-body">
-                      <p class="py-2 px-1">Click <b style="color: orange">CONFIRM</b>.</p>
-                      <img src="images/setup/step11.png" class="img-fluid">
+                      <p class="py-2 px-1">Go to the <b style="color: orange">Credentials</b> section and click the <b style="color: orange">RetroX</b> option.</p>
+                      <img src="images/setup/step11.1.png" class="img-fluid">
+                      <p class="py-2 pt-4 px-1">Copy the <b style="color: orange">Client ID</b> and <b style="color: orange">Client secret</b> values.</p>
+                      <img src="images/setup/step11.2.png" class="img-fluid">
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="container-xl">  
-              <div class="row">
-                <div class="col-lg-12">
-                  <div class="card mb-4">
-                    <div class="card-header">STEP 12</div>
-                    <div class="card-body">
-                      <p class="py-2 px-1">At this point you should see <b style="color: orange">Publishing Status: In production</b>.</p>
-                      <img src="images/setup/step12.png" class="img-fluid">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="container-xl">  
-              <div class="row">
-                <div class="col-lg-12">
-                  <div class="card mb-4">
-                    <div class="card-header">STEP 13</div>
-                    <div class="card-body">
-                      <p class="py-2 px-1">Go to the <b style="color: orange">Credentials</b> section, click <b style="color: orange">+ CREATE CREDENTIALS</b> and select <b style="color: orange">OAuth client ID</b>.</p>
-                      <img src="images/setup/step13.png" class="img-fluid">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="container-xl">  
-              <div class="row">
-                  <div class="col-lg-12">
-                    <div class="card mb-4">
-                      <div class="card-header">STEP 14</div>
-                      <div class="card-body">
-                        <p class="pt-2 px-1">Here you will need to enter some values:</p>
-                        <ul>
-                          <li>Application type: <b style="color: orange">Web application</b></li>
-                          <li>Name: <b style="color: orange">RetroX</b></li>
-                          <li>Authorized Javascript origins: <b style="color: orange">https://www.retrox.app</b></li>
-                          <li>Authorized redirect URIs: <b style="color: orange">https://www.retrox.app/callback</b></li>
-                        </ul>
-                        <p class="py-2 px-1">Finally click the button <b style="color: orange">CREATE</b>.</p>
-                        <img src="images/setup/step14.png" class="img-fluid">
-                      </div>
-                    </div>
-                  </div>
-              </div>
-            </div>
-            <div class="container-xl">  
-              <div class="row">
-                  <div class="col-lg-12">
-                    <div class="card mb-4">
-                      <div class="card-header">STEP 15</div>
-                      <div class="card-body">
-                        <p class="py-2 px-1">Copy the values from <b style="color: orange">Client ID</b> and <b style="color: orange">Client secret</b>.</p>
-                        <img src="images/setup/step15.png" class="img-fluid">
-                      </div>
-                    </div>
-                  </div>
               </div>
             </div>
             <div class="py-3">
@@ -358,7 +302,7 @@
                           <label class="small mb-2" for="googleAPIClientSecret">Client Secret</label>
                           <input id="googleAPIClientSecret" class="form-control" type="password" placeholder="Enter Client Secret">
                         </div>
-                        <button id="googleAPISubmit" class="btn btn-primary" style="padding:8px 25px 8px 25px; margin-top:5px; margin-bottom:5px; width: 100px" type="submit">
+                        <button id="googleAPISubmit" class="btn btn-primary" style="padding:8px 25px 8px 25px; margin-top:5px; margin-bottom:5px" type="submit">
                           <span id="googleAPILoading" class="spinner-border spinner-border-sm" style="display:none; width:15px; height:15px; border-width:2px; margin-right:5px" aria-hidden="true"></span>
                           Save
                         </button>

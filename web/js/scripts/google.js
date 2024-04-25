@@ -62,7 +62,7 @@ class GoogleDriveAPI {
       'access_type': 'offline',
       'prompt': 'consent',
       'response_type': 'code',
-      'state': newTab ? window.location.origin : window.location.href,
+      'state': newTab ? window.location.origin : (window.location.pathname == '/setup') ? `${window.location.origin}/games` : window.location.href,
     };
 
     for (var p in params) {

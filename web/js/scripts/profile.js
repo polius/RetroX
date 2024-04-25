@@ -7,6 +7,12 @@ function onLoad() {
     window.location.href = `${window.location.origin}`
   }
 
+  // Check if setup is done
+  const setupButton = document.getElementById('setupButton');
+  const gamesButton = document.getElementById('gamesButton');
+  if (localStorage.getItem('google_client_id') == "null") setupButton.style.display = 'block';
+  else gamesButton.style.display = 'block';
+
   // Check two factor
   const twoFactorSubmitName = document.getElementById('twoFactorSubmitName');
   const twoFactorLabel = document.getElementById('twoFactorLabel');
