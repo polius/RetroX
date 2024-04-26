@@ -153,8 +153,6 @@
   overflow-x: hidden;
   transition: background-color 0.1s;
   -webkit-overflow-scrolling: touch; }
-  .swal2-container.swal2-backdrop-show, .swal2-container.swal2-noanimation {
-    background: rgba(25, 25, 26, 0.75); }
   .swal2-container.swal2-backdrop-hide {
     background: transparent !important; }
   .swal2-container.swal2-top {

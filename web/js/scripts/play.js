@@ -20,6 +20,7 @@ async function playGame(gameName) {
         confirmButtonText: "Go back",
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       }).then(() => {
         window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
       })
@@ -37,6 +38,7 @@ async function playGame(gameName) {
       showConfirmButton: false,
       allowOutsideClick: false,
       allowEscapeKey: false,
+      target: document.fullscreenElement || document.body,
     })
     Swal.showLoading();
 
@@ -54,6 +56,7 @@ async function playGame(gameName) {
         confirmButtonText: "Go back",
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       }).then(() => {
         window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
       })
@@ -68,6 +71,7 @@ async function playGame(gameName) {
         input: "radio",
         inputOptions: Object.fromEntries(disks.map((item, index) => [item, `Disk ${index + 1}`])),
         inputValue: disks[0],
+        target: document.fullscreenElement || document.body,
       });
       if (response.isConfirmed) diskSelected = response.value
       else return
@@ -82,6 +86,7 @@ async function playGame(gameName) {
         showConfirmButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       })
       Swal.showLoading();
     }
@@ -128,6 +133,7 @@ async function playGame(gameName) {
         showConfirmButton: true,
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       }).then(() => window.location.href = `${window.location.origin}/games${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`)
     }
   }
@@ -196,6 +202,7 @@ async function onGameStart(saveGame) {
         showConfirmButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       })
       return
     }
@@ -234,6 +241,7 @@ async function onGameStart(saveGame) {
       showConfirmButton: false,
       allowOutsideClick: false,
       allowEscapeKey: false,
+      target: document.fullscreenElement || document.body,
     }).then(() => {
       EJS_emulator.elements.menu.style.display = 'flex';
       EJS_emulator.gameManager.restart();
@@ -251,6 +259,7 @@ async function onGameStart(saveGame) {
       showConfirmButton: true,
       allowOutsideClick: false,
       allowEscapeKey: false,
+      target: document.fullscreenElement || document.body,
     })
   }
 }
@@ -264,6 +273,7 @@ async function onSaveState(gameName, e) {
     inputValue: 0,
     inputPlaceholder: "I confirm",
     confirmButtonText: "Save game",
+    target: document.fullscreenElement || document.body,
     inputValidator: (result) => {
       return !result && "Please confirm to save the game to the cloud.";
     }
@@ -278,6 +288,7 @@ async function onSaveState(gameName, e) {
         showConfirmButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       })
       Swal.showLoading();
 
@@ -312,6 +323,7 @@ async function onSaveState(gameName, e) {
         showConfirmButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
+        target: document.fullscreenElement || document.body,
       })
     }
     catch (error) {
@@ -326,6 +338,7 @@ async function onSaveState(gameName, e) {
           showConfirmButton: true,
           allowOutsideClick: false,
           allowEscapeKey: false,
+          target: document.fullscreenElement || document.body,
         })
       }
     }
@@ -340,6 +353,7 @@ async function onLoadState(gameName) {
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: "Load game",
+    target: document.fullscreenElement || document.body,
   }).then(async(result) => {
     if (result.isConfirmed) {
       try {
@@ -351,6 +365,7 @@ async function onLoadState(gameName) {
           showConfirmButton: false,
           allowOutsideClick: false,
           allowEscapeKey: false,
+          target: document.fullscreenElement || document.body,
         })
         Swal.showLoading();
 
@@ -366,6 +381,7 @@ async function onLoadState(gameName) {
             showConfirmButton: true,
             allowOutsideClick: false,
             allowEscapeKey: false,
+            target: document.fullscreenElement || document.body,
           })
           return
         }
@@ -383,6 +399,7 @@ async function onLoadState(gameName) {
           showConfirmButton: false,
           allowOutsideClick: false,
           allowEscapeKey: false,
+          target: document.fullscreenElement || document.body,
         })
       }
       catch (error) {
@@ -397,6 +414,7 @@ async function onLoadState(gameName) {
             showConfirmButton: true,
             allowOutsideClick: false,
             allowEscapeKey: false,
+            target: document.fullscreenElement || document.body,
           })
         }
       }
@@ -414,6 +432,7 @@ async function handleCatch(newTab) {
       text: "The session has expired. Please log in again.",
       confirmButtonText: "Login",
       showConfirmButton: true,
+      target: document.fullscreenElement || document.body,
     }).then(() => {
       if (newTab) window.open(`${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`, '_blank');
       else window.location.href = `${window.location.origin}/login${window.location.hostname === 'www.retrox.app' ? '' : '.html'}`
@@ -432,6 +451,7 @@ async function handleCatch(newTab) {
       text: err.message,
       confirmButtonText: "Login to Google Drive",
       showConfirmButton: true,
+      target: document.fullscreenElement || document.body,
     }).then(async () => {
       await googleDriveAPI.auth(localStorage.getItem('google_client_id'), newTab)
     })
