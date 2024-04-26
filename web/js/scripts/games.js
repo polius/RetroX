@@ -171,6 +171,7 @@ function debounce(func, delay=500) {
 }
 
 async function searchGamesSubmit() {
+  gamesLoadMoreDiv.style.visibility = 'hidden'
   googleDriveAPI.abort()
   await loadGames(searchGame.value)
 }
@@ -359,7 +360,7 @@ async function gamesModalSubmit() {
   }
 
   // Disable elements and apply loading effect
-  gamesModalName.disabled = true;
+  gamesModalName.setAttribute("disabled", "");
   for (let i = 1; i <= disks; ++i) {
     document.getElementById(`gamesModalGameSelect_${i}`).setAttribute("disabled", "")
     document.getElementById(`gamesModalGameRemove_${i}`).setAttribute("disabled", "")
@@ -382,16 +383,14 @@ async function gamesModalSubmit() {
     await new Promise(resolve => setTimeout(resolve, 1500));
     const modal = bootstrap.Modal.getOrCreateInstance(gamesModal);
     modal.hide()
-
-    // Load games
-    await loadGames()
-
-  } catch (error) {
+  }
+  catch (error) {
     showAlert(manageAlert, 'danger', error.message)
+    return
   }
   finally {
     // Enable elements and disable loading effect
-    gamesModalName.disabled = false;
+    gamesModalName.removeAttribute("disabled");
     for (let i = 1; i <= disks; ++i) {
       document.getElementById(`gamesModalGameSelect_${i}`).removeAttribute("disabled")
       document.getElementById(`gamesModalGameRemove_${i}`).removeAttribute("disabled")
@@ -404,6 +403,8 @@ async function gamesModalSubmit() {
     gamesModalSaveSubmit.removeAttribute("disabled");
     searchGame.value = '';
   }
+  // Load games
+  await loadGames()
 }
 
 async function gamesModalSubmitNew() {
