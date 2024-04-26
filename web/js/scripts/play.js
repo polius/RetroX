@@ -64,17 +64,18 @@ async function playGame(gameName) {
     }
 
     // Selecting disk
-    let diskSelected =  disks[0]
+    let diskSelected = disks[0]
     if (disks.length > 1) {
       const response = await Swal.fire({
         title: "Which disk you want to play?",
         input: "radio",
-        inputOptions: Object.fromEntries(disks.map((item, index) => [item, `Disk ${index + 1}`])),
-        inputValue: disks[0],
+        inputOptions: Object.fromEntries(disks.map((item, index) => [item.id, `Disk ${index + 1}`])),
+        inputValue: diskSelected.id,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
         target: document.fullscreenElement || document.body,
       });
-      if (response.isConfirmed) diskSelected = response.value
-      else return
+      diskSelected = disks.filter(obj => obj.id == response.value)[0]
     }
 
     if (disks.length > 1) {
@@ -119,7 +120,7 @@ async function playGame(gameName) {
     let blob = await googleDriveAPI.decompress(blob_compressed)
 
     // Start game
-    await startGame(gameName, diskSelected.name, blob, saveGame)
+    await startGame(gameName, diskSelected.name.slice(0, -3), blob, saveGame)
   }
   catch (error) {
     let isError = await handleCatch(false);
@@ -301,14 +302,14 @@ async function onSaveState(gameName, e) {
       }
 
       // Store save
-      let saveName = `${gameName}.save`
+      let saveName = `${gameName}.save.gz`
       let saveContent = await googleDriveAPI.compress(EJS_emulator.gameManager.getSaveFile())
       let saveMetadata = {"name": gameName, "type": "save"}
       let saveFolder = 'Saves'
       await googleDriveAPI.createFile(saveName, saveContent, saveMetadata, saveFolder)
 
       // Store state
-      let stateName = `${gameName}.state`
+      let stateName = `${gameName}.state.gz`
       let stateContent = await googleDriveAPI.compress(e.state)
       let stateMetadata = {"name": gameName, "type": "state"}
       let stateFolder = 'States'

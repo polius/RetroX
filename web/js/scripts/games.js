@@ -124,15 +124,14 @@ async function loadGames(name, nextToken) {
   // Load images metadata - first layer
   if (nextToken === undefined) div.innerHTML = ''
   images.files.forEach((element) => {
-    const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     div.innerHTML += `
       <div id="${element.id}" class="gallery-item col-xl-3 col-lg-4 col-md-6 col-10">
-        <div onclick="gameAction('${gameName}')" class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px; cursor:pointer;">
+        <div onclick="gameAction('${element.appProperties.name}')" class="d-flex justify-content-center align-items-center" style="background-color:rgba(156, 145, 129, 0.13); width: 100%; height: 200px; border-radius: 5px; cursor:pointer;">
           <div class="spinner-border" style="width: 3rem; height: 3rem; border-width: 2px;" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.name.substring(0, element.name.lastIndexOf('.'))}</p>
+        <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.appProperties.name}</p>
       </div>
     `
   })
@@ -142,11 +141,10 @@ async function loadGames(name, nextToken) {
     await (await googleDriveAPI.getFile(element.id)).blob()
     await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
     const file = await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(element.id)).blob())
-    const gameName = element.name.substring(0, element.name.lastIndexOf('.'))
     const div = document.getElementById(element.id)
     div.innerHTML = `
-      <img onclick="gameAction('${gameName}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
-      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${gameName}</p>
+      <img onclick="gameAction('${element.appProperties.name}')" src="${URL.createObjectURL(file)}" class="img-fluid img-enlarge" style="cursor:pointer; border-radius:10px" alt="">
+      <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.appProperties.name}</p>
     `
   }))
 
@@ -226,6 +224,7 @@ async function editGame() {
   gamesModalName.value = ''
   gamesModalImage.style.display = 'none'
   gamesModalDisks.innerHTML = '';
+  gamesModalName.setAttribute("disabled", "");
   gamesModalClose.setAttribute("disabled", "");
   gamesModalCloseSubmit.setAttribute("disabled", "");
   gamesModalSaveSubmit.setAttribute("disabled", "");
@@ -260,6 +259,7 @@ async function editGame() {
 
   // Enable elements
   manageAlert.innerHTML = ''
+  gamesModalName.removeAttribute("disabled");
   gamesModalClose.removeAttribute("disabled");
   gamesModalCloseSubmit.removeAttribute("disabled");
   gamesModalSaveSubmit.removeAttribute("disabled");
@@ -420,7 +420,7 @@ async function gamesModalSubmitNew() {
   // 1. Upload ROM files
   for (let i = 1; i <= disks; ++i) {
     let element = document.getElementById(`gamesModalRomInput_${i}`);
-    let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
+    let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}.gz`;
     let fileContent = await googleDriveAPI.compress(element.files[0])
     let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
     let parentFolderName = 'Games'
@@ -428,7 +428,7 @@ async function gamesModalSubmitNew() {
   }
 
   // 2. Upload image
-  let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
+  let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.')) + '.gz';
   let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
   let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
   let parentFolderName = 'Images'
@@ -452,7 +452,7 @@ async function gamesModalSubmitEdit() {
   for (let i = 1; i <= disks; ++i) {
     let element = document.getElementById(`gamesModalRomInput_${i}`)
     if (element.files.length != 0) {
-      let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}`;
+      let fileName = `${gamesModalName.value.trim()}_Disk${i}${element.files[0].name.substring(element.files[0].name.lastIndexOf('.'))}.gz`;
       let fileContent = await googleDriveAPI.compress(element.files[0])
       let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
       let parentFolderName = 'Games'
@@ -470,7 +470,7 @@ async function gamesModalSubmitEdit() {
 
   // Upload updated image
   if (currentGame.image.modified) {
-    let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.lastIndexOf('.'));
+    let fileName = gamesModalName.value.trim() + gamesModalImageInput.files[0].name.substring(gamesModalImageInput.files[0].name.slice(0,-3).lastIndexOf('.')) + '.gz';
     let fileContent = await googleDriveAPI.compress(gamesModalImageInput.files[0])
     let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
     let parentFolderName = 'Images'
@@ -485,7 +485,7 @@ async function gamesModalSubmitEdit() {
       let element = document.getElementById(`gamesModalRomInput_${i}`)
       if (element.files.length == 0) {
         let fileId = currentGame.roms[i-1].id
-        let fileName = `${gamesModalName.value.trim()}_Disk${i}${currentGame.roms[i-1].name.substring(currentGame.roms[i-1].name.lastIndexOf('.'))}`;
+        let fileName = `${gamesModalName.value.trim()}_Disk${i}${currentGame.roms[i-1].name.substring(currentGame.roms[i-1].name.slice(0,-3).lastIndexOf('.'))}`;
         let fileMetadata = {"name": gamesModalName.value.trim(), "type": "rom", "disk": i}
         await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
       }
@@ -494,7 +494,7 @@ async function gamesModalSubmitEdit() {
     // Rename existing image
     if (!currentGame.image.modified) {
       let fileId = currentGame.image.id
-      let fileName = gamesModalName.value.trim() + currentGame.image.name.substring(currentGame.image.name.lastIndexOf('.'));
+      let fileName = gamesModalName.value.trim() + currentGame.image.name.substring(currentGame.image.name.slice(0,-3).lastIndexOf('.'));
       let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
       await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
     }
@@ -502,16 +502,16 @@ async function gamesModalSubmitEdit() {
     // Rename Save Game
     if (currentGame.save != null) {
       let fileId = currentGame.save.id
-      let fileName = gamesModalName.value.trim() + currentGame.save.name.substring(currentGame.save.name.lastIndexOf('.'));
-      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+      let fileName = gamesModalName.value.trim() + currentGame.save.name.substring(currentGame.save.name.slice(0,-3).lastIndexOf('.'));
+      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "save"}
       await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
     }
 
     // Rename Game State
     if (currentGame.state != null) {
       let fileId = currentGame.state.id
-      let fileName = gamesModalName.value.trim() + currentGame.state.name.substring(currentGame.state.name.lastIndexOf('.'));
-      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "image"}
+      let fileName = gamesModalName.value.trim() + currentGame.state.name.substring(currentGame.state.name.slice(0,-3).lastIndexOf('.'));
+      let fileMetadata = {"name": gamesModalName.value.trim(), "type": "state"}
       await googleDriveAPI.renameFile(fileId, fileName, fileMetadata)
     }
   }
@@ -604,8 +604,6 @@ async function gamesModalSubmitDelete() {
 
 async function trackUploadProgress(event, element) {
   showAlert(manageAlert, 'info', `Uploading ${element}. Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
-  // console.log(`Uploaded ${event.loaded} of ${event.total}`);
-  // console.log(`Progress: ${(Math.round(event.loaded * 100) / event.total).toFixed()}%`)
 }
 
 async function cancelUpload() {
