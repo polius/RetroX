@@ -101,7 +101,7 @@ async function loadGames(name, nextToken) {
   if (nextToken === undefined) {
     div.innerHTML = `
       <p style="text-align: center; margin-top:30px; margin-bottom: 0;">Loading games...</p>
-      <div class="spinner-border" role="status" style="border-width: 2px">
+      <div class="spinner-border" role="status" style="border-width: 2px; margin-bottom:30px">
         <span class="visually-hidden">Loading...</span>
       </div>
     `
@@ -140,11 +140,12 @@ async function loadGames(name, nextToken) {
   if (images.nextPageToken !== undefined) {
     nextPageToken = images.nextPageToken
     gamesLoadMoreSubmit.removeAttribute("disabled");
-    gamesLoadMoreDiv.style.visibility = 'visible'
+    gamesLoadMoreDiv.style.removeProperty("display");
+
   }
   else {
     nextPageToken = undefined
-    gamesLoadMoreDiv.style.visibility = 'hidden'
+    gamesLoadMoreDiv.style.setProperty("display", "none", "important");
   }
 
   // Load images content - second layer
@@ -171,7 +172,7 @@ function debounce(func, delay=500) {
 }
 
 async function searchGamesSubmit() {
-  gamesLoadMoreDiv.style.visibility = 'hidden'
+  gamesLoadMoreDiv.style.setProperty("display", "none", "important");
   googleDriveAPI.abort()
   await loadGames(searchGame.value)
 }
