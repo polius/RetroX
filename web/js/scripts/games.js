@@ -136,6 +136,17 @@ async function loadGames(name, nextToken) {
     `
   })
 
+  // Check if there are more games to load
+  if (images.nextPageToken !== undefined) {
+    nextPageToken = images.nextPageToken
+    gamesLoadMoreSubmit.removeAttribute("disabled");
+    gamesLoadMoreDiv.style.visibility = 'visible'
+  }
+  else {
+    nextPageToken = undefined
+    gamesLoadMoreDiv.style.visibility = 'hidden'
+  }
+
   // Load images content - second layer
   await Promise.all(images.files.map(async (element) => {
     await (await googleDriveAPI.getFile(element.id)).blob()
@@ -147,17 +158,6 @@ async function loadGames(name, nextToken) {
       <p style="margin-top:15px; font-weight: 600; font-size: 1.1rem;">${element.appProperties.name}</p>
     `
   }))
-
-  // Check if there are more games to load
-  if (images.nextPageToken !== undefined) {
-    nextPageToken = images.nextPageToken
-    gamesLoadMoreSubmit.removeAttribute("disabled");
-    gamesLoadMoreDiv.style.visibility = 'visible'
-  }
-  else {
-    nextPageToken = undefined
-    gamesLoadMoreDiv.style.visibility = 'hidden'
-  }
 }
 
 const searchGames = debounce(searchGamesSubmit);
