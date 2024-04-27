@@ -294,7 +294,7 @@ async function onSaveState(gameName, e) {
       Swal.showLoading();
 
       // Retrieve game metadata
-      const gameMetadata = (await googleDriveAPI.getGame(gameName)).files.filter(obj => obj.appProperties.type in ['state','save'])
+      const gameMetadata = (await googleDriveAPI.getGame(gameName)).files.filter(obj => ['state','save'].includes(obj.appProperties.type))
 
       // Delete save and state files
       for (let i = 0; i < gameMetadata.length; ++i) {
