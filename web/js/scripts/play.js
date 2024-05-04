@@ -315,6 +315,9 @@ async function onSaveState(gameName, e) {
       let stateFolder = 'States'
       await googleDriveAPI.createFile(stateName, stateContent, stateMetadata, stateFolder)
 
+      // Click the emulator before firing next notification (fixes screen glitch)
+      game.click()
+
       // Show success notification
       Swal.fire({
         position: "center",
@@ -340,7 +343,7 @@ async function onSaveState(gameName, e) {
           allowOutsideClick: false,
           allowEscapeKey: false,
           target: document.fullscreenElement || document.body,
-        })
+        }).then(() => game.click())
       }
     }
   }
@@ -391,6 +394,9 @@ async function onLoadState(gameName) {
         const gameState = new Uint8Array(await (await googleDriveAPI.decompress(await (await googleDriveAPI.getFile(gameStateMetadata[0].id)).blob())).arrayBuffer())
         EJS_emulator.gameManager.loadState(gameState);
 
+        // Click the emulator before firing next notification (fixes screen glitch)
+        game.click()
+
         // Show success notification
         Swal.fire({
           position: "center",
@@ -416,7 +422,7 @@ async function onLoadState(gameName) {
             allowOutsideClick: false,
             allowEscapeKey: false,
             target: document.fullscreenElement || document.body,
-          })
+          }).then(() => game.click())
         }
       }
     }
