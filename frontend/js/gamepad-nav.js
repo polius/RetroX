@@ -57,7 +57,6 @@
  *      requests fullscreen BEFORE the module finishes loading. Hoist
  *      `indicator`, `playHint`, `persistor` to the top of play.js. */
 
-import { openPalette } from "./command-palette.js";
 import { rememberControllerSeen } from "./input-mode.js";
 import { canGoBackInApp } from "./router.js";
 
@@ -436,12 +435,6 @@ function suspendHeldDirectionsForNav() {
 }
 window.addEventListener("retrox:navigated", suspendHeldDirectionsForNav);
 window.addEventListener("popstate", suspendHeldDirectionsForNav);
-
-function focusLibraryLink() {
-  const lib = document.querySelector('.sidebar [data-key="library"]')
-           || document.querySelector('.sidebar [href="/games"]');
-  if (lib) focusElement(lib);
-}
 
 // "Back" gesture for the controller. Goes back ONE in-app step when
 // there's somewhere safe to go (i.e. another app page is in the
