@@ -1,0 +1,22 @@
+data/
+.git/
+.gitignore
+.dockerignore
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend dev tooling — used only for local lint, not at runtime.
+**/node_modules/
+frontend/package.json
+frontend/package-lock.json
+frontend/eslint.config.mjs
+
+.vscode/
+.DS_Store
+Thumbs.db

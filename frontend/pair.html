@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <!-- Locked viewport: zoom + pinch off so accidental gestures don't shift
+       the controller surface during play. user-scalable=no is honored on
+       the major mobile browsers and is the right call here because the
+       UI is touch-target-sized by design (no need to zoom in to read). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+  <meta name="theme-color" content="#07090c"/>
+  <!-- iOS Safari treats this as the standalone app's status-bar style; on
+       PWA install (or pinned tab) the controller goes nicely edge-to-edge. -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Controller · RetroX</title>
+  <link rel="icon" type="image/png" href="/images/emulator-logo.png"/>
+  <link rel="stylesheet" href="/css/tokens.css"/>
+  <link rel="stylesheet" href="/css/pair.css"/>
+  <script src="/js/boot-tv.js"></script>
+</head>
+<body class="pair-body">
+  <div id="pair-root" class="pair-root" role="application" aria-label="RetroX phone controller"></div>
+  <noscript>
+    <p style="position:fixed;inset:0;display:grid;place-items:center;color:#a8acb6;font-family:system-ui;background:#000;text-align:center;padding:24px">
+      JavaScript is required to use the phone controller.
+    </p>
+  </noscript>
+  <script type="module" src="/js/pair.js"></script>
+</body>
+</html>

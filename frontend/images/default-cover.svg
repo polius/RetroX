@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" fill="none" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="300" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1a1206"/>
+      <stop offset="1" stop-color="#0c0907"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="150" cy="170" r="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e5a00d" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#e5a00d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#bg)"/>
+  <rect width="300" height="400" fill="url(#glow)"/>
+  <!-- Cartridge -->
+  <g transform="translate(60 100)">
+    <path d="M10 20 Q10 14 16 14 L130 14 L170 50 L170 250 Q170 256 164 256 L16 256 Q10 256 10 250 Z" fill="#181c24" stroke="#2f3645" stroke-width="1.2"/>
+    <rect x="30" y="40" width="120" height="46" rx="4" fill="#11141a" stroke="#2f3645"/>
+    <text x="90" y="71" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="22" font-weight="700" fill="#e5a00d" letter-spacing="2">RETROX</text>
+    <g fill="#2f3645">
+      <rect x="34" y="110" width="112" height="2" rx="1"/>
+      <rect x="34" y="124" width="112" height="2" rx="1"/>
+      <rect x="34" y="138" width="112" height="2" rx="1"/>
+    </g>
+    <text x="90" y="200" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" font-weight="500" fill="#6e7280" letter-spacing="3">NO COVER ART</text>
+  </g>
+</svg>

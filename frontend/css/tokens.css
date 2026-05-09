@@ -1,0 +1,335 @@
+/* RetroX — design tokens
+ * One signature dark theme inspired by Plex.
+ * All component styles consume these vars; never hard-code colors.
+ *
+ * Sizing strategy: every token scaled at the four big-screen tiers
+ * below. Components reference tokens (--fs-md, --btn-h-lg, --input-h,
+ * etc) — they should NOT hard-code pixel values. New components added
+ * later get TV scaling for free. */
+
+/* Self-hosted fonts: keeps the app fully first-party, removes the
+ * Google Fonts CDN dependency, and lets the CSP stay tight. */
+@import url("./fonts.css");
+
+:root {
+  /* Surfaces */
+  --canvas:        #07090c;
+  --surface:       #11141a;
+  --surface-2:     #181c24;
+  --raised:        #20252e;
+  --overlay:       rgba(7, 9, 12, 0.78);
+
+  /* Borders */
+  --border:        #232834;
+  --border-strong: #2f3645;
+
+  /* Text */
+  --text:          #f4f5f8;
+  --text-muted:    #a8acb6;
+  --text-dim:      #6e7280;
+  --text-faint:    #4a4e58;
+
+  /* Brand accent (Plex amber) */
+  --accent:        #e5a00d;
+  --accent-hover:  #f5b94d;
+  --accent-press:  #c98a08;
+  --accent-tint:   rgba(229, 160, 13, 0.14);
+  --accent-glow:   rgba(229, 160, 13, 0.32);
+  --on-accent:     #1a1306;
+
+  /* Semantic */
+  --success:       #34d399;
+  --danger:        #ef4444;
+  --danger-tint:   rgba(239, 68, 68, 0.14);
+  --info:          #38bdf8;
+  --warn:          #f59e0b;
+
+  /* Type — fonts */
+  --font-ui:       "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:  "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono:     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale — overridden per breakpoint below */
+  --fs-xs:   12px;
+  --fs-sm:   13px;
+  --fs-md:   14px;
+  --fs-base: 15px;
+  --fs-lg:   17px;
+  --fs-xl:   20px;
+  --fs-2xl:  26px;
+  --fs-3xl:  34px;
+  --fs-4xl:  48px;
+  --fs-5xl:  64px;
+  --fs-6xl:  76px;
+
+  /* Spacing scale (4px base) — sp-5 and up scale at TV tiers below */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-7:  32px;
+  --sp-8:  40px;
+  --sp-9:  56px;
+  --sp-10: 80px;
+
+  /* Radius */
+  --r-1:  4px;
+  --r-2:  8px;
+  --r-3:  12px;
+  --r-4:  16px;
+  --r-5:  20px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 0 rgba(0, 0, 0, 0.3) inset, 0 1px 1px rgba(0, 0, 0, 0.25);
+  --shadow-md:  0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg:  0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-hero: 0 28px 80px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 0 2px var(--accent-glow), 0 0 24px var(--accent-glow);
+
+  /* Motion */
+  --ease:        cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast:      120ms;
+  --t-base:      180ms;
+  --t-slow:      280ms;
+
+  /* Layout */
+  --sidebar-w:   248px;
+  --topbar-h:    64px;
+  --content-max: 1480px;
+  --gutter:      32px;
+  --shelf-gap:   16px;
+
+  /* Card sizing — uniform 3:4 portrait */
+  --card-min:    164px;
+  --card-tv:     200px;
+
+  /* Detail-page poster width. Scales with the layout tier so the
+   * /game hero feels deliberately sized on every screen instead of
+   * sitting in a 220px column on a 4K display. */
+  --detail-poster-w: 220px;
+
+  /* Chrome dimensions — components reference these instead of
+   * hard-coding pixel heights, so a single breakpoint override
+   * uniformly bumps every button / input / chip on the page. */
+  --btn-h-sm:        32px;
+  --btn-h-md:        40px;
+  --btn-h-lg:        48px;
+  --input-h:         44px;
+  --chip-h:          36px;
+  --icon-btn-h:      40px;
+  --nav-item-icon:   20px;
+  --brand-img:       40px;
+  --user-avatar:     36px;
+  --topbar-search-w: 200px;
+  --topbar-search-h: 34px;
+
+  /* TV-mode switch — multiplied into TV-only deltas in the calc()
+   * expressions below. 0 = desktop sizing, 1 = TV sizing.
+   *
+   * Opt-in only via Profile → Controls (data-tv="true" on <html>).
+   * We deliberately don't auto-detect via pointer queries: hybrid
+   * devices (Surface, iPad with mouse) report coarse pointers but
+   * are used at desktop distance, and TV browsers vary too widely
+   * to pick a reliable signal. Manual override is honest. */
+  --tv: 0;
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
+}
+@media (max-width: 480px) {
+  :root { --gutter: 16px; }
+}
+
+/* Manual override: Profile → Controls toggles data-tv on <html>. */
+:root[data-tv="true"] { --tv: 1; }
+
+/* Larger UI on non-mobile screens */
+@media (min-width: 769px) {
+  :root {
+    --fs-base: 17px;
+    --gutter:  48px;
+    --card-min: var(--card-tv);
+    --focus-ring: 0 0 0 3px var(--canvas), 0 0 0 7px var(--accent);
+  }
+}
+
+/* ---------------- Big-screen tiers ----------------
+ * Past ~1280px the layout has plenty of room and the previous max-width
+ * cap (1480px) starts to leave large whitespace gutters flanking the
+ * content.
+ *
+ * Two scaling axes:
+ *   - Layout primitives (sidebar, gutter, content-max, card-min,
+ *     detail-poster) scale unconditionally with viewport. Bigger screen
+ *     = more usable space, regardless of who's using it.
+ *   - Type + chrome heights scale TWICE: a base bump for the wider
+ *     viewport, plus a TV-only bonus when --tv is 1. That bonus is
+ *     written as `calc(pc + delta * var(--tv))` so each token shows
+ *     both the desktop and TV values in one place.
+ *
+ * Breakpoints are tuned to real device classes:
+ *   1280  laptop                  → layout-only refinements
+ *   1600  large monitor           → modest type/chrome bump for PC,
+ *                                   full TV scaling on TV browsers
+ *   1920  1080p TV / 24-32" PC    → bigger
+ *   2560  1440p / 4K              → biggest
+ */
+
+@media (min-width: 1280px) {
+  :root {
+    --content-max:     1640px;
+    --card-min:        220px;
+    --gutter:          56px;
+    --detail-poster-w: 240px;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    /* Layout (universal) */
+    --sidebar-w:       272px;
+    --topbar-h:        calc(64px + 4px * var(--tv));
+    --content-max:     1920px;
+    --card-min:        232px;
+    --gutter:          56px;
+    --detail-poster-w: 260px;
+
+    /* Type — modest desktop bumps, smaller TV bonus */
+    --fs-xs:   12px;
+    --fs-sm:   13px;
+    --fs-md:   calc(14px + 1px * var(--tv));
+    --fs-base: calc(17px + 1px * var(--tv));
+    --fs-lg:   calc(17px + 1px * var(--tv));
+    --fs-xl:   calc(20px + 2px * var(--tv));
+    --fs-2xl:  calc(26px + 2px * var(--tv));
+    --fs-3xl:  calc(34px + 2px * var(--tv));
+    --fs-4xl:  calc(48px + 4px * var(--tv));
+    --fs-5xl:  calc(62px + 4px * var(--tv));
+    --fs-6xl:  calc(74px + 6px * var(--tv));
+
+    /* Spacing — same on PC and TV at this viewport */
+    --sp-5:  20px;
+    --sp-6:  26px;
+    --sp-7:  34px;
+    --sp-8:  44px;
+    --sp-9:  60px;
+    --sp-10: 88px;
+
+    /* Chrome — PC base + small TV bonus */
+    --btn-h-sm:        calc(34px + 2px * var(--tv));
+    --btn-h-md:        calc(42px + 2px * var(--tv));
+    --btn-h-lg:        calc(48px + 4px * var(--tv));
+    --input-h:         calc(46px + 2px * var(--tv));
+    --chip-h:          calc(38px + 2px * var(--tv));
+    --icon-btn-h:      calc(40px + 2px * var(--tv));
+    --nav-item-icon:   20px;
+    --brand-img:       40px;
+    --user-avatar:     calc(36px + 2px * var(--tv));
+    --topbar-search-w: calc(240px + 20px * var(--tv));
+    --topbar-search-h: calc(38px + 2px * var(--tv));
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    /* Layout (universal) */
+    --sidebar-w:       300px;
+    --topbar-h:        calc(68px + 6px * var(--tv));
+    --content-max:     2200px;
+    --card-min:        260px;
+    --gutter:          68px;
+    --detail-poster-w: 300px;
+
+    /* Type */
+    --fs-xs:   calc(12px + 1px * var(--tv));
+    --fs-sm:   calc(13px + 1px * var(--tv));
+    --fs-md:   calc(15px + 1px * var(--tv));
+    --fs-base: calc(17px + 1px * var(--tv));
+    --fs-lg:   calc(18px + 2px * var(--tv));
+    --fs-xl:   calc(22px + 2px * var(--tv));
+    --fs-2xl:  calc(28px + 3px * var(--tv));
+    --fs-3xl:  calc(36px + 4px * var(--tv));
+    --fs-4xl:  calc(52px + 4px * var(--tv));
+    --fs-5xl:  calc(66px + 6px * var(--tv));
+    --fs-6xl:  calc(80px + 8px * var(--tv));
+
+    /* Spacing */
+    --sp-5:  22px;
+    --sp-6:  28px;
+    --sp-7:  36px;
+    --sp-8:  48px;
+    --sp-9:  64px;
+    --sp-10: 96px;
+
+    /* Chrome */
+    --btn-h-sm:        calc(36px + 2px * var(--tv));
+    --btn-h-md:        calc(44px + 4px * var(--tv));
+    --btn-h-lg:        calc(52px + 4px * var(--tv));
+    --input-h:         calc(48px + 4px * var(--tv));
+    --chip-h:          calc(40px + 2px * var(--tv));
+    --icon-btn-h:      calc(42px + 2px * var(--tv));
+    --nav-item-icon:   calc(20px + 2px * var(--tv));
+    --brand-img:       calc(40px + 4px * var(--tv));
+    --user-avatar:     calc(38px + 2px * var(--tv));
+    --topbar-search-w: calc(280px + 30px * var(--tv));
+    --topbar-search-h: calc(40px + 2px * var(--tv));
+  }
+}
+
+@media (min-width: 2560px) {
+  :root {
+    /* Layout */
+    --sidebar-w:       340px;
+    --content-max:     2720px;
+    --card-min:        300px;
+    --gutter:          84px;
+    --detail-poster-w: 360px;
+
+    /* Type */
+    --fs-xs:   calc(13px + 1px * var(--tv));
+    --fs-sm:   calc(14px + 1px * var(--tv));
+    --fs-md:   calc(16px + 1px * var(--tv));
+    --fs-base: calc(18px + 2px * var(--tv));
+    --fs-lg:   calc(20px + 2px * var(--tv));
+    --fs-xl:   calc(24px + 3px * var(--tv));
+    --fs-2xl:  calc(30px + 4px * var(--tv));
+    --fs-3xl:  calc(40px + 6px * var(--tv));
+    --fs-4xl:  calc(58px + 8px * var(--tv));
+    --fs-5xl:  calc(74px + 10px * var(--tv));
+    --fs-6xl:  calc(88px + 12px * var(--tv));
+
+    /* Spacing */
+    --sp-5:  24px;
+    --sp-6:  30px;
+    --sp-7:  40px;
+    --sp-8:  52px;
+    --sp-9:  68px;
+    --sp-10: 104px;
+
+    /* Chrome */
+    --btn-h-sm:        calc(38px + 4px * var(--tv));
+    --btn-h-md:        calc(48px + 4px * var(--tv));
+    --btn-h-lg:        calc(56px + 6px * var(--tv));
+    --input-h:         calc(52px + 4px * var(--tv));
+    --chip-h:          calc(42px + 4px * var(--tv));
+    --icon-btn-h:      calc(46px + 4px * var(--tv));
+    --nav-item-icon:   calc(22px + 2px * var(--tv));
+    --brand-img:       calc(44px + 4px * var(--tv));
+    --user-avatar:     calc(40px + 4px * var(--tv));
+    --topbar-search-w: calc(320px + 40px * var(--tv));
+    --topbar-search-h: calc(44px + 4px * var(--tv));
+  }
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-base: 0ms;
+    --t-slow: 0ms;
+  }
+}

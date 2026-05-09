@@ -1,0 +1,72 @@
+/* Modern minimal reset */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html, body { height: 100%; }
+body {
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden; /* AppShell handles its own scroll regions */
+}
+
+img, picture, svg, video { display: block; max-width: 100%; }
+img { font-style: italic; background: var(--surface); }
+
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+button { cursor: pointer; }
+
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+ul, ol { list-style: none; padding: 0; }
+
+table { border-collapse: collapse; width: 100%; }
+
+::selection { background: var(--accent); color: var(--on-accent); }
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid var(--canvas);
+  border-radius: var(--r-pill);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* Universal focus-visible — never suppressed.
+   We deliberately don't set border-radius here: elements have their own
+   shape (pills, cards, inputs) and the box-shadow ring traces whatever
+   the element's actual radius is. Forcing a single radius here morphs
+   focused elements into rectangles, e.g. pill chips collapsing to
+   square corners while focused. */
+:focus { outline: none; }
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Utility */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hidden { display: none !important; }
+
+/* The HTML `hidden` attribute must override component display values. */
+[hidden] { display: none !important; }

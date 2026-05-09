@@ -1,1 +1,25 @@
-/roms/
+# Local data directory (created by `docker run -v ./data:/data`)
+/data/
+docker-compose.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (frontend lint tooling)
+node_modules/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.log

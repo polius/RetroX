@@ -1,0 +1,521 @@
+/* pair.css — phone-as-controller UI.
+ *
+ * Two surfaces:
+ *   .pair-shell    — pre-pair / connecting card (portrait or landscape).
+ *   .pad           — the live controller, full-bleed landscape only.
+ *
+ * Design goals:
+ *   - Single-tap latency: no scrolling, no momentum, no layout reflows
+ *     during input. `touch-action: none` on the pad surface.
+ *   - Honest target sizes: face buttons ≥ 64px, D-pad arms ≥ 56px wide.
+ *     Comfortably above WCAG 2.5.5 (44×44) and matches what physical
+ *     thumbs actually expect on a phone held in landscape.
+ *   - High contrast so it reads in a sunlit room without going neon. */
+
+:root {
+  /* Pad-only tokens — kept local so the rest of the app's tokens (which
+   * are tuned for desktop+TV) can stay untouched. */
+  --pad-bg:           #07090c;
+  --pad-surface:      #11141a;
+  --pad-surface-2:    #181c24;
+  --pad-border:       rgba(255, 255, 255, 0.08);
+  --pad-text:         #f4f5f8;
+  --pad-text-dim:     #a8acb6;
+  --pad-accent:       #e5a00d;
+  --pad-success:      #34d399;
+  --pad-danger:       #ef4444;
+
+  /* Button family — face buttons share a base, with per-button accents. */
+  --btn-face:         #20252e;
+  --btn-face-press:   #2a3140;
+  --btn-shoulder:     #181c24;
+  --btn-shoulder-press: #20252e;
+
+  --btn-a:            #ef4444;  /* red on bottom face */
+  --btn-b:            #f59e0b;  /* amber on right face */
+  --btn-x:            #38bdf8;  /* blue on left */
+  --btn-y:            #34d399;  /* green on top */
+
+  --pad-radius:       18px;
+  --pad-shadow:       0 8px 24px rgba(0, 0, 0, 0.55);
+  --pad-shadow-press: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------------- Body ---------------- */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--pad-bg);
+  color: var(--pad-text);
+  font-family: var(--font-ui), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  /* Disable iOS callout/highlight on long-press of buttons. */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Sit under the iOS notch / home-indicator if installed as PWA. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+
+#pair-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+/* ---------------- Pre-pair shell (cards) ---------------- */
+
+.pair-shell {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.pair-card {
+  width: min(420px, 100%);
+  background: linear-gradient(180deg, var(--pad-surface-2) 0%, var(--pad-surface) 100%);
+  border: 1px solid var(--pad-border);
+  border-radius: 22px;
+  padding: 28px 24px;
+  box-shadow: var(--pad-shadow);
+  text-align: center;
+}
+
+.pair-card__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.005em;
+}
+.pair-card__brand img {
+  width: 28px;
+  height: 28px;
+}
+.pair-card__brand-mark {
+  color: var(--pad-accent);
+}
+
+.pair-card h1 {
+  margin: 4px 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+.pair-card p {
+  margin: 0 0 16px;
+  color: var(--pad-text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pair-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 56px;
+  font: 600 22px/1 var(--font-mono), ui-monospace, Menlo, monospace;
+  letter-spacing: 0.45em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--pad-text);
+  background: var(--pad-bg);
+  border: 1px solid var(--pad-border);
+  border-radius: 14px;
+  padding: 0 14px;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.pair-input:focus {
+  border-color: var(--pad-accent);
+  box-shadow: 0 0 0 3px rgba(229, 160, 13, 0.18);
+}
+.pair-input::placeholder {
+  color: rgba(168, 172, 182, 0.4);
+  letter-spacing: 0.45em;
+}
+
+.pair-btn {
+  width: 100%;
+  height: 52px;
+  margin-top: 14px;
+  border: none;
+  border-radius: 14px;
+  background: var(--pad-accent);
+  color: #1a1306;
+  font: 700 15px/1 inherit;
+  cursor: pointer;
+  transition: filter 120ms ease, transform 80ms ease;
+}
+.pair-btn:active { transform: translateY(1px); }
+.pair-btn:disabled { opacity: 0.5; pointer-events: none; }
+.pair-btn--ghost {
+  background: transparent;
+  color: var(--pad-text);
+  border: 1px solid var(--pad-border);
+  margin-top: 8px;
+}
+
+.pair-status {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(168, 172, 182, 0.08);
+  color: var(--pad-text-dim);
+  font-size: 13px;
+}
+.pair-status--ok    { color: var(--pad-success); background: rgba(52, 211, 153, 0.10); }
+.pair-status--warn  { color: var(--pad-accent);  background: rgba(229, 160, 13, 0.12); }
+.pair-status--error { color: var(--pad-danger);  background: rgba(239, 68, 68, 0.10); }
+
+.pair-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(168, 172, 182, 0.2);
+  border-top-color: var(--pad-accent);
+  border-radius: 50%;
+  margin: 12px auto;
+  animation: pair-spin 700ms linear infinite;
+}
+@keyframes pair-spin { to { transform: rotate(360deg); } }
+
+/* ---------------- Live controller ---------------- */
+
+/* Soft prompt only when paired but the phone is held portrait. */
+.pad-rotate-hint {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  background: rgba(7, 9, 12, 0.94);
+  z-index: 5;
+  text-align: center;
+  padding: 24px;
+  color: var(--pad-text-dim);
+}
+@media (orientation: portrait) {
+  body.is-paired .pad-rotate-hint { display: grid; }
+  body.is-paired .pad             { visibility: hidden; }
+}
+
+.pad {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Three rows: shoulders (L/R at the top) | Select/Start | main
+   * play area. The middle row's `auto` height matches its content,
+   * so the d-pad and face cluster fill the remaining space. */
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    "shoulders-left shoulders-right"
+    "meta           meta"
+    "dpad           face";
+  /* Block the OS gesture interpreter — every pixel is gameplay. */
+  touch-action: none;
+  background: var(--pad-bg);
+  /* 2D grain via radial gradients — soft, GPU-cheap, makes the surface
+     feel intentional instead of slate-flat. */
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(229, 160, 13, 0.06), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(56, 189, 248, 0.05), transparent 38%);
+}
+
+/* Subtle grip strips along the long edges — a pure visual cue to where
+   the player's thumbs land, no pixels are dedicated to interactive
+   elements outside the named buttons. */
+.pad::before, .pad::after {
+  content: "";
+  position: absolute;
+  top: 8%; bottom: 8%;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  pointer-events: none;
+}
+.pad::before { left: 6px; }
+.pad::after  { right: 6px; }
+
+/* ---- Shoulders (top) ---- */
+
+.pad__shoulders {
+  display: flex;
+  align-items: center;
+  /* Big horizontal padding pulls L and R inward from the screen
+   * corners. clamp(40px, 12vw, 96px) keeps the inset proportional
+   * to viewport width on tablets without making it absurd on tiny
+   * phones — at 568 px it's 68 px, at 844 px it's 96 px (clamped). */
+  padding: 10px clamp(40px, 12vw, 96px) 0;
+  gap: 10px;
+  pointer-events: none; /* children re-enable */
+  /* Reserve vertical space even when the shoulder buttons are hidden
+   * (gb / gbc / nes layouts). Without this min-height the row would
+   * collapse to its 10 px top padding and Select/Start would creep
+   * up into the area covered by the .pad__status pill. */
+  min-height: 48px;
+}
+.pad__shoulders--left  { grid-area: shoulders-left;  justify-content: flex-start; }
+.pad__shoulders--right { grid-area: shoulders-right; justify-content: flex-end; }
+
+.pad-btn-shoulder {
+  pointer-events: auto;
+  min-width: 96px;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--pad-border);
+  border-radius: 14px;
+  background: var(--btn-shoulder);
+  color: var(--pad-text);
+  font: 700 14px/1 inherit;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: var(--pad-shadow);
+  transition: background 80ms ease, transform 60ms ease, box-shadow 80ms ease;
+  -webkit-touch-callout: none;
+}
+.pad-btn-shoulder.is-down,
+.pad-btn-shoulder:active {
+  background: var(--btn-shoulder-press);
+  box-shadow: var(--pad-shadow-press);
+  transform: translateY(1px);
+}
+.pad-btn-shoulder[hidden] { display: none; }
+
+/* ---- D-pad (left) ---- */
+
+.pad__dpad-wrap {
+  grid-area: dpad;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+}
+.pad__dpad {
+  /* Three-axis size cap:
+   *   46vw            — width budget (face cluster takes the other half)
+   *   100dvh − 124px  — height budget (row 1 ≈48 + row 2 ≈42 + own
+   *                     wrap padding 12 + 22 px safety against
+   *                     fractional grid rounding)
+   *   240px           — visual maximum so the cluster doesn't grow
+   *                     huge on tablets
+   * The middle term is what fixes the bottom-cutoff bug on short
+   * phone viewports (e.g. iPhone SE landscape, 320 px tall). 100dvh
+   * tracks the visible viewport as the mobile URL bar collapses;
+   * 100vh is the fallback for browsers that haven't shipped dvh. */
+  --dpad-size: min(46vw, calc(100vh - 124px), 240px);
+  --dpad-size: min(46vw, calc(100dvh - 124px), 240px);
+  width: var(--dpad-size);
+  height: var(--dpad-size);
+  position: relative;
+  /* Big invisible hit area; visible buttons are styled descendants. */
+}
+.pad-dpad-btn {
+  position: absolute;
+  background: var(--btn-face);
+  color: var(--pad-text);
+  border: 1px solid var(--pad-border);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--pad-shadow);
+  transition: background 80ms ease, box-shadow 80ms ease, transform 60ms ease;
+  -webkit-touch-callout: none;
+}
+.pad-dpad-btn.is-down {
+  background: var(--btn-face-press);
+  box-shadow: var(--pad-shadow-press);
+  transform: scale(0.97);
+}
+.pad-dpad-btn svg { width: 36%; height: 36%; opacity: 0.85; }
+
+/* Cross layout: each arm is ~33% of the dpad, centered on the axis */
+.pad-dpad-btn--up    { top: 0;    left: 33.33%; right: 33.33%; bottom: 66.66%; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
+.pad-dpad-btn--down  { top: 66.66%; left: 33.33%; right: 33.33%; bottom: 0;    border-top-left-radius: 4px;    border-top-right-radius: 4px; }
+.pad-dpad-btn--left  { top: 33.33%; left: 0;    right: 66.66%; bottom: 33.33%; border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
+.pad-dpad-btn--right { top: 33.33%; left: 66.66%; right: 0;    bottom: 33.33%; border-top-left-radius: 4px;   border-bottom-left-radius: 4px; }
+
+/* Center cap for visual cohesion. Non-interactive. */
+.pad__dpad::before {
+  content: "";
+  position: absolute;
+  inset: 33.33%;
+  background: var(--pad-surface);
+  border: 1px solid var(--pad-border);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* ---- Face buttons (right) ---- */
+
+.pad__face-wrap {
+  grid-area: face;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+}
+.pad__face {
+  /* Lock-stepped with the d-pad cluster — they MUST be the same size
+   * for the controller to look balanced. */
+  --face-size: min(46vw, calc(100vh - 124px), 240px);
+  --face-size: min(46vw, calc(100dvh - 124px), 240px);
+  width: var(--face-size);
+  height: var(--face-size);
+  position: relative;
+}
+.pad-face-btn {
+  position: absolute;
+  width: 32%;
+  height: 32%;
+  background: var(--btn-face);
+  border: 1px solid var(--pad-border);
+  border-radius: 50%;
+  color: rgba(244, 245, 248, 0.85);
+  font: 800 22px/1 inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--pad-shadow);
+  transition: background 80ms ease, box-shadow 80ms ease, transform 60ms ease;
+  -webkit-touch-callout: none;
+  /* The accent shows as a thin ring under the glyph — preserves
+     the dark surface (no neon faces) but still color-codes the button. */
+}
+.pad-face-btn::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 2px solid var(--btn-color, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 80ms ease;
+}
+.pad-face-btn.is-down {
+  background: var(--btn-face-press);
+  box-shadow: var(--pad-shadow-press);
+  transform: scale(0.95);
+}
+.pad-face-btn.is-down::after { opacity: 1; }
+.pad-face-btn[hidden] { display: none; }
+
+/* SNES diamond layout: A right, B bottom, X top, Y left.
+   The 6% inset on each side tightens the diamond — A↔B center-to-
+   center distance shrinks ~15% versus a flush-against-the-edges
+   layout, giving the thumb a shorter roll between the most-pressed
+   buttons without sacrificing target separation. */
+.pad-face-btn--a { top: 34%;  right: 6%;     --btn-color: var(--btn-a); }
+.pad-face-btn--b { bottom: 6%; left: 34%;    --btn-color: var(--btn-b); }
+.pad-face-btn--x { top: 6%;    left: 34%;    --btn-color: var(--btn-x); }
+.pad-face-btn--y { top: 34%;  left: 6%;      --btn-color: var(--btn-y); }
+
+/* When only A/B are visible (NES, GB) place them side-by-side on the
+   right half — exactly like a real NES controller, where B (left) and
+   A (right) sit next to each other within easy thumb roll, NOT at
+   opposite edges of the case. The 12% gap between buttons matches
+   roughly the gap between B and A on a real NES pad. */
+.pad__face[data-buttons="ab"] .pad-face-btn--a { top: 34%; right: 8%;  left: auto; }
+.pad__face[data-buttons="ab"] .pad-face-btn--b { top: 34%; right: 48%; left: auto; }
+
+/* ---- Meta row (bottom-center) ---- */
+
+.pad__meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  /* Tight vertical padding — the row already sits below the shoulders
+     and above the main play cluster, so it doesn't need much breathing
+     room. Smaller padding here means more room for the d-pad / face
+     cluster, which is the actual gameplay surface and was getting cut
+     off at the bottom on shorter phone viewports. */
+  padding: 2px 18px 4px;
+}
+.pad-btn-meta {
+  min-width: 88px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--pad-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pad-text);
+  font: 700 12px/1 inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 80ms ease, transform 60ms ease;
+  -webkit-touch-callout: none;
+}
+.pad-btn-meta.is-down,
+.pad-btn-meta:active {
+  background: rgba(255, 255, 255, 0.10);
+  transform: translateY(1px);
+}
+
+/* Floating status pill — top-center, never under thumbs. */
+.pad__status {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--pad-border);
+  font-size: 11px;
+  color: var(--pad-text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: opacity 200ms ease;
+}
+.pad__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pad-text-dim);
+  transition: background 120ms ease;
+}
+body.is-paired .pad__status-dot { background: var(--pad-success); }
+body.is-paired .pad__status     { color: var(--pad-success); }
+body.is-disconnected .pad__status-dot { background: var(--pad-danger); }
+body.is-disconnected .pad__status { color: var(--pad-danger); }
+
+/* Disconnect/exit floats top-right so the pad's geometry stays uncluttered. */
+.pad__exit {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--pad-border);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--pad-text);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 100ms ease;
+}
+.pad__exit:active { background: rgba(0, 0, 0, 0.85); }
+.pad__exit svg { width: 16px; height: 16px; }

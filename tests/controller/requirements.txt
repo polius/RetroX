@@ -1,0 +1,4 @@
+# Controller pairing e2e harness deps. Install with:
+#   pip install -r tests/controller/requirements.txt
+#   playwright install chromium
+playwright>=1.50,<2
