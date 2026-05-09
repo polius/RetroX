@@ -1,0 +1,45 @@
+name: Dependabot auto-merge
+
+# Auto-merges Dependabot PRs that bump dependencies by patch or minor.
+# Major bumps are left open for manual review (per the policy in
+# .github/dependabot.yml: "Majors typically carry breaking changes that
+# warrant their own commit and changelog read.").
+#
+# For grouped updates, the metadata action returns the highest semver
+# bump in the group. Since groups in dependabot.yml are scoped to
+# patch + minor only, every group PR resolves to at most "minor" and
+# is therefore eligible for auto-merge.
+#
+# Prerequisites (configure once in the repo settings):
+#   1. Settings > General > "Allow auto-merge" must be enabled.
+#   2. Branch protection on `main` should require the backend / frontend
+#      CI checks. Without protection, --auto merges immediately with no
+#      CI gate.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve and enable auto-merge for patch / minor bumps
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
