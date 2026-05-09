@@ -1,0 +1,412 @@
+/* player.css — full-bleed EmulatorJS host. Used by:
+ *
+ *   1. /play.html (direct navigation / deep link). Body has class
+ *      `player-page`; .player-host fills the viewport.
+ *
+ *   2. /game's in-app Play flow. game.js mounts a .player-host overlay
+ *      directly into the existing document so the click that started
+ *      the player is the same user activation that EmulatorJS's
+ *      AudioContext is created under — no "Click to start" prompt,
+ *      no autoplay-policy stall. */
+
+.player-page,
+.player-page body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #000;
+  overflow: hidden;
+  color: #f4f5f8;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.player-host {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #f4f5f8;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  z-index: 9000;
+  overflow: hidden;
+}
+
+.player-host #emulator-mount,
+.player-host #game {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+/* The EJS player is given keyboard focus on game start so input is
+   routed to the emulator, but it shouldn't show a focus ring. */
+.ejs_parent:focus,
+.ejs_parent:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ---------------- Pills (back, status, hint) ---------------- */
+
+.player__back {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: opacity 200ms ease, background 150ms ease;
+}
+.player__back:hover { background: rgba(0, 0, 0, 0.85); cursor: pointer; }
+.player__back svg { width: 16px; height: 16px; }
+.player__back.is-faded { opacity: 0; pointer-events: none; }
+/* Controller-focus ring: slightly brighter than the default focus-ring
+ * because the chrome floats over the game canvas — a subtle ring can
+ * disappear into bright pixels. The ring matches the back button's
+ * pill shape so it traces the actual silhouette. */
+.player__back:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85),
+              0 0 0 4px rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.player__status {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: opacity 200ms ease, color 150ms ease, border-color 150ms ease,
+              background 150ms ease, transform 100ms ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.player__status:hover { background: rgba(0, 0, 0, 0.85); }
+.player__status:active { transform: scale(0.97); }
+/* Controller-focus ring — same prominent treatment as the back button
+ * so the user knows where focus is when navigating with a gamepad. */
+.player__status:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85),
+              0 0 0 4px rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.85);
+}
+.player__status.is-faded { opacity: 0; pointer-events: none; }
+
+/* "No save yet" — purely informational. Blue (not yellow) to
+ * distinguish from the amber warning states: yellow reads as
+ * "something might be wrong", blue reads as "FYI, you should know
+ * this". The pill is otherwise un-tinted so it doesn't compete with
+ * the warning treatment. */
+.player__status.is-empty .player__status__dot {
+  background: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.22);
+}
+
+/* Offline — informational warning. Server is unreachable but nothing
+ * is at risk; full amber tint to draw the eye without alarm. */
+.player__status.is-warning {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(0, 0, 0, 0.7);
+}
+.player__status.is-warning:hover { background: rgba(0, 0, 0, 0.85); }
+
+/* Out of sync — action required. Data could be discarded if the user
+ * picks the wrong resolution path. Red is the conventional "decide
+ * now" color and clearly distinct from the amber offline state. */
+.player__status.is-critical {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(0, 0, 0, 0.72);
+}
+.player__status.is-critical:hover { background: rgba(0, 0, 0, 0.86); }
+
+.player__status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18);
+  flex-shrink: 0;
+  transition: background 150ms ease, box-shadow 150ms ease;
+}
+.player__status.is-warning .player__status__dot {
+  background: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.22);
+}
+.player__status.is-critical .player__status__dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+}
+
+/* ---------------- Save details dialog ---------------- */
+
+.save-dialog .save-dialog__hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  margin-bottom: var(--sp-5);
+}
+.save-dialog__hero__icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+}
+.save-dialog__hero--is-ok       .save-dialog__hero__icon { background: rgba(34, 197, 94, 0.18);  color: #22c55e; }
+.save-dialog__hero--is-empty    .save-dialog__hero__icon { background: rgba(96, 165, 250, 0.16); color: #60a5fa; }
+.save-dialog__hero--is-warn     .save-dialog__hero__icon { background: rgba(251, 191, 36, 0.18); color: #fbbf24; }
+.save-dialog__hero--is-critical .save-dialog__hero__icon { background: rgba(239, 68, 68, 0.18);  color: #ef4444; }
+
+.save-dialog__hero__copy { min-width: 0; flex: 1; }
+.save-dialog__hero__headline {
+  font-weight: 600;
+  font-size: var(--fs-md);
+  color: var(--text);
+  line-height: 1.35;
+}
+.save-dialog__hero__sub {
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.save-dialog__body {
+  margin: 0 0 var(--sp-5);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.save-dialog__facts {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 18px;
+  font-size: 13px;
+}
+.save-dialog__fact { display: contents; }
+.save-dialog__fact dt {
+  color: var(--text-dim);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  align-self: center;
+}
+.save-dialog__fact dd {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.save-dialog__fact dd em {
+  color: var(--text-dim);
+  font-style: normal;
+}
+
+/* "Download my current save first (advanced)" — tertiary action under
+ * the facts table on the conflict dialog. Reads as a quiet escape
+ * hatch, not a peer of the primary footer buttons. */
+.save-dialog__advanced {
+  margin-top: var(--sp-4);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.save-dialog__advanced:hover { color: var(--text); text-decoration: underline; }
+.save-dialog__advanced:focus-visible {
+  outline: none;
+  color: var(--text);
+  box-shadow: 0 0 0 2px var(--accent);
+  border-radius: 4px;
+}
+.save-dialog__advanced svg { flex-shrink: 0; }
+
+.player__hint {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9998;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  animation: player__hint-in 200ms ease both;
+}
+.player__hint__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  animation: player__hint-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes player__hint-in {
+  from { opacity: 0; transform: translate(-50%, -45%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes player__hint-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  70%  { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* ---------------- Virtual gamepad: speed-button row -------------------
+ *
+ * customizeSpeedButtons() in play.js rewires the Slow Motion button into
+ * a Rewind button (relabeled, input 28) and swaps its inline left
+ * position with Fast so the row reads [Rewind] [Fast]. With the rewired
+ * Slow now serving as Rewind, the original Rewind button is redundant —
+ * hide it everywhere so the speed row stays a clean two-button layout
+ * in both orientations. */
+.ejs_virtualGamepad_button.b_speed_rewind {
+  display: none !important;
+}
+
+/* ---------------- Virtual gamepad: phone-landscape layout ----------------
+ *
+ * On a phone in landscape, EmulatorJS's default gamepad — d-pad + face
+ * buttons hugging the bottom edge, Start/Select/Fast/Slow stacked in the
+ * middle of the screen — overlaps the game canvas and wastes the side
+ * margins where the canvas can't reach. The block below replaces the
+ * layout entirely (no edits to the emulatorjs/ vendor folder):
+ *
+ *   - the d-pad is vertically centered in the viewport and horizontally
+ *     centered in the canvas's left margin
+ *   - the face-button cluster (A/B/X/Y), the Select/Start row, and the
+ *     Rewind/Fast row form a single stack whose visible content is
+ *     centered on the viewport's vertical midline, all three rows
+ *     horizontally centered in the canvas's right margin
+ *
+ * All positions come from CSS custom properties set by
+ * installVirtualGamepadAlignment() in play.js, which measures each
+ * cluster's actual content bounding box and the canvas geometry. The
+ * fallback values let the layout boot before the script runs without
+ * obviously breaking. Gated on coarse pointer + landscape + short
+ * viewport so tablets/desktops keep the default layout. !important is
+ * needed because EmulatorJS writes per-button left/top via inline style. */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 500px) {
+
+  /* The default `bottom: 50px` (no `top`, no height) makes this wrapper
+   * effectively 0px tall, so percent-based positioning on its children
+   * would resolve relative to the viewport bottom. Stretch the wrapper
+   * to fill the player so the JS-emitted pixel positions are anchored
+   * to the player's top-left, which equals the viewport's top-left. */
+  .ejs_virtualGamepad_parent {
+    inset: 0 !important;
+  }
+
+  .ejs_virtualGamepad_left {
+    top:  var(--vpad-left-y,  50%) !important;
+    left: var(--vpad-left-x,  10px) !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+
+  .ejs_virtualGamepad_right {
+    top:   var(--vpad-right-y, 30%) !important;
+    right: var(--vpad-right-x, 10px) !important;
+    bottom: auto !important;
+    transform: translateX(var(--vpad-right-shift, 0px)) !important;
+  }
+
+  .ejs_virtualGamepad_bottom {
+    top:   var(--vpad-bottom-y, 75%) !important;
+    right: var(--vpad-bottom-x, 10px) !important;
+    bottom: auto !important;
+    left: auto !important;
+    margin-left: 0 !important;
+    width: 130px !important;
+    height: 36px !important;
+  }
+
+  /* Center Select and Start as a 60+10+60 pair inside the 130px row.
+   * EmulatorJS's defaults (Select left:-5, Start left:60, both 124px-
+   * container relative) place the pair off-center; this normalizes them
+   * so the bottom row's content center coincides with the row's
+   * geometric center, matching the JS-emitted right-cluster shift. */
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_select,
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_start {
+    top: 0 !important;
+    width: 60px !important;
+  }
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_select { left: 0 !important; }
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_start  { left: 70px !important; }
+
+  /* The Rewind/Fast row sits 14 px below the Select/Start row, inside
+   * the same .ejs_virtualGamepad_bottom container. The buttons keep
+   * their default `block: true` 31 px height and just take the same
+   * 60 px width and column positions as Select/Start so the two rows
+   * line up. installVirtualGamepadAlignment() picks up the new
+   * bottomBox extent (top:0 → top:76) automatically and centers the
+   * full A/B + Select/Start + Rewind/Fast stack on the viewport's
+   * vertical midline. */
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_slow,
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_fast {
+    top: 45px !important;
+    width: 60px !important;
+    height: 31px !important;
+  }
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_slow { left: 0 !important; }
+  .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_fast { left: 70px !important; }
+}

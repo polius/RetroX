@@ -1,0 +1,4 @@
+# Gamepad audit harness deps. Install with:
+#   pip install -r tests/gamepad/requirements.txt
+#   playwright install chromium
+playwright>=1.50,<2

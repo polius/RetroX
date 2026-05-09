@@ -1,0 +1,68 @@
+version: 2
+
+# Monthly dependency PRs across the surfaces RetroX actually ships:
+#   - the FastAPI backend (pip)
+#   - the frontend lint stack (npm — eslint and friends)
+#   - the GitHub Actions workflows themselves
+# Vendored frontend libraries (frontend/js/vendor/) are not on dependabot
+# — they're tracked manually since they're not declared dependencies.
+# Security advisories are NOT bound to this cadence; they trigger
+# their own PRs immediately regardless of `interval`.
+updates:
+  # Grouping policy (same shape across all three ecosystems):
+  #   - minor + patch bumps land as ONE bundled PR per cycle. They're
+  #     usually low-risk and easier to review in aggregate than as
+  #     a stream of single-package PRs.
+  #   - MAJOR bumps stay individual. Majors typically carry breaking
+  #     changes that warrant their own commit and changelog read.
+
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "deps"
+    groups:
+      backend-deps:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "deps"
+    groups:
+      frontend-deps:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        update-types:
+          - "minor"
+          - "patch"

@@ -1,0 +1,43 @@
+name: Frontend
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+
+jobs:
+  lint:
+    name: eslint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          # setup-node looks for a lockfile to compute the cache key.
+          # We moved package-lock.json under frontend/, so point the
+          # action at the new location.
+          cache-dependency-path: frontend/package-lock.json
+
+      # Prefer `npm ci` once a lockfile exists (faster + reproducible).
+      # On the very first run there's no package-lock.json yet, so fall
+      # back to `npm install` and let it generate one. Commit the
+      # resulting lockfile so subsequent CI runs use the deterministic
+      # path.
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: ESLint
+        run: npm run lint

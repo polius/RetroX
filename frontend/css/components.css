@@ -1,0 +1,1024 @@
+/* Reusable components */
+
+/* ---------------- Buttons ---------------- */
+
+.btn {
+  /* Default size; --btn-h-md scales at TV tiers via tokens.css. */
+  --_h: var(--btn-h-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  height: var(--_h);
+  padding: 0 var(--sp-5);
+  border: none;
+  background: transparent;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+.btn[disabled], .btn[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+/* Icon scales loosely with the button label, so a TV-sized button gets
+ * a TV-sized icon. 1.15em puts it at ~16px on mobile (fs-md 14) and
+ * ~22px on 4K (fs-md 19). */
+.btn svg { width: 1.15em; height: 1.15em; }
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn--primary:hover { background: var(--accent-hover); color: var(--on-accent); }
+.btn--primary:active { background: var(--accent-press); }
+
+.btn--secondary {
+  background: rgba(244, 245, 248, 0.08);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+.btn--secondary:hover { background: rgba(244, 245, 248, 0.14); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.btn--ghost:hover { color: var(--text); background: var(--surface-2); }
+
+.btn--danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.btn--danger:hover { background: var(--danger-tint); border-color: var(--danger); }
+
+.btn--lg { --_h: var(--btn-h-lg); padding: 0 var(--sp-6); font-size: var(--fs-lg); }
+.btn--sm { --_h: var(--btn-h-sm); padding: 0 var(--sp-3); font-size: var(--fs-sm); }
+.btn--icon-only { padding: 0; width: var(--_h); }
+
+/* ---------------- Pills ---------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+}
+.pill--accent {
+  background: var(--accent-tint);
+  color: var(--accent);
+  border-color: transparent;
+}
+.pill--success { color: var(--success); background: rgba(52, 211, 153, 0.12); border-color: transparent; }
+.pill--danger  { color: var(--danger);  background: var(--danger-tint); border-color: transparent; }
+.pill--info    { color: var(--info);    background: rgba(56, 189, 248, 0.12); border-color: transparent; }
+
+/* Filter pill row */
+.chips {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--chip-h);
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.chip:hover { color: var(--text); border-color: var(--border-strong); }
+.chip[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------------- Forms ---------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field__label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.field__hint {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+/* Small monospaced pill that sits next to a field label, e.g.
+ *     Battery save  .save
+ * It reads as a code token rather than label text — accent-tinted to
+ * make it feel like an annotation, not a value. */
+.field__ext {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0;
+  vertical-align: 1px;
+}
+/* Quiet "(optional)" marker — italic + dim so it reads as a footnote
+ * to the field name, never competing with it. */
+.field__optional {
+  margin-left: 8px;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-dim);
+}
+/* Hints under a checkbox feel detached when they hug the checkbox box.
+ * Indent to align under the label text, and add breathing room so a
+ * multi-line hint doesn't run into the next field. */
+.field > .checkbox + .field__hint {
+  margin-top: 2px;
+  padding-left: calc(1.4em + var(--sp-3));
+  line-height: 1.5;
+}
+/* Used by util.js's username validator: same element flips between
+ * the neutral "info" tone and the urgent "error" tone as the user
+ * types something the backend would reject. */
+.field__hint[data-state="error"] { color: var(--danger); }
+.field__hint[data-state="ok"] { color: var(--success); }
+.field__error {
+  font-size: var(--fs-xs);
+  color: var(--danger);
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  height: var(--input-h);
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  color: var(--text);
+  font-size: var(--fs-md);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.textarea { height: auto; padding: 12px 14px; min-height: 96px; resize: vertical; }
+.input::placeholder, .textarea::placeholder { color: var(--text-dim); }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--border-strong); }
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a8acb6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox input[type="checkbox"] {
+  appearance: none;
+  /* Roughly tracks the type scale so checkbox stays balanced with
+   * its label across tiers (20px on mobile → 26px on 4K). */
+  width: 1.4em; height: 1.4em;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.checkbox input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.checkbox input[type="checkbox"]:checked::after {
+  content: "";
+  /* Checkmark proportional to the checkbox box (1.4em wide). 0.4em ×
+   * 0.75em with a 14% border keeps the tick visually centered at all
+   * tiers. */
+  width: 0.4em; height: 0.75em;
+  border: solid var(--on-accent);
+  border-width: 0 0.14em 0.14em 0;
+  transform: rotate(45deg) translate(-0.07em, -0.07em);
+}
+
+.toggle {
+  /* Track sized in em so it scales with surrounding type. ~38×22 on
+   * mobile (15px base), ~56×32 on 4K (22px base). */
+  --_w: 2.55em;
+  --_h: 1.45em;
+  position: relative;
+  width: var(--_w);
+  height: var(--_h);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  /* Knob fills the track minus borders. */
+  width: calc(var(--_h) - 6px);
+  height: calc(var(--_h) - 6px);
+  border-radius: var(--r-pill);
+  background: var(--text-muted);
+  transition: transform var(--t-base) var(--ease), background var(--t-base) var(--ease);
+}
+.toggle[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle[aria-pressed="true"]::after {
+  /* Slide knob to the right edge of the track. */
+  transform: translateX(calc(var(--_w) - var(--_h)));
+  background: var(--on-accent);
+}
+
+/* ---------------- Cards (game posters) ---------------- */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+  gap: var(--sp-5);
+}
+@media (max-width: 480px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+}
+
+.gcard {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--r-3);
+  overflow: hidden;
+  background: var(--surface-2);
+  isolation: isolate;
+  transition: transform var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+  /* `content-visibility: auto` was tried here as a virtualization hint
+   * but it interacts badly with the cover img's `loading="lazy"`: when
+   * the user scrolls fast, off-screen cards skip layout, the lazy-load
+   * heuristic can't measure their position, and the fetch trigger
+   * never fires — the card lands on screen with no cover. If library
+   * sizes ever grow large enough that paint cost matters, the right
+   * answer is real DOM virtualization (windowing), not this hint. */
+}
+.gcard__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--t-slow) var(--ease), filter var(--t-base) var(--ease);
+  background: var(--surface-2);
+}
+.gcard__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(7, 9, 12, 0.85) 92%, var(--canvas));
+  pointer-events: none;
+}
+.gcard__meta {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gcard__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+.gcard__system {
+  /* fs-xs scales: 12 → 13 → 14 → 15 across tiers. Card system label
+   * grows in step with the title. */
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.gcard__progress {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transform-origin: left;
+  z-index: 2;
+}
+.gcard__fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  /* Roughly 80% of the standard icon button so it stays subordinate
+   * to the card content but still scales uniformly with chrome. */
+  width: calc(var(--icon-btn-h) * 0.8);
+  height: calc(var(--icon-btn-h) * 0.8);
+  border-radius: var(--r-pill);
+  background: rgba(7, 9, 12, 0.55);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  backdrop-filter: blur(6px);
+}
+.gcard__fav svg { width: 50%; height: 50%; }
+.gcard:hover .gcard__fav,
+.gcard:focus-visible .gcard__fav,
+.gcard__fav.is-active { opacity: 1; transform: translateY(0); }
+.gcard__fav.is-active { color: var(--accent); }
+
+.gcard:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: var(--shadow-lg);
+}
+.gcard:hover .gcard__cover { filter: brightness(1.05); transform: scale(1.04); }
+
+.gcard:focus-visible {
+  box-shadow: var(--focus-ring), var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ---------------- Modal ---------------- */
+
+.icon-btn {
+  width: var(--icon-btn-h);
+  height: var(--icon-btn-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Collapse any whitespace text nodes the markup leaves around the
+   * inline SVG (template-literal indentation often does). Without
+   * this iOS Safari surfaces those nodes as a stray "·" glyph next
+   * to the icon. The SVG itself is unaffected — it sizes from its
+   * own width/height. */
+  font-size: 0;
+  line-height: 0;
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+/* Icon roughly 45% of the button — keeps proportion across tiers. */
+.icon-btn svg { width: 45%; height: 45%; }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 12, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  /* Must clear the in-app player overlay (z-index 9000) and its back
+   * button (z-index 9999) so confirm prompts shown during gameplay —
+   * e.g. the "Load this state?" prompt — remain visible. */
+  z-index: 10000;
+  padding: var(--sp-5);
+  animation: fade-in 160ms var(--ease) both;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-4);
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-hero);
+  animation: scale-in 200ms var(--ease) both;
+}
+.modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-6);
+  border-bottom: 1px solid var(--border);
+}
+.modal__head h3 {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.modal__close { margin-left: auto; }
+.modal__body {
+  padding: var(--sp-6);
+  overflow-y: auto;
+}
+.modal__foot {
+  padding: var(--sp-4) var(--sp-6);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+}
+
+/* Checkbox row used by Admin > Collections > Manage games. */
+.collection-game-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+.collection-game-row:hover { background: var(--surface-2); }
+.collection-game-row__check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.collection-game-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-md);
+}
+.collection-game-row__system {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+
+/* ---------------- Toast ---------------- */
+
+.toast-stack {
+  position: fixed;
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  /* See modal-backdrop: must paint above the in-app player overlay so
+   * "Saved to slot N" / "Save failed" toasts surface during gameplay. */
+  z-index: 10001;
+  pointer-events: none;
+  max-width: calc(100vw - 48px);
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  padding: 14px var(--sp-4);
+  min-width: 280px;
+  max-width: 420px;
+  pointer-events: auto;
+  position: relative;
+  box-shadow: var(--shadow-md);
+  animation: toast-in 220ms var(--ease) both;
+}
+.toast::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+.toast--success::before { background: var(--success); }
+.toast--danger::before  { background: var(--danger); }
+.toast--info::before    { background: var(--info); }
+.toast--warn::before    { background: var(--warn); }
+.toast.is-leaving { animation: toast-out 200ms var(--ease) both; }
+
+.toast__icon {
+  width: 22px; height: 22px;
+  flex: 0 0 22px;
+  color: var(--accent);
+  margin-top: 1px;
+}
+.toast--success .toast__icon { color: var(--success); }
+.toast--danger .toast__icon  { color: var(--danger); }
+.toast--info .toast__icon    { color: var(--info); }
+.toast--warn .toast__icon    { color: var(--warn); }
+
+.toast__body { flex: 1; min-width: 0; }
+.toast__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.toast__message {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.toast__close {
+  width: 24px; height: 24px;
+  border-radius: var(--r-2);
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.toast__close:hover { color: var(--text); background: var(--surface); }
+
+@keyframes fade-in    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scale-in   { from { opacity: 0; transform: scale(0.96) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes toast-in   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-out  { to   { opacity: 0; transform: translateY(8px); } }
+
+/* ---------------- Gamepad HUD ---------------- */
+
+/* ---------------- Command palette ---------------- */
+
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 12, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 90;
+  display: grid;
+  place-items: start center;
+  padding: 14vh var(--sp-5) var(--sp-5);
+}
+.palette {
+  width: 100%;
+  max-width: 620px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-4);
+  overflow: hidden;
+  box-shadow: var(--shadow-hero);
+  animation: scale-in 180ms var(--ease) both;
+}
+.palette__input {
+  width: 100%;
+  height: 56px;
+  padding: 0 var(--sp-5);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-lg);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+}
+.palette__input::placeholder { color: var(--text-dim); }
+.palette__input:focus { outline: none; box-shadow: none; border-bottom-color: var(--border); }
+.palette__list {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 6px;
+}
+.palette__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 10px var(--sp-4);
+  border-radius: var(--r-2);
+  color: var(--text);
+  width: 100%;
+  text-align: left;
+  font-size: var(--fs-md);
+}
+.palette__item small {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.palette__item.is-active,
+.palette__item:hover { background: var(--surface-2); color: var(--text); }
+.palette__empty {
+  padding: var(--sp-7);
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+/* ---------------- Tables ---------------- */
+
+.table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  overflow: hidden;
+  background: var(--surface);
+}
+.table {
+  font-size: var(--fs-md);
+}
+.table th, .table td {
+  text-align: left;
+  padding: 12px 16px;
+  vertical-align: middle;
+}
+.table thead th {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  position: sticky; top: 0;
+  z-index: 1;
+}
+.table tbody tr { border-top: 1px solid var(--border); }
+.table tbody tr:first-child { border-top: 0; }
+.table tbody tr:hover { background: var(--surface-2); }
+.table tbody tr.table__group-row,
+.table tbody tr.table__group-row:hover {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.table tbody tr.table__group-row td { padding-top: 8px; padding-bottom: 8px; }
+
+/* ---------------- Empty state ---------------- */
+
+.empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-3);
+  padding: var(--sp-9) var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+}
+.empty h3 {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  color: var(--text);
+  margin-bottom: var(--sp-2);
+}
+.empty p { max-width: 540px; margin: 0 auto var(--sp-4); font-size: var(--fs-md); }
+
+/* ---------------- Spinner ---------------- */
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: var(--r-pill);
+  animation: spin 800ms linear infinite;
+}
+.spinner--lg { width: 36px; height: 36px; border-width: 3px; }
+@keyframes spin { to { transform: rotate(1turn); } }
+
+/* ---------------- Dropdown menu ---------------- */
+
+.menu {
+  position: absolute;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-lg);
+  padding: var(--sp-2);
+  min-width: 200px;
+  z-index: 70;
+  display: none;
+}
+.menu[data-open="true"] { display: block; }
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 8px var(--sp-3);
+  border-radius: var(--r-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+.menu__item:hover { background: var(--surface); }
+.menu__item--danger { color: var(--danger); }
+.menu__divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+/* ---------------- Tabs ---------------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-6);
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px var(--sp-4);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  border-radius: 0;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tab svg { flex: 0 0 auto; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] {
+  color: var(--text);
+}
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: var(--sp-4);
+  right: var(--sp-4);
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
+
+/* ---------------- Slot picker (in-modal) ---------------- */
+
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.slot-row {
+  display: grid;
+  /* First column tracks --user-avatar so the row scales with the
+   * index badge it contains (slot-row__index uses --user-avatar). */
+  grid-template-columns: var(--user-avatar) 1fr auto;
+  gap: var(--sp-3);
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  padding: 12px var(--sp-3);
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  cursor: pointer;
+  font: inherit;
+}
+.slot-row:hover { border-color: var(--accent); background: var(--surface); }
+.slot-row:focus-visible { box-shadow: var(--focus-ring); border-color: transparent; }
+.slot-row__index {
+  width: var(--user-avatar); height: var(--user-avatar);
+  display: grid; place-items: center;
+  border-radius: var(--r-2);
+  background: var(--canvas);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.slot-row--filled .slot-row__index { color: var(--accent); border-color: var(--accent-tint); background: rgba(229, 160, 13, 0.08); }
+.slot-row__body { min-width: 0; }
+.slot-row__name {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slot-row__time {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.slot-row__ext {
+  display: inline-block;
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: calc(var(--fs-xs) - 1px);
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+.slot-row__tags {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Tag pills used in both /game slot cards and the play picker rows.
+   Two states the user actually cares about:
+     SAVE  — battery save (the game's own save data, auto-persisted)
+     STATE — emulator snapshot (created on demand with Save State) */
+.slot-tag {
+  display: inline-flex;
+  align-items: center;
+  /* Tags are intentionally tiny — slightly under fs-xs so they read as
+   * a compact label, not body text. Scales with the rest of the type
+   * system on TV. */
+  font-size: calc(var(--fs-xs) - 2px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+.slot-tag--save  { color: var(--success); background: rgba(52, 211, 153, 0.10); border-color: rgba(52, 211, 153, 0.25); }
+.slot-tag--state { color: var(--info);    background: rgba(56, 189, 248, 0.10); border-color: rgba(56, 189, 248, 0.25); }
+.slot-tag--empty { color: var(--text-dim); background: var(--canvas);            border-color: var(--border); }
+
+/* "Continue" badge on the most recently played slot in the picker */
+.slot-row__continue {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: calc(var(--fs-xs) - 2px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+/* ---------------- File picker (custom-styled file input) ---------------- */
+
+.file-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.file-picker:hover { border-color: var(--border-strong); }
+.file-picker:focus-within {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.file-picker input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.file-picker__face {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 14px;
+  height: var(--input-h);
+  cursor: pointer;
+  user-select: none;
+}
+.file-picker__icon {
+  width: 1.15em; height: 1.15em;
+  color: var(--text-dim);
+  flex: 0 0 1.15em;
+  font-size: var(--fs-md);
+}
+.file-picker__name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+.file-picker.has-file .file-picker__name { color: var(--text); }
+.file-picker.has-file .file-picker__icon { color: var(--accent); }
+.file-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--input-h);
+  padding: 0 16px;
+  background: var(--canvas);
+  border-left: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  white-space: nowrap;
+}
+.file-picker__btn:hover { background: var(--accent); color: var(--on-accent); }
+.file-picker__clear {
+  width: var(--btn-h-sm); height: var(--btn-h-sm);
+  margin-right: 6px;
+  display: none;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--text-dim);
+  flex: 0 0 var(--btn-h-sm);
+}
+.file-picker__clear:hover { color: var(--danger); background: var(--surface-2); }
+.file-picker.has-file .file-picker__clear { display: grid; }
+
+/* ---------------- Inline alert (login etc) ---------------- */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: 12px var(--sp-4);
+  border-radius: var(--r-2);
+  background: var(--danger-tint);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.alert--success { background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.35); }
+.alert--info    { background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); }
+.alert--warn    { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); }
+.alert__icon { width: 18px; height: 18px; color: var(--danger); flex: 0 0 18px; margin-top: 1px; }
+.alert--success .alert__icon { color: var(--success); }
+.alert--info .alert__icon    { color: var(--info); }
+.alert--warn .alert__icon    { color: var(--warn); }
+.alert__body { flex: 1; min-width: 0; }
+.alert__title { font-weight: 600; color: var(--text); margin-bottom: 1px; }
+.alert__message { color: var(--text-muted); }

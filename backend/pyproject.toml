@@ -1,0 +1,14 @@
+[tool.ruff]
+# 120 is the de-facto standard for FastAPI / SQLAlchemy projects:
+# route decorators, mapped_column declarations, and Depends() chains
+# are intrinsically wide, and wrapping them mid-call hurts more than
+# it helps readability.
+line-length = 120
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RET"]
+ignore = ["B008"]  # FastAPI Depends() in defaults is idiomatic
+
+[tool.ruff.lint.per-file-ignores]
+"app/__init__.py" = ["F401"]

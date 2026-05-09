@@ -1,0 +1,31 @@
+name: Backend
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      # ruff itself isn't a runtime dependency, so install it
+      # standalone. The project's ruff config lives in
+      # backend/pyproject.toml — `working-directory: backend` picks
+      # it up automatically.
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: ruff check
+        working-directory: backend
+        run: ruff check .

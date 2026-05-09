@@ -1,0 +1,16 @@
+[
+  {
+    "game_id": "gb:tobu",
+    "display_name": "Tobu Tobu Girl",
+    "description": "Your cat is floating into the atmosphere and you are the only one who can save it. Jump, dash, and flap your arms to maneuver around perilous obstacles racing against the clock to retrieve your pet friend before it is too late!\n\nTobu Tobu Girl is a fun and challenging arcade platformer developed by Tangram Games featuring an original soundtrack by potato-tan.",
+    "release_date": "December 03, 2017",
+    "slug": "tobu-tobu-girl-gb"
+  },
+  {
+    "game_id": "gbc:tobudx",
+    "display_name": "Tobu Tobu Girl Deluxe",
+    "description": "Your cat is floating into the atmosphere and you are the only one who can save it. Jump, dash, and flap your arms to maneuver around perilous obstacles racing against the clock to retrieve your pet friend before it is too late!\n\nTobu Tobu Girl Deluxe is a Game Boy/Game Boy Color full-color remaster of Tobu Tobu Girl (2017). It is a hectic and fast-paced arcade-style platformer with a heavy emphasis on speed and twitch movement. It features an original soundtrack by potato-tan.",
+    "release_date": "April 11, 2019",
+    "slug": "tobu-tobu-girl-deluxe-gbc"
+  }
+]

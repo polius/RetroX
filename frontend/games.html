@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-tv="false">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#07090c"/>
+  <title>Library · RetroX</title>
+  <link rel="icon" type="image/png" href="/images/emulator-logo.png"/>
+  <link rel="stylesheet" href="/css/tokens.css"/>
+  <link rel="stylesheet" href="/css/reset.css"/>
+  <link rel="stylesheet" href="/css/shell.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <link rel="stylesheet" href="/css/pages.css"/>
+  <script src="/js/boot-tv.js"></script>
+  <style>
+    .skel{display:grid;place-items:center;height:100vh;height:100dvh;color:var(--text-dim);gap:12px}
+    .skel .spinner{width:28px;height:28px}
+  </style>
+  <noscript><style>.skel{display:none}</style></noscript>
+</head>
+<body>
+  <div class="skel" id="skel"><div class="spinner"></div></div>
+  <noscript><p style="padding:40px;color:#a8acb6">JavaScript is required to use RetroX.</p></noscript>
+  <script type="module" src="/js/games.js"></script>
+</body>
+</html>

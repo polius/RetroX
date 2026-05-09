@@ -1,0 +1,1510 @@
+/* Page-specific blocks */
+
+/* =========================
+   Game detail
+   Compact two-column layout that fits without scroll on 1080p+.
+   ========================= */
+
+.detail {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: page-in 300ms var(--ease) both;
+}
+.detail__art {
+  position: absolute;
+  inset: 0;
+  background-position: center 25%;
+  background-size: cover;
+  filter: blur(20px) saturate(1.3);
+  opacity: 0.6;
+  transform: scale(1.1);
+  z-index: 0;
+}
+.detail__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 9, 12, 0.35) 0%, rgba(7, 9, 12, 0.85) 70%, var(--canvas) 100%),
+    radial-gradient(120% 70% at 0% 100%, rgba(229, 160, 13, 0.1), transparent 60%);
+  z-index: 0;
+}
+.detail__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--sp-6) var(--gutter) var(--sp-5);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: grid;
+  /* Poster width scales with the layout tier — 220px on a laptop,
+   * 380px on a 4K display. See --detail-poster-w in tokens.css. */
+  grid-template-columns: var(--detail-poster-w) 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+@media (min-width: 1600px) {
+  .detail__content { gap: var(--sp-7); padding-block: var(--sp-7) var(--sp-6); }
+}
+@media (max-width: 880px) {
+  .detail__content { grid-template-columns: 1fr; gap: var(--sp-4); padding: var(--sp-5) var(--gutter); }
+  .detail__poster { max-width: 180px; }
+}
+
+.detail__poster {
+  border-radius: var(--r-3);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-hero);
+  position: relative;
+}
+.detail__poster img { width: 100%; height: auto; display: block; border-radius: var(--r-3); }
+
+.detail__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.detail__system { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.detail__title {
+  font-family: var(--font-display);
+  /* Ceiling raised from 44px so the title genuinely scales on TVs;
+   * the lower bound stays calm on laptops. */
+  font-size: clamp(28px, 3.6vw, 64px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+}
+.detail__meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  align-items: center;
+}
+.detail__meta > span:not(.dot) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.detail__meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-dim); flex: 0 0 auto; }
+.detail__desc {
+  color: var(--text-muted);
+  max-width: 720px;
+  font-size: var(--fs-md);
+  line-height: 1.65;
+}
+.detail__actions {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-top: 16px;
+  align-items: center;
+}
+.detail__actions .btn--primary {
+  box-shadow: 0 0 20px rgba(229, 160, 13, 0.35), 0 0 0 1px rgba(229, 160, 13, 0.15);
+}
+.detail__actions .btn--primary:hover {
+  box-shadow: 0 0 28px rgba(229, 160, 13, 0.5), 0 0 0 1px rgba(229, 160, 13, 0.25);
+}
+.detail__disk-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.detail__disk-picker .select { height: var(--btn-h-md); width: auto; }
+
+/* Save slot panel — sits in normal flow below the detail backdrop */
+.slots {
+  padding: var(--sp-2) var(--gutter) var(--sp-7);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  background: var(--canvas);
+}
+.slots__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.slots__head h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.slots__head .slots__count {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.slots__grid {
+  display: grid;
+  /* Tracks the same scaling tier as the library cards so the slot
+   * cards on /game don't look stranded next to a much-larger poster
+   * on a 1080p+ display. */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--sp-3);
+}
+@media (min-width: 1600px) {
+  .slots__grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-4); }
+}
+@media (min-width: 1920px) {
+  .slots__grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--sp-4); }
+}
+.slot {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.slot:hover { border-color: var(--border-strong); }
+.slot--empty {
+  border-style: dashed;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  text-align: center;
+  min-height: 124px;
+  cursor: pointer;
+}
+.slot--empty:hover { color: var(--text); border-color: var(--accent); }
+.slot__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.slot__index {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+.slot__name {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slot__time {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.slot__actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+/* Slot row actions are intentionally compact — derived from the small
+ * button so they stay subordinate to the slot title but still scale. */
+.slot__actions .btn {
+  height: calc(var(--btn-h-sm) - 2px);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  gap: 4px;
+}
+.slot__actions .icon-btn {
+  width: calc(var(--btn-h-sm) - 2px);
+  height: calc(var(--btn-h-sm) - 2px);
+}
+.slot__actions .icon-btn svg { width: 50%; height: 50%; }
+
+
+/* =========================
+   Login
+   ========================= */
+
+.auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6);
+  background:
+    radial-gradient(60% 50% at 30% 20%, rgba(229, 160, 13, 0.08), transparent 60%),
+    radial-gradient(80% 60% at 100% 100%, rgba(56, 189, 248, 0.04), transparent 60%),
+    var(--canvas);
+  overflow: auto;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-5);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  overflow: hidden;
+  padding: var(--sp-8) var(--sp-9);
+}
+
+/* Split layout when hero panel is present (login page) */
+.auth-card:has(.auth-card__hero) {
+  max-width: 920px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0;
+}
+
+/* Left panel — branding / illustration */
+.auth-card__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-5);
+  padding: var(--sp-9);
+  background:
+    radial-gradient(circle at 30% 70%, rgba(229, 160, 13, 0.18), transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.06), transparent 50%),
+    var(--canvas);
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.auth-card__hero img {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  filter: drop-shadow(0 8px 24px rgba(229, 160, 13, 0.3));
+}
+.auth-card__hero-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-4xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.auth-card__hero-title span { color: var(--accent); }
+.auth-card__hero-tagline {
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  max-width: 260px;
+}
+.auth-card__hero-systems {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--sp-3);
+}
+.auth-card__hero-systems span {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  letter-spacing: 0.02em;
+}
+/* Sits on its own row, just below the platform pills, so the eye
+ * reads "Game Boy, GBA, N64, PlayStation" first and then registers
+ * "+ many more" as a quiet continuation. */
+.auth-card__hero-systems--more {
+  margin-top: var(--sp-1);
+}
+/* Ghost-pill marker — same shape as the system pills, dashed and
+ * transparent so it reads as "this list continues" rather than
+ * another platform name. */
+.auth-card__hero-systems span.auth-card__hero-systems-more {
+  background: transparent;
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-muted);
+}
+
+/* Right panel — form */
+.auth-card__form {
+  padding: var(--sp-9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-card__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--sp-6);
+  color: var(--text);
+}
+.auth-card__brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  background: transparent;
+  filter: drop-shadow(0 0 10px rgba(229, 160, 13, 0.3));
+}
+.auth-card__brand strong {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.auth-card__brand-mark { color: var(--accent); }
+.auth-card:has(.auth-card__hero) .auth-card__brand { display: none; }
+
+.auth-card h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--sp-2);
+}
+.auth-card p.lead {
+  color: var(--text-muted);
+  margin-bottom: var(--sp-6);
+  font-size: var(--fs-base);
+}
+.auth-card form { display: flex; flex-direction: column; gap: var(--sp-5); }
+.auth-card form .checkbox { margin-top: -8px; }
+.auth-card .btn--primary { width: 100%; margin-top: var(--sp-1); }
+
+.auth-card__form h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--sp-2);
+}
+.auth-card__form p.lead {
+  color: var(--text-muted);
+  margin-bottom: var(--sp-7);
+  font-size: var(--fs-base);
+}
+.auth-card__form form { display: flex; flex-direction: column; gap: var(--sp-5); }
+.auth-card__form form .checkbox { margin-top: -8px; }
+.auth-card__form .btn--primary {
+  width: 100%;
+  padding: 0 var(--sp-8);
+  margin-top: var(--sp-2);
+  /* Match the standard large button so the sign-in CTA scales with
+   * the rest of the chrome on TV. */
+  height: var(--btn-h-lg);
+  font-size: var(--fs-base);
+}
+
+/* Responsive: collapse to single column on narrow screens */
+@media (max-width: 720px) {
+  .auth-card:has(.auth-card__hero) {
+    max-width: 480px;
+    grid-template-columns: 1fr;
+  }
+  .auth-card__hero {
+    padding: var(--sp-7) var(--sp-6);
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .auth-card__hero img { width: 56px; height: 56px; }
+  .auth-card__hero-title { font-size: var(--fs-3xl); }
+  .auth-card__hero-systems { display: none; }
+  .auth-card__form { padding: var(--sp-7) var(--sp-6); }
+}
+
+.qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.qr-card__qr {
+  background: white;
+  padding: 12px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--border);
+  width: 168px;
+  height: 168px;
+  display: grid;
+  place-items: center;
+}
+.qr-card__qr canvas, .qr-card__qr img, .qr-card__qr svg {
+  display: block;
+  image-rendering: pixelated;
+  width: 100%;
+  height: 100%;
+}
+.qr-card__code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.32em;
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  padding: 10px var(--sp-4);
+  width: 100%;
+  /* Sit slightly further from the QR than the card's default gap
+   * so the code reads as the "secondary path artifact" rather than
+   * a caption stuck to the QR. */
+  margin-top: var(--sp-2);
+}
+/* Primary instruction. Lives ABOVE the QR so the user reads "what to
+ * do" before they see the QR/code artifacts. The two methods are
+ * presented as parallel paths separated by an "or" divider — the
+ * canonical pattern for "two valid ways to the same outcome."
+ * The URL is pulled out of the sentence visually (accent + nowrap)
+ * because it's the actionable thing for the manual-entry path. */
+.qr-card__methods {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  margin-bottom: var(--sp-2);
+}
+.qr-card__method {
+  font-size: var(--fs-md);
+  color: var(--text);
+  text-align: center;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 36ch;
+}
+.qr-card__method strong,
+.qr-card__link {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Subtle dotted underline tells the user it's clickable; solidifies
+ * on hover/focus for clear feedback. Opens in a new tab so a stray
+ * click on the unauthenticated device doesn't kick them out of the
+ * QR flow they're in the middle of. */
+.qr-card__link {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition: color var(--t-fast) var(--ease), text-decoration-style var(--t-fast) var(--ease);
+}
+.qr-card__link:hover,
+.qr-card__link:focus-visible {
+  color: var(--accent-hover);
+  text-decoration-style: solid;
+}
+.qr-card__or {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: 220px;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.qr-card__or::before,
+.qr-card__or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+/* Transient status (expired / approved). Hidden by default; tone
+ * driven via data-tone so we don't sprinkle inline color in JS. */
+.qr-card__status {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+}
+.qr-card__status[data-tone="error"]   { color: var(--danger); }
+.qr-card__status[data-tone="success"] { color: var(--success); }
+
+/* =========================
+   Password recovery
+   The success state lives inside the auth-card form pane. The headline
+   sets context, the command card is the artifact to grab, and the
+   step list confirms what to do with it. No decorative icon — the
+   command itself is the artifact.
+   ========================= */
+
+/* The recovery command is wider than the sign-in form needs to be,
+ * so when the success view is mounted we widen the whole card and
+ * give the form column the extra space. The hero column stays at a
+ * comfortable width — it's still the same page, just task-shifted. */
+.auth-card:has(.recover-success) {
+  max-width: 1040px;
+  grid-template-columns: 400px 1fr;
+}
+/* Below the breakpoint the card collapses to a single column the
+ * same way the sign-in card does. Without this override, the wider
+ * max-width above wins over the existing breakpoint rule because of
+ * source order. */
+@media (max-width: 720px) {
+  .auth-card:has(.recover-success) {
+    max-width: 480px;
+    grid-template-columns: 1fr;
+  }
+}
+
+.recover-success {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-4);
+  text-align: left;
+}
+.recover-success__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-align: center;
+}
+.recover-success__lead {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: calc(var(--sp-2) * -1) 0 0;
+  line-height: 1.55;
+  text-align: center;
+}
+
+/* Command card. Code + copy button live on the same row so the action
+ * is bound to the artifact. The code strip is a single non-wrapping
+ * line that scrolls horizontally inside its own column — wrapping the
+ * docker command across lines makes it harder to read and harder to
+ * verify it copied cleanly. The button has a fixed footprint and
+ * never overlaps the code. */
+.cmd-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  padding: var(--sp-2);
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-2);
+}
+.cmd-card__code {
+  /* min-width: 0 is the magic that lets a flex child actually shrink
+   * below its content's intrinsic width and become scrollable. */
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.cmd-card__code::-webkit-scrollbar { height: 6px; }
+.cmd-card__code::-webkit-scrollbar-track { background: transparent; }
+.cmd-card__code::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--r-pill);
+}
+.cmd-card__copy {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-3);
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-1);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 120ms var(--ease), background 120ms var(--ease), border-color 120ms var(--ease);
+}
+.cmd-card__copy:hover {
+  color: var(--text);
+  background: rgba(244, 245, 248, 0.06);
+  border-color: var(--border-strong);
+}
+.cmd-card__copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cmd-card__copy-icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+.cmd-card__copy.is-copied {
+  color: var(--success);
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+/* Step list. Flex (not grid) with a fixed-width pill in front of each
+ * row so the text column never gets squeezed and wraps naturally
+ * across as many lines as the prose needs. */
+.recover-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.recover-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.recover-steps__num {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+.recover-steps li > span:last-child { flex: 1 1 auto; min-width: 0; }
+.recover-steps code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 1px 6px;
+  border-radius: var(--r-1);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* Quiet reassurance line — sits between "things to do" and the CTA so
+ * the user reads it last. Subtle by design: a thin top divider and
+ * info-tinted icon, no full alert background. */
+.recover-success__note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.recover-success__note-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--info);
+  flex-shrink: 0;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+/* =========================
+   Profile
+   ========================= */
+
+.my-save-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  transition: background var(--t-fast) var(--ease);
+}
+.my-save-row:first-child { border-top: none; }
+.my-save-row:hover { background: var(--surface-2); }
+.my-save-row__slot { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-dim); width: 50px; flex-shrink: 0; }
+.my-save-row__name { flex: 1; font-size: var(--fs-md); font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-save-row__time { font-size: var(--fs-xs); color: var(--text-dim); flex-shrink: 0; }
+.my-save-row__actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.stat-summary {
+  display: flex;
+  gap: var(--sp-5);
+  padding: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  margin-bottom: 16px;
+}
+.stat-summary__cell { display: flex; flex-direction: column; gap: 4px; }
+.stat-summary__label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); font-weight: 600; }
+.stat-summary__value { font-size: var(--fs-lg); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.my-stat-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  transition: background var(--t-fast) var(--ease);
+}
+.my-stat-row:first-child { border-top: none; }
+.my-stat-row:hover { background: var(--surface-2); }
+.my-stat-row__cover { width: 36px; height: 48px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); }
+.my-stat-row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.my-stat-row__name { font-size: var(--fs-md); font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-stat-row__sub { font-size: var(--fs-xs); color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
+.my-stat-row__sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-dim); }
+.my-stat-row__playtime { font-size: var(--fs-md); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.my-stat-row__actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.settings {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--sp-7);
+  margin-top: var(--sp-3);
+}
+@media (max-width: 880px) { .settings { grid-template-columns: 1fr; } }
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-nav button {
+  text-align: left;
+  padding: 10px var(--sp-3);
+  border-radius: var(--r-2);
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+.settings-nav button:hover { background: var(--surface-2); color: var(--text); }
+.settings-nav button[aria-selected="true"] {
+  background: var(--accent-tint);
+  color: var(--text);
+}
+
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-5);
+}
+.section-card h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  margin-bottom: var(--sp-1);
+  letter-spacing: -0.005em;
+}
+.section-card .lead {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-5);
+}
+.section-card form { display: flex; flex-direction: column; gap: var(--sp-4); }
+.section-card .actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  margin-bottom: var(--sp-7);
+}
+.profile-header__avatar {
+  width: 80px; height: 80px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--accent), var(--accent-press));
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-3xl);
+  flex: 0 0 80px;
+}
+.profile-header__name { font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -0.01em; }
+.profile-header__role { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+
+/* Active sessions list (Profile > Security) */
+.session-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 14px var(--sp-4);
+}
+.session-row + .session-row { border-top: 1px solid var(--border); }
+.session-row__icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-2);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.session-row__body { flex: 1 1 auto; min-width: 0; }
+.session-row__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.session-row__meta {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin-top: 2px;
+  word-break: break-word;
+}
+.session-row__action { flex-shrink: 0; }
+
+@media (max-width: 480px) {
+  .session-row { flex-wrap: wrap; }
+  .session-row__action { width: 100%; }
+  .session-row__action .btn { width: 100%; justify-content: center; }
+}
+
+/* TOTP (2FA) setup dialog
+ * ----------------------------------------------------------------
+ * The flow has two distinct steps (scan, then verify). Each step is
+ * laid out as { numbered circle | content }, mirroring the visual
+ * language already used in "Add emulator" / "How to add games" so
+ * the user transfers their mental model from one walkthrough to the
+ * next. The card-on-card-on-card density of the previous layout is
+ * gone: there's one container, two steps, clear vertical rhythm.
+ */
+.totp-setup__intro {
+  margin: 0 0 var(--sp-5);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.totp-setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  margin: 0;
+}
+.totp-setup__step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  column-gap: var(--sp-4);
+  align-items: start;
+}
+.totp-setup__step-no {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* Optical centering with the title baseline below. */
+  margin-top: 2px;
+}
+.totp-setup__step-body { min-width: 0; }
+.totp-setup__step-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 var(--sp-1);
+  line-height: 1.3;
+}
+.totp-setup__step-help {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* Step 1 — scan layout: QR on the left, manual key on the right.
+ * Collapses to a single centered column on narrow modals. */
+.totp-setup__scan {
+  display: grid;
+  grid-template-columns: 168px 1fr;
+  gap: var(--sp-5);
+  align-items: center;
+}
+@media (max-width: 540px) {
+  .totp-setup__scan { grid-template-columns: 1fr; justify-items: center; }
+}
+.totp-setup__qr {
+  background: white;
+  padding: 12px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--border);
+  width: 168px; height: 168px;
+  display: grid; place-items: center;
+}
+.totp-setup__qr svg, .totp-setup__qr canvas, .totp-setup__qr img {
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+}
+.totp-setup__manual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 100%;
+  min-width: 0;
+}
+.totp-setup__manual-label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.totp-setup__secret-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.totp-setup__secret {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  padding: 8px 12px;
+  word-break: break-all;
+  user-select: all;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+}
+.totp-setup__copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.totp-setup__copy-icon[data-state="done"] { color: var(--success); }
+
+/* Step 2 — code input: prominent monospaced 6-digit field. The
+ * letter-spacing + tabular numerics make every glyph land in the
+ * same column, which reads as "this is the 6-digit slot" without
+ * needing six separate input boxes (which fight paste/autofill). */
+.totp-setup__code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4em;
+  text-align: center;
+  /* letter-spacing adds trailing whitespace after the last glyph,
+   * which shifts text-align: center off-axis. text-indent on the
+   * first line cancels that out so the visual midpoint of the
+   * digits sits in the field's true center. */
+  text-indent: 0.4em;
+  height: calc(var(--input-h) + 8px);
+  color: var(--accent);
+}
+.totp-setup__code::placeholder {
+  color: var(--text-dim);
+  letter-spacing: 0.4em;
+  font-weight: 600;
+}
+
+/* =========================
+   Admin
+   ========================= */
+
+.admin-tabs { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-5); flex-wrap: wrap; }
+.admin-tabs .spacer { flex: 1; }
+
+.kebab {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border-radius: var(--r-2);
+  color: var(--text-muted);
+}
+.kebab:hover { background: var(--surface); color: var(--text); }
+
+.lib-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding: 14px var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+}
+.lib-status__count { font-variant-numeric: tabular-nums; font-weight: 600; }
+.lib-status .spacer { flex: 1; }
+
+.cover-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: var(--r-1);
+  background: var(--surface-2);
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Admin responsive */
+.admin-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: 16px;
+}
+.admin-section-head__desc { color: var(--text-muted); font-size: var(--fs-sm); flex: 1; min-width: 0; }
+
+@media (max-width: 768px) {
+  .admin-section-head { flex-direction: column; align-items: stretch; gap: var(--sp-3); margin-bottom: 24px; }
+  .admin-section-head .btn { width: 100%; justify-content: center; }
+
+  .lib-status { flex-wrap: wrap; gap: var(--sp-2); }
+  .lib-status .spacer { display: none; }
+  .lib-status .btn { width: 100%; justify-content: center; }
+
+  .table-wrap { overflow-x: auto; }
+  .table { min-width: 400px; }
+  .table th, .table td { padding: 10px 10px; font-size: var(--fs-sm); }
+}
+@media (max-width: 480px) {
+  .admin-tabs { gap: var(--sp-2); }
+  .admin-tabs .chip { font-size: var(--fs-xs); padding: 0 var(--sp-3); height: 32px; }
+  .table { min-width: 320px; }
+}
+
+/* =========================
+   Library / list views
+   ========================= */
+
+/* Empty welcome state */
+.empty-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--sp-10) var(--sp-6);
+}
+.empty-welcome__logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  margin-bottom: var(--sp-6);
+  opacity: 0.7;
+}
+.empty-welcome h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--sp-3);
+}
+.empty-welcome p {
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+  max-width: 400px;
+  margin-bottom: var(--sp-7);
+  line-height: 1.6;
+}
+.empty-welcome__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+.empty-welcome__step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+.empty-welcome__step span {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  flex: 0 0 24px;
+}
+
+/* Continue Playing hero card */
+.continue-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.continue-hero:hover { border-color: var(--accent); background: var(--surface-2); color: var(--text); }
+.continue-hero__cover {
+  width: 56px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--r-2);
+  background: var(--surface-2);
+  flex: 0 0 56px;
+}
+.continue-hero__body { flex: 1; min-width: 0; }
+.continue-hero__label {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.continue-hero__title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.continue-hero__system {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 1px;
+}
+.continue-hero__play {
+  width: var(--input-h);
+  height: var(--input-h);
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  flex: 0 0 var(--input-h);
+  transition: transform var(--t-fast) var(--ease);
+}
+.continue-hero:hover .continue-hero__play { transform: scale(1.08); }
+
+.library-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-5);
+}
+.library-head h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.library-head__count {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+}
+.library-head__controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+@media (max-width: 480px) {
+  .library-head__controls { margin-left: 0; width: 100%; }
+}
+/* Sort selector (Name / Recently Added / System) — picks up the
+ * scaling input height directly so it stays visually balanced with
+ * the layout toggle next to it. */
+.library-head__sort .select {
+  height: var(--btn-h-md);
+  padding-right: 36px;
+  font-size: var(--fs-sm);
+}
+.library-head__layout {
+  display: flex;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  padding: 2px;
+  /* Never let the toggle collapse to make room for the sort select
+   * next to it — on narrow screens the icons would otherwise vanish. */
+  flex-shrink: 0;
+}
+/* Grid/list view toggle — derived from --btn-h-md so the row matches
+ * the sort selector. We override the .icon-btn defaults here because
+ * the toggle has its own inset background (the surface chip behind
+ * both icons) and a tighter visual rhythm. */
+.library-head__layout .icon-btn {
+  width: calc(var(--btn-h-md) - 8px);
+  height: calc(var(--btn-h-md) - 8px);
+  border-radius: var(--r-1);
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.library-head__layout .icon-btn.is-active {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+/* Pin the toggle's SVG to its intrinsic 16px size. The `icon()` call
+ * sites already pass `size: 16`, so the SVG element ships with
+ * matching width/height attributes — this rule simply affirms that
+ * intent without any calc() chain whose result depends on token
+ * resolution. Hard pixels here also guarantee the icon never
+ * collapses to zero on a breakpoint where layout pressure would
+ * otherwise pinch the parent. */
+.library-head__layout .icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* On narrow phones, give the sort select the leftover row width
+ * (the layout toggle keeps its content size thanks to flex-shrink:0
+ * above) so neither control overflows the row. */
+@media (max-width: 480px) {
+  .library-head__sort { flex: 1 1 0; min-width: 0; }
+}
+
+/* List view */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  overflow: hidden;
+  background: var(--surface);
+}
+.list-view__header {
+  display: grid;
+  grid-template-columns: var(--input-h) 1fr 8em 6em var(--icon-btn-h);
+  gap: var(--sp-3);
+  padding: 8px var(--sp-4);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.list-row {
+  display: grid;
+  grid-template-columns: var(--input-h) 1fr 8em 6em var(--icon-btn-h);
+  gap: var(--sp-3);
+  align-items: center;
+  padding: 8px var(--sp-4);
+  border-top: 1px solid var(--border);
+  transition: background var(--t-fast) var(--ease);
+}
+.list-row:first-of-type { border-top: none; }
+.list-row:hover { background: var(--surface-2); }
+.list-row__cover {
+  /* Tracks the row height (--input-h) for proportional cover.
+   * 36×44 mobile baseline preserved (44 * 0.82 ≈ 36), then scales up
+   * with the chrome. */
+  width: calc(var(--input-h) * 0.82);
+  height: var(--input-h);
+  object-fit: cover;
+  border-radius: var(--r-1);
+  background: var(--surface-2);
+}
+.list-row__name {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-row__system {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.list-row__playtime {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.list-row__fav {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.list-row__fav:hover { color: var(--text); }
+.list-row__fav.is-active { color: var(--accent); }
+
+.library-filter {
+  margin-bottom: var(--sp-5);
+}
+
+/* =========================
+   Page-level helpers
+   ========================= */
+
+.page-hero-row {
+  padding: 0 var(--gutter);
+  max-width: var(--content-max);
+  margin: 0 auto var(--sp-5);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.bg-orb {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: 0.3;
+}
+
+/* =========================
+   Error page (/404)
+   =========================
+   Same backdrop language as the auth shell — radial accent glows on the
+   canvas — so first-time visitors landing here from a broken link still
+   read it as "RetroX" instead of an unstyled fallback.
+
+   Composition philosophy: one hero element does the work of three. The
+   numerals ARE the page. They're set in the display face at a
+   confident size with the middle "0" tinted in the brand accent —
+   the single, deliberate moment of brand expression. No CRT chrome,
+   no scanlines, no decorative captions: the rest of the app doesn't
+   use skeuomorphism, and the 404 page shouldn't either.
+*/
+
+.error-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6);
+  background:
+    radial-gradient(60% 50% at 30% 20%, rgba(229, 160, 13, 0.08), transparent 60%),
+    radial-gradient(80% 60% at 100% 100%, rgba(56, 189, 248, 0.04), transparent 60%),
+    var(--canvas);
+  overflow: auto;
+}
+
+.error-card {
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  padding: var(--sp-6);
+}
+
+/* The hero numerals. Display face, tight tracking, compact line-height
+ * so the three glyphs feel like one statement instead of three.
+ * `clamp()` lets it stay punchy on phones and grand on TVs without a
+ * grab-bag of breakpoints. */
+.error-card__numerals {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(112px, 22vw, 192px);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+  color: var(--text);
+  margin-bottom: var(--sp-7);
+  /* Faint accent halo on the whole word. Restrained — it's an aura,
+   * not a glow effect. */
+  filter: drop-shadow(0 24px 60px rgba(229, 160, 13, 0.12));
+  user-select: none;
+}
+
+/* The middle "0" is the brand moment. Accent-tinted with a soft glow
+ * that reads as a console power LED rather than a CRT artifact. */
+.error-card__numerals-mark {
+  color: var(--accent);
+  text-shadow: 0 0 32px var(--accent-glow);
+  /* A near-imperceptible bob — gives the static page a single beat
+   * of life. Disabled for users who prefer reduced motion (tokens.css
+   * zeroes the duration). */
+  display: inline-block;
+  animation: error-pulse 4.2s var(--ease) infinite;
+}
+@keyframes error-pulse {
+  0%, 100% { transform: translateY(0);     opacity: 1;    }
+  50%      { transform: translateY(-2px);  opacity: 0.92; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .error-card__numerals-mark { animation: none; }
+}
+
+.error-card__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: var(--sp-3);
+}
+
+.error-card__lead {
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  max-width: 38ch;
+  margin: 0 auto var(--sp-7);
+}
+
+.error-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .error-card__lead { font-size: var(--fs-md); }
+}

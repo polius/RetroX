@@ -1,0 +1,523 @@
+/* AppShell layout: persistent sidebar + scrollable main */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--canvas);
+}
+
+@media (max-width: 880px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------- Sidebar ---------------- */
+
+.sidebar {
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(229, 160, 13, 0.06), transparent 60%),
+    var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 880px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    transition: transform var(--t-base) var(--ease);
+    z-index: 50;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar[data-open="true"] { transform: translateX(0); }
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* fs-xl scales: 20 → 24 → 26 → 30 across tiers. */
+  font-size: var(--fs-xl);
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--r-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.sidebar__brand:hover { color: var(--text); }
+.sidebar__brand-icon {
+  position: relative;
+  display: inline-flex;
+  width: var(--brand-img);
+  height: var(--brand-img);
+  flex: 0 0 var(--brand-img);
+  isolation: isolate;
+}
+.sidebar__brand img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
+  filter: drop-shadow(0 0 10px rgba(229, 160, 13, 0.3));
+}
+/* Soft warm aura behind the logo — gentle breathing pulse rather than
+ * a flicker. Sits in the brand's existing orange palette so it reads
+ * as polished, not loud. */
+.sidebar__brand-icon::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    rgba(229, 160, 13, 0.6) 0%,
+    rgba(229, 160, 13, 0.25) 45%,
+    transparent 75%
+  );
+  filter: blur(3px);
+  opacity: 0;
+  transform: scale(0.7);
+}
+.sidebar__brand:hover .sidebar__brand img,
+.sidebar__brand:focus-visible .sidebar__brand img {
+  /* Transitions live on the hover state only, so entry eases in and
+   * exit snaps cleanly back to base — no ghost trail on mouse-out. */
+  transition: filter 320ms var(--ease), transform 320ms var(--ease);
+  transform: scale(1.04);
+  filter:
+    drop-shadow(0 0 7px  rgba(229, 160, 13, 0.65))
+    drop-shadow(0 0 13px rgba(229, 160, 13, 0.3));
+}
+.sidebar__brand:hover .sidebar__brand-icon::before,
+.sidebar__brand:focus-visible .sidebar__brand-icon::before {
+  animation: brand-aura-breathe 2200ms ease-in-out infinite;
+}
+@keyframes brand-shine {
+  0%   { background-position: 200% 0; opacity: 1; }
+  100% { background-position: -100% 0; opacity: 1; }
+}
+@keyframes brand-aura-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.95); }
+  50%      { opacity: 0.85; transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__brand:hover .sidebar__brand img,
+  .sidebar__brand:focus-visible .sidebar__brand img { transform: none; }
+  .sidebar__brand:hover .sidebar__brand-icon::before,
+  .sidebar__brand:focus-visible .sidebar__brand-icon::before { animation: none; }
+}
+.sidebar__brand-mark { color: var(--accent); }
+/* Wordmark hosts a one-pass shine via ::after — duplicates the text
+ * through `content: attr(data-text)`, then clips a moving gradient
+ * to the text shape so the highlight sweeps across the silhouette
+ * of "RetroX" without disturbing the underlying two-tone fill. */
+.sidebar__brand-text {
+  position: relative;
+  display: inline-block;
+}
+.sidebar__brand-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Amber-edged white peak: pops as light on the orange "Retro"
+   * and as warm tint on the white "X" — visible across both. */
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(255, 200, 70, 0.85) 42%,
+    rgba(255, 255, 230, 1) 50%,
+    rgba(255, 200, 70, 0.85) 58%,
+    transparent 72%
+  );
+  background-size: 220% 100%;
+  background-position: 200% 0;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+}
+.sidebar__brand:hover .sidebar__brand-text::after,
+.sidebar__brand:focus-visible .sidebar__brand-text::after {
+  /* Single pass on hover — the icon keeps breathing, but the wordmark
+   * shine fires once so the row settles instead of looping. */
+  animation: brand-shine 2200ms var(--ease) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__brand:hover .sidebar__brand-text::after,
+  .sidebar__brand:focus-visible .sidebar__brand-text::after { animation: none; }
+}
+/* Tiny version pill nestled at the end of the brand row. Mono digits
+ * for at-a-glance readability, soft surface so it reads as metadata
+ * rather than competing with the brand mark next to it. Hidden when
+ * empty (no `v` text yet) so we don't render an empty pill during
+ * the auth/me round-trip. */
+.sidebar__version {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 2px 7px;
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.sidebar__version:empty { display: none; }
+
+.sidebar__section {
+  padding: var(--sp-2) var(--sp-3);
+}
+.sidebar__section + .sidebar__section { margin-top: var(--sp-2); }
+
+.sidebar__divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
+  margin: var(--sp-3) var(--sp-4);
+  flex-shrink: 0;
+}
+
+.sidebar__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+}
+.sidebar__label .total {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  /* Vertical padding scales loosely with chrome — bigger nav items
+   * on TV give Plex-style chunky touch targets. */
+  padding: 9px var(--sp-3);
+  border-radius: var(--r-2);
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  text-align: left;
+  width: 100%;
+}
+@media (min-width: 1600px) { .nav-item { padding: 11px var(--sp-3); } }
+@media (min-width: 1920px) { .nav-item { padding: 13px var(--sp-4); } }
+@media (min-width: 2560px) { .nav-item { padding: 15px var(--sp-4); } }
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-strong);
+}
+.nav-item .nav-item__icon {
+  width: var(--nav-item-icon);
+  height: var(--nav-item-icon);
+  flex: 0 0 var(--nav-item-icon);
+  color: currentColor;
+  opacity: 0.85;
+  display: grid;
+  place-items: center;
+}
+.nav-item .nav-item__icon svg { width: 100%; height: 100%; }
+.nav-item .nav-item__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-item .nav-item__count {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  min-width: 22px;
+  text-align: center;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.nav-item:hover .nav-item__count {
+  border-color: var(--border-strong);
+  color: var(--text-muted);
+}
+.nav-item[aria-current="page"],
+.nav-item.is-active {
+  background: var(--accent-tint);
+  color: var(--text);
+}
+.nav-item[aria-current="page"] .nav-item__icon,
+.nav-item.is-active .nav-item__icon { color: var(--accent); opacity: 1; }
+.nav-item[aria-current="page"] .nav-item__count,
+.nav-item.is-active .nav-item__count {
+  background: rgba(229, 160, 13, 0.16);
+  border-color: transparent;
+  color: var(--accent);
+}
+
+/* All sidebar nav items share the same size and padding — Library,
+ * Favorites, Recently Played, Collections, Systems all look
+ * uniform. A previous "compact" override on the systems/collections
+ * lists made them visually subordinate, but the inconsistency was
+ * read as a bug rather than intentional hierarchy. */
+
+/* ---------------- Sidebar bottom + user card ---------------- */
+
+.sidebar__bottom {
+  position: relative;
+  margin-top: auto;
+  padding: var(--sp-3);
+  border-top: 1px solid var(--border);
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 8px var(--sp-3);
+  border-radius: var(--r-2);
+  width: 100%;
+  text-align: left;
+  transition: background var(--t-fast) var(--ease);
+  cursor: pointer;
+}
+.user-card:hover { background: var(--surface-2); }
+.user-card[aria-expanded="true"] { background: var(--surface-2); }
+.user-card__avatar {
+  width: var(--user-avatar);
+  height: var(--user-avatar);
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--accent), var(--accent-press));
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: var(--fs-md);
+  flex: 0 0 var(--user-avatar);
+}
+.user-card__meta {
+  flex: 1;
+  min-width: 0;
+}
+.user-card__name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-card__role {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+.user-card__chev {
+  width: 16px; height: 16px;
+  color: var(--text-dim);
+  transition: transform var(--t-fast) var(--ease);
+}
+.user-card[aria-expanded="true"] .user-card__chev { transform: rotate(180deg); }
+
+/* User popover menu — anchored above the user-card */
+.user-menu {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: var(--sp-3);
+  right: var(--sp-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-lg);
+  padding: var(--sp-2);
+  display: none;
+  z-index: 30;
+}
+.user-menu[data-open="true"] { display: block; }
+.user-menu .nav-item { padding: 9px var(--sp-3); font-size: var(--fs-sm); }
+
+/* ---------------- Main scroll region ---------------- */
+
+.main {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--canvas);
+  /* The topbar is sticky over .main, so any scrollIntoView() that
+     would land an element flush at the top would actually leave it
+     hidden behind the topbar. scroll-padding-top tells the browser
+     to leave room for the sticky header when scrolling content into
+     view — fixes "first row is half-cut" when navigating up with
+     the controller / arrow keys. */
+  scroll-padding-top: var(--topbar-h);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--gutter);
+  background: linear-gradient(180deg, rgba(7, 9, 12, 0.92), rgba(7, 9, 12, 0.6) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.topbar.is-scrolled {
+  background: rgba(7, 9, 12, 0.92);
+  border-bottom: 1px solid var(--border);
+}
+.topbar.is-scrolled .topbar__title { opacity: 1; }
+
+.topbar__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease);
+  white-space: nowrap;
+}
+
+.topbar__search {
+  position: relative;
+  flex: 0 0 auto;
+  /* Width scales: 200 → 280 → 340 → 400 across tiers, so the search
+   * field is visible from across the room on a TV. */
+  width: var(--topbar-search-w);
+  margin-left: auto;
+}
+.topbar__search input {
+  width: 100%;
+  /* Height scales: 34 → 42 → 46 → 52 across tiers. */
+  height: var(--topbar-search-h);
+  /* Padding grows with the field so the icon and kbd stay positioned
+   * proportionally to the larger field. Lateral padding leaves room
+   * for the absolutely-positioned icon (left) and kbd hint (right). */
+  padding: 0 calc(var(--sp-7) + 8px) 0 calc(var(--sp-6) + 8px);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  cursor: pointer;
+}
+.topbar__search input::placeholder { color: var(--text-dim); }
+.topbar__search input:hover { border-color: var(--border-strong); }
+.topbar__search input:focus { background: var(--surface); border-color: var(--accent); cursor: text; }
+.topbar__search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  /* Icon scales loosely with the field height so it stays visually
+   * proportional. ~32% of field height → 11px on mobile (34*0.32=10.9),
+   * ~17px on 4K (52*0.32=16.6). */
+  width: calc(var(--topbar-search-h) * 0.4);
+  height: calc(var(--topbar-search-h) * 0.4);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.topbar__search-icon svg { width: 100%; height: 100%; }
+.topbar__search-kbd {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--r-1);
+  padding: 2px 6px;
+  pointer-events: none;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.menu-btn {
+  display: none;
+  width: var(--icon-btn-h); height: var(--icon-btn-h);
+  align-items: center; justify-content: center;
+  color: var(--text-muted);
+  border-radius: var(--r-2);
+}
+@media (max-width: 880px) {
+  .menu-btn { display: inline-flex; }
+}
+
+/* ---------------- Page container ---------------- */
+
+.page {
+  padding: 0 var(--gutter) var(--sp-10);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  animation: page-in 300ms var(--ease) both;
+}
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .page, .detail { animation: none; } }
+.page--flush { padding-top: 0; max-width: none; padding-left: 0; padding-right: 0; padding-bottom: var(--sp-10); }
+
+.page__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.page__head h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.page__head .spacer { flex: 1; }
