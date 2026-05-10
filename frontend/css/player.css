@@ -157,6 +157,7 @@
   flex-shrink: 0;
   transition: background 150ms ease, box-shadow 150ms ease;
 }
+
 .player__status.is-warning .player__status__dot {
   background: #fbbf24;
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.22);
@@ -164,6 +165,23 @@
 .player__status.is-critical .player__status__dot {
   background: #ef4444;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+}
+
+/* Compact pills on phone-class viewports — drop the Controls and
+ * Phone pill labels (the icon + green dot carries the signal) and
+ * tighten padding so all three pills line up. The Sync pill keeps its
+ * text because its copy is informational ("Synced · 12:34", "Out of
+ * sync") rather than a label.
+ *
+ * Targets the inline-styled IDs from controller-bindings.js and
+ * controller-host.js. The label spans carry no inline `display:` so a
+ * regular CSS rule wins without `!important`. */
+@media (max-width: 480px) {
+  #ctrlbind-label,
+  #controller-pair-label { display: none; }
+  #controller-bindings-btn,
+  #controller-pair-btn,
+  .player__status { padding: 10px 12px; }
 }
 
 /* ---------------- Save details dialog ---------------- */
@@ -410,3 +428,4 @@
   .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_slow { left: 0 !important; }
   .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_fast { left: 70px !important; }
 }
+

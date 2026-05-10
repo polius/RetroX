@@ -24,6 +24,12 @@ import { saveCache, stateCache } from "./save-cache.js";
 import { SavePersistor, fnv1a } from "./save-persistor.js";
 import { SaveIndicator } from "./save-indicator.js";
 import { codeToEjsKey } from "./key-codes.js";
+import {
+  GAME_INPUT_TO_EJS_SLOT,
+  DPAD_TO_LEFT_STICK_SLOT,
+  KEYBOARD_DEFAULTS,
+} from "./bindings-defaults.js";
+import { hatDpad } from "./gamepad-hat.js";
 
 /* ============ URL parsing ============ */
 
@@ -427,45 +433,6 @@ if (!game.core) {
   throw new Error("no core");
 }
 
-// Game input defaults (KeyboardEvent.code values). MUST stay in sync with
-// GAME_INPUT_DEFAULTS in profile.js, otherwise the rebind UI will lie about
-// what's active. Player 1 only — multi-player rebinds aren't surfaced.
-const GAME_INPUT_DEFAULTS = {
-  game_up:     "ArrowUp",
-  game_down:   "ArrowDown",
-  game_left:   "ArrowLeft",
-  game_right:  "ArrowRight",
-  game_a:      "KeyX",
-  game_b:      "KeyZ",
-  game_x:      "KeyS",
-  game_y:      "KeyA",
-  game_l1:     "KeyQ",
-  game_r1:     "KeyE",
-  game_start:  "Enter",
-  game_select: "KeyV",
-};
-// Slot indices into EJS's defaultControllers[player][slot] map. Mirrors
-// the layout in docker/emulatorjs/src/emulator.js (BUTTON_1 = bottom face
-// button etc.). L2/R2 (slots 12, 13) are intentionally absent — RetroX
-// owns those triggers for fast forward / rewind, but we leave EJS's
-// keyboard fallbacks (Tab, R) in place so the keys still send game input
-// on cores where the meta-action is gated off.
-const GAME_INPUT_TO_EJS_SLOT = {
-  game_a: 0, game_y: 1, game_select: 2, game_start: 3,
-  game_up: 4, game_down: 5, game_left: 6, game_right: 7,
-  game_b: 8, game_x: 9, game_l1: 10, game_r1: 11,
-};
-// Mirror the four D-pad keys onto the left analog stick. N64 (and many
-// PSX) games use the analog stick exclusively for movement — without
-// this, the user's up arrow would only fire DPAD_UP, which most N64
-// games ignore. Cores for systems without an analog stick (GB, SNES,
-// NES) simply don't poll these slots, so no harm there.
-const DPAD_TO_LEFT_STICK_SLOT = {
-  game_up:    19,  // LEFT_STICK_Y:-1
-  game_down:  18,  // LEFT_STICK_Y:+1
-  game_left:  17,  // LEFT_STICK_X:-1
-  game_right: 16,  // LEFT_STICK_X:+1
-};
 // Mutate EJS's own defaultControllers in place once the emulator instance
 // exists, overriding only the keyboard side of the slots we expose. We
 // can't hand EJS a partial config.defaultControllers object — its
@@ -475,27 +442,45 @@ const DPAD_TO_LEFT_STICK_SLOT = {
 function applyRetroxGameInputs(emu) {
   if (!emu || !emu.defaultControllers || !emu.defaultControllers[0]) return;
   const stored = (prefs && prefs.keyboard_bindings) || {};
+  const storedPad = (prefs && prefs.gamepad_bindings) || {};
   for (const [action, slot] of Object.entries(GAME_INPUT_TO_EJS_SLOT)) {
-    const code = stored[action] || GAME_INPUT_DEFAULTS[action];
+    const code = stored[action] || KEYBOARD_DEFAULTS[action];
     const ejsKey = codeToEjsKey(code);
-    if (ejsKey == null) continue;  // unmappable — fall through to EJS's own default
-    const existing = emu.defaultControllers[0][slot] || {};
-    emu.defaultControllers[0][slot] = { ...existing, value: ejsKey };
-    // D-pad directions also drive the left analog stick (see comment
-    // on DPAD_TO_LEFT_STICK_SLOT). value2 (the analog axis label) is
-    // preserved so a physical analog stick on a gamepad still works.
-    const stickSlot = DPAD_TO_LEFT_STICK_SLOT[action];
-    if (stickSlot != null) {
-      const existingStick = emu.defaultControllers[0][stickSlot] || {};
-      emu.defaultControllers[0][stickSlot] = { ...existingStick, value: ejsKey };
+    if (ejsKey != null) {
+      const existing = emu.defaultControllers[0][slot] || {};
+      emu.defaultControllers[0][slot] = { ...existing, value: ejsKey };
+      // D-pad directions also drive the left analog stick (see comment
+      // on DPAD_TO_LEFT_STICK_SLOT). value2 (the analog axis label) is
+      // preserved so a physical analog stick on a gamepad still works.
+      const stickSlot = DPAD_TO_LEFT_STICK_SLOT[action];
+      if (stickSlot != null) {
+        const existingStick = emu.defaultControllers[0][stickSlot] || {};
+        emu.defaultControllers[0][stickSlot] = { ...existingStick, value: ejsKey };
+      }
+    }
+    // Apply user's gamepad binding (if any). Stored values are EJS
+    // GamepadHandler labels — same shape the controller-bindings dialog
+    // captures and writes to /profile/preferences. Untouched action ⇒
+    // fall through to EJS's own default value2 from initControlVars.
+    const padLabel = storedPad[action];
+    if (typeof padLabel === "string" && padLabel) {
+      const existing = emu.defaultControllers[0][slot] || {};
+      emu.defaultControllers[0][slot] = { ...existing, value2: padLabel };
     }
   }
   // Seed players 2-4 with player 1's gamepad button mappings so a second
   // physical controller is plug-and-play for multi-player cores (N64,
   // PSX, NES). EJS ships these slots empty, and the in-game Controls
-  // menu — the only surface that could fill them — is hidden. We copy
-  // value2 (gamepad) only; value (keyboard) stays absent because RetroX
-  // doesn't surface per-player keyboard rebinds.
+  // menu — the only surface that could fill them — is hidden.
+  //
+  // Gamepad-only mirror: copying `value` (keyboard) to all players would
+  // broadcast every keypress to all 4 player slots at once because EJS's
+  // keyboard handler iterates ALL players and fires simulateInput on
+  // every match — that would break any multi-player game where the
+  // keyboard player and a gamepad player share the same controls layout.
+  // Per-player keyboard rebinds aren't a real use case (co-op runs on
+  // multiple gamepads, not one shared keyboard), so player 1's keyboard
+  // map stays the only one set.
   for (let player = 1; player <= 3; player++) {
     if (!emu.defaultControllers[player]) emu.defaultControllers[player] = {};
     for (const slot of Object.keys(emu.defaultControllers[0])) {
@@ -857,7 +842,6 @@ setTimeout(() => {
   // natively (N64, PSX). Worst case for a game that reads BOTH:
   // movement may register twice, but no input is dropped.
   const RETRO_UP = 4, RETRO_DOWN = 5, RETRO_LEFT = 6, RETRO_RIGHT = 7;
-  const STICK_THRESHOLD = 0.5;
   const stickPressed = { up: false, down: false, left: false, right: false };
 
   function setStickButton(name, btnIdx, isDown) {
@@ -871,13 +855,88 @@ setTimeout(() => {
     } catch {}
   }
 
-  function pollStickAsDpad(gp) {
+  /* Direction state is built from two independent sources, OR-merged:
+   *
+   *   - Left analog stick (axes 0/1). Continuous, spring-loaded,
+   *     present on every controller.
+   *   - Hat axis (axes 2+). Discrete D-pad encoding used by Sony
+   *     non-standard mappings (Firefox + DualShock/DualSense). Without
+   *     this branch the D-pad is dead in-game on those pads because
+   *     EJS's defaults for D-pad slots target buttons 12-15 which
+   *     don't exist there.
+   *
+   * The two states live in separate buckets and are OR-merged through
+   * setStickButton, which carries the edge-detection guard. Each
+   * source can independently drive RETRO_UP/DOWN/LEFT/RIGHT.
+   *
+   * --- Analog-stick double-tap detection ---
+   *
+   * A fast "up up" on the analog stick traces a trajectory like
+   * −1 → −0.6 → −1 because the spring can't return to neutral before
+   * the user pushes again. A simple |value| > 0.5 threshold leaves
+   * the direction held continuously through the dip, so the second
+   * press never fires (no rising edge). Polling faster doesn't help
+   * — the stick literally never crosses below 0.5.
+   *
+   * The fix tracks peak magnitude per direction during a held press
+   * and fires release when:
+   *   (a) magnitude drops below an absolute floor (0.3) — the user
+   *       fully released, OR
+   *   (b) magnitude drops to less than RETRACT_RATIO (0.7) of the
+   *       peak — a meaningful retraction even if the stick didn't
+   *       reach neutral (the −1 → −0.6 → −1 case).
+   *
+   * Hat axes don't have spring physics — they snap through a sentinel
+   * on release — so the retraction logic only applies to analog input.
+   * Hat state is plain on/off via hatDpad's existing edge handling. */
+  const ANALOG_PRESS_THRESHOLD   = 0.5;
+  const ANALOG_RELEASE_FLOOR     = 0.3;
+  const ANALOG_RETRACT_RATIO     = 0.7;
+
+  const stickAnalog = { up: false, down: false, left: false, right: false };
+  const stickHat    = { up: false, down: false, left: false, right: false };
+  const stickPeak   = { up: 0,     down: 0,     left: 0,     right: 0 };
+
+  /** Update analog-stick state for one direction given that
+   *  direction's positive-only magnitude (0..1). */
+  function updateAnalog(name, mag) {
+    if (!stickAnalog[name]) {
+      if (mag > ANALOG_PRESS_THRESHOLD) {
+        stickAnalog[name] = true;
+        stickPeak[name]   = mag;
+      }
+      return;
+    }
+    if (mag > stickPeak[name]) stickPeak[name] = mag;
+    if (mag < ANALOG_RELEASE_FLOOR || mag < stickPeak[name] * ANALOG_RETRACT_RATIO) {
+      stickAnalog[name] = false;
+      stickPeak[name]   = 0;
+    }
+  }
+
+  function applyDir(name, btnIdx) {
+    setStickButton(name, btnIdx, stickAnalog[name] || stickHat[name]);
+  }
+
+  function pollDirections(gp) {
     const x = gp.axes[0] || 0;
     const y = gp.axes[1] || 0;
-    setStickButton("left",  RETRO_LEFT,  x < -STICK_THRESHOLD);
-    setStickButton("right", RETRO_RIGHT, x >  STICK_THRESHOLD);
-    setStickButton("up",    RETRO_UP,    y < -STICK_THRESHOLD);
-    setStickButton("down",  RETRO_DOWN,  y >  STICK_THRESHOLD);
+    // Per-direction signed → unsigned magnitude.
+    updateAnalog("up",    y < 0 ? -y : 0);
+    updateAnalog("down",  y > 0 ?  y : 0);
+    updateAnalog("left",  x < 0 ? -x : 0);
+    updateAnalog("right", x > 0 ?  x : 0);
+
+    const hat = hatDpad(gp);
+    stickHat.up    = !!(hat && hat.up);
+    stickHat.down  = !!(hat && hat.down);
+    stickHat.left  = !!(hat && hat.left);
+    stickHat.right = !!(hat && hat.right);
+
+    applyDir("up",    RETRO_UP);
+    applyDir("down",  RETRO_DOWN);
+    applyDir("left",  RETRO_LEFT);
+    applyDir("right", RETRO_RIGHT);
   }
 
   // Hold L2/R2 for trick-play. Wiring depends on the per-emulator
@@ -904,6 +963,17 @@ setTimeout(() => {
     rewindOn = on;
     try { window.EJS_emulator?.gameManager?.functions?.toggleRewind?.(on ? 1 : 0); } catch {}
   }
+  /* Edge-detect L2 / R2. Calling setFastForward/setRewind every frame
+   * with the trigger's CURRENT state would clobber any keyboard fast
+   * forward / rewind the user just initiated: keydown sets it true,
+   * the next rAF tick reads "trigger not held" and immediately calls
+   * setFastForward(false). With a controller plugged in this happens
+   * every frame, which is why Space and Backspace appeared to "stop
+   * working" the moment the controller was detected. Only firing on
+   * transitions makes the keyboard and gamepad paths coexist cleanly:
+   * each owns the state until the OTHER actively changes it. */
+  let prevLTrig = false;
+  let prevRTrig = false;
   function pollTriggers(gp) {
     if (!triggersBound) return;
     const lt = gp.buttons[6];
@@ -911,11 +981,18 @@ setTimeout(() => {
     const lDown = !!(lt && (typeof lt === "object" ? lt.pressed : lt > 0.5));
     const rDown = !!(rt && (typeof rt === "object" ? rt.pressed : rt > 0.5));
     if (rewindBound) {
-      setRewind(lDown);
-      setFastForward(rDown);
+      if (lDown !== prevLTrig) setRewind(lDown);
+      if (rDown !== prevRTrig) setFastForward(rDown);
     } else {
-      setFastForward(lDown || rDown);
+      // Both triggers fold into fast forward when rewind isn't enabled.
+      // Track the OR-state edge so a release of one trigger while the
+      // other is still held doesn't spuriously turn fast forward off.
+      const combined     = lDown || rDown;
+      const prevCombined = prevLTrig || prevRTrig;
+      if (combined !== prevCombined) setFastForward(combined);
     }
+    prevLTrig = lDown;
+    prevRTrig = rDown;
   }
 
   // Keyboard parity with the gamepad meta shortcuts. EmulatorJS leaves
@@ -924,30 +1001,52 @@ setTimeout(() => {
   // ourselves and the slot system stays the source of truth.
   //
   // Bindings are KeyboardEvent.code values (layout-independent) coming
-  // from the user's preferences, with hardcoded defaults as fallback —
-  // these MUST match SHORTCUT_DEFAULTS in profile.js or the rebind UI
-  // will lie about what's active.
+  // from the user's preferences. Defaults are imported from
+  // bindings-defaults.js so this code path agrees with the rebind UI
+  // about what "default" means.
   const userBindings = (prefs && prefs.keyboard_bindings) || {};
   const KB = {
-    fast_forward: userBindings.fast_forward || "Space",
-    rewind:       userBindings.rewind       || "Backspace",
-    save_state:   userBindings.save_state   || "F2",
-    load_state:   userBindings.load_state   || "F4",
-    exit_game:    userBindings.exit_game    || "Escape",
+    fast_forward: userBindings.fast_forward || KEYBOARD_DEFAULTS.fast_forward,
+    rewind:       userBindings.rewind       || KEYBOARD_DEFAULTS.rewind,
+    save_state:   userBindings.save_state   || KEYBOARD_DEFAULTS.save_state,
+    load_state:   userBindings.load_state   || KEYBOARD_DEFAULTS.load_state,
+    exit_game:    userBindings.exit_game    || KEYBOARD_DEFAULTS.exit_game,
   };
   function isPlayerModalOpen() {
     return !!document.querySelector(".modal-backdrop, .palette-backdrop");
   }
+  /* Capture-phase listeners — keep player shortcuts working regardless of
+   * what currently has focus. Without `useCapture=true` here, if focus
+   * has drifted onto a `<button>` (e.g. the Controls pill, or a focused
+   * element left over from controller-mode navigation), the browser's
+   * default Space-activates-button behaviour fires before this bubble
+   * listener and the rebind dialog re-opens. Capture phase puts us
+   * ahead of every focused-element default, and preventDefault on the
+   * matching keys suppresses both the button-click default AND any
+   * other native key behaviour (browser back on Backspace, etc.).
+   *
+   * EJS's own keyChange listener is on `elements.parent` and runs in
+   * the bubble phase regardless — game-input keys (KeyX, KeyZ, etc.)
+   * still reach it because we only call preventDefault on the keys we
+   * actually consume here, never stopPropagation.
+   *
+   * `triggersBound` (gating for gamepad L2/R2) is intentionally NOT
+   * applied to the keyboard branch. The flag exists because L2/R2 are
+   * real game inputs on PSX/N64 — hijacking those buttons for fast
+   * forward would clobber gameplay. Space and Backspace have no such
+   * conflict (they're not bound as game inputs on any system), so the
+   * keyboard shortcuts stay functional even when the per-emulator
+   * `fast_forward_enabled` flag is off. `rewindBound` still gates the
+   * rewind direction — when the core doesn't have rewind compiled in,
+   * Backspace falls back to fast forward to match the L2 fallback. */
   document.addEventListener("keydown", (e) => {
     if (isPlayerModalOpen()) return;
     if (e.code === KB.fast_forward) {
-      if (!triggersBound) return;
       e.preventDefault();
       setFastForward(true);
       return;
     }
     if (e.code === KB.rewind) {
-      if (!triggersBound) return;
       e.preventDefault();
       if (rewindBound) setRewind(true); else setFastForward(true);
       return;
@@ -972,19 +1071,19 @@ setTimeout(() => {
       goBack();
       return;
     }
-  });
+  }, true);
   document.addEventListener("keyup", (e) => {
     if (e.code === KB.fast_forward) {
-      if (!triggersBound) return;
+      e.preventDefault();
       setFastForward(false);
       return;
     }
     if (e.code === KB.rewind) {
-      if (!triggersBound) return;
+      e.preventDefault();
       if (rewindBound) setRewind(false); else setFastForward(false);
       return;
     }
-  });
+  }, true);
 
   // Edge-triggered "any button" detector for the audio-unlock path.
   // We only want to fire onUserInputForUnlock on the rising edge of
@@ -1028,7 +1127,7 @@ setTimeout(() => {
         continue;
       }
       // Mirror left analog stick onto the D-pad while the game is running.
-      pollStickAsDpad(gp);
+      pollDirections(gp);
       // L2 / R2 hold → fast-forward / rewind, gated by per-emulator flags.
       pollTriggers(gp);
       if (!held(gp, 8)) { prev = {}; continue; }

@@ -1022,3 +1022,336 @@
 .alert__body { flex: 1; min-width: 0; }
 .alert__title { font-weight: 600; color: var(--text); margin-bottom: 1px; }
 .alert__message { color: var(--text-muted); }
+
+/* ============================================================
+ * Bindings UI — shared by /profile/Controls and the in-game
+ * Controls pill dialog. Implementation in js/bindings-ui.js.
+ *
+ * The grid layout is deliberately CSS Grid (not <table>) so the two
+ * pill columns sit at fixed widths and the action label fills the
+ * remaining space. This keeps spacing predictable inside narrow
+ * containers — earlier table-based versions had the right column
+ * pushed against the modal wall because <td> intrinsic widths fight
+ * modal padding.
+ * ============================================================ */
+
+.bindings-mount {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+/* ---- Hero (controller status banner) ---- */
+
+.bindings-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--r-3);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  transition: border-color 200ms var(--ease), background 200ms var(--ease);
+}
+.bindings-hero.is-connected {
+  border-color: rgba(52, 211, 153, 0.35);
+  background:
+    linear-gradient(180deg, rgba(52, 211, 153, 0.06), transparent),
+    var(--surface-2);
+}
+.bindings-hero__icon {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: color 200ms var(--ease), background 200ms var(--ease),
+              border-color 200ms var(--ease);
+}
+.bindings-hero.is-connected .bindings-hero__icon {
+  background: rgba(52, 211, 153, 0.16);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #34d399;
+}
+.bindings-hero__copy { min-width: 0; flex: 1; }
+.bindings-hero__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: var(--fs-md);
+  color: var(--text);
+  line-height: 1.35;
+}
+/* Count badge — only rendered when 2+ pads are connected. */
+.bindings-hero__count {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  font: 600 11.5px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.bindings-hero__sub {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+/* ---- Grid: header + sections ---- */
+
+.bindings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.bindings-grid__header,
+.bindings-row {
+  display: grid;
+  /* Pill columns are wide enough to fit "A / ✕ (bottom)" — the longest
+   * face-button label — without ellipsis. The action column takes the
+   * remaining space (clipped by minmax with min:0 so long action labels
+   * truncate before they push the pills off-screen). */
+  grid-template-columns: minmax(0, 1fr) 132px 132px;
+  align-items: center;
+  gap: 12px;
+}
+.bindings-grid__header {
+  padding: 0 16px 4px;
+}
+.bindings-grid__header-cell {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-align: center;
+}
+.bindings-grid__header-cell--action { text-align: left; }
+
+/* ---- Section card (one per subgroup) ---- */
+
+.bindings-section {
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bindings-section__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+}
+.bindings-section__hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.bindings-section__rows {
+  display: flex;
+  flex-direction: column;
+}
+.bindings-section .bindings-row { padding: 9px 16px; }
+.bindings-section .bindings-row + .bindings-row {
+  border-top: 1px solid rgba(35, 40, 52, 0.55);
+}
+.bindings-section__note {
+  margin: 0;
+  padding: 10px 16px 12px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+}
+.bindings-section__note sup { color: var(--text-dim); }
+
+/* ---- Row content ---- */
+
+.bindings-row__label {
+  font-size: var(--fs-sm);
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bindings-row__label sup {
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 2px;
+}
+.bindings-row__cell { display: flex; }
+
+/* ---- Pill (rebindable + fixed variants) ---- */
+
+.bindings-pill {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: 500 12.5px/1 var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    transform 80ms var(--ease);
+}
+.bindings-pill:hover {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+}
+.bindings-pill:active { transform: scale(0.97); }
+.bindings-pill:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.bindings-pill[data-override="1"] {
+  border-color: rgba(229, 160, 13, 0.4);
+  background: rgba(229, 160, 13, 0.08);
+}
+.bindings-pill.is-capturing {
+  border-color: var(--accent);
+  background: rgba(229, 160, 13, 0.12);
+  color: var(--accent);
+  animation: bindings-pill-capture 1.1s ease-in-out infinite;
+}
+@keyframes bindings-pill-capture {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 160, 13, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(229, 160, 13, 0); }
+}
+
+/* Fixed combos (Select+L1, etc.) — visually distinct from rebindable
+ * pills. Dashed border + dimmed color signals "read-only reference". */
+.bindings-pill--fixed {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 12.5px/1 var(--font-mono);
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Footer (restore + status) ---- */
+
+.bindings-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: var(--sp-1);
+}
+.bindings-foot .btn { flex-shrink: 0; }
+.bindings-status {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--t-fast) var(--ease);
+}
+.bindings-status[data-tone="ok"]    { color: var(--success); }
+.bindings-status[data-tone="error"] { color: var(--danger); }
+
+/* ---- Skeleton (initial load shimmer) ---- */
+
+.bindings-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bindings-skeleton__row {
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03),
+    rgba(255,255,255,0.06),
+    rgba(255,255,255,0.03)
+  );
+  background-size: 200% 100%;
+  animation: bindings-skel 1.4s linear infinite;
+}
+@keyframes bindings-skel { to { background-position: -200% 0; } }
+
+/* ---- Dialog mode ----
+ *
+ * The bindings UI lives in a /profile/Controls section-card by default.
+ * When opened inside the in-game modal, we widen the modal so the
+ * three-column grid breathes and add a touch more horizontal padding
+ * inside the body. The `modal--bindings` class is added in JS at open
+ * time via body.closest(".modal"). */
+
+.modal--bindings { max-width: 640px; }
+/* Tighter head — the default 20px vertical padding looks heavy above a
+ * dense bindings table. 14px reads cleaner without crowding the close
+ * button. */
+.modal--bindings .modal__head {
+  padding-top: var(--sp-3);
+  padding-bottom: var(--sp-3);
+}
+.modal__body.bindings-dialog {
+  padding: var(--sp-5) var(--sp-6) var(--sp-6);
+}
+
+/* Phones in landscape and split-screen tablets: shrink the pill columns
+ * and font so the three columns still fit. The position-suffixed labels
+ * ("A / ✕ (bottom)") are the binding constraint; below ~118px they'd
+ * truncate. We also drop pill horizontal padding to claw back a few
+ * pixels for the action column. */
+@media (max-width: 480px) {
+  .bindings-grid__header,
+  .bindings-row {
+    grid-template-columns: minmax(0, 1fr) 118px 118px;
+    gap: 8px;
+  }
+  .bindings-section__label,
+  .bindings-section .bindings-row { padding-left: 12px; padding-right: 12px; }
+  .bindings-pill,
+  .bindings-pill--fixed { padding: 0 8px; font-size: 11.5px; }
+}

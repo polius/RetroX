@@ -174,21 +174,20 @@ function injectPairButton(onClick) {
   document.body.appendChild(btn);
   followSyncPillParent(btn);
 
-  // Position the pill immediately to the LEFT of the sync indicator
-  // (.player__status, top:16px right:16px). The sync pill's width
-  // changes as its label rotates ("Syncing…" → "Synced · 12:34" →
-  // "Out of sync"), so we re-measure on each layout-affecting event
-  // rather than hard-coding an offset. Fallback: 16px from the right
-  // edge if the indicator hasn't mounted yet.
-  const SPACER_PX = 8;  // gap between Phone and sync pills
-  const SAFE_RIGHT = 16;  // mirror the sync pill's own right offset
+  // Position the pill immediately to the LEFT of the Controls pill
+  // (#controller-bindings-btn). The Controls pill itself sits to the
+  // left of the sync indicator, so the row reads (right→left):
+  // [Sync] [Controls] [Phone]. The Controls pill's width is stable
+  // (the label is always "Controls"; only its dot toggles, ~18px), so
+  // re-measuring is light. Fallback when the Controls pill hasn't
+  // mounted: anchor against the sync pill, then body, then 16px.
+  const SPACER_PX = 8;
+  const SAFE_RIGHT = 16;
   function positionRight() {
-    const sync = document.querySelector(".player__status");
-    if (sync) {
-      const rect = sync.getBoundingClientRect();
-      // Distance from the viewport's right edge to the sync pill's
-      // left edge, plus our spacer. innerWidth - rect.left handles
-      // both fullscreen and windowed cases without a special case.
+    const anchor = document.getElementById("controller-bindings-btn")
+                || document.querySelector(".player__status");
+    if (anchor) {
+      const rect = anchor.getBoundingClientRect();
       const right = Math.max(SAFE_RIGHT, window.innerWidth - rect.left + SPACER_PX);
       btn.style.right = `${right}px`;
     } else {
@@ -196,21 +195,23 @@ function injectPairButton(onClick) {
     }
   }
   positionRight();
-  // The sync pill mutates its DOM (text/class changes) and may
-  // mount/relocate as the player toggles fullscreen, so observe both.
-  const syncEl = document.querySelector(".player__status");
-  if (syncEl) {
-    new MutationObserver(positionRight).observe(syncEl, {
-      attributes: true,
-      childList: true,
-      subtree: true,
-      characterData: true,
+  // Observe the Controls pill for layout-affecting changes (its
+  // green-dot indicator toggles as a controller connects, which shifts
+  // its left edge by ~18px). Late-mount fallback observes body for
+  // the Controls pill's appearance.
+  const controlsEl = document.getElementById("controller-bindings-btn");
+  if (controlsEl) {
+    new MutationObserver(positionRight).observe(controlsEl, {
+      attributes: true, childList: true, subtree: true, characterData: true,
     });
   } else {
-    // Fallback: observe body for the sync indicator's late mount.
     const obs = new MutationObserver(() => {
-      if (document.querySelector(".player__status")) {
+      const fresh = document.getElementById("controller-bindings-btn");
+      if (fresh) {
         positionRight();
+        new MutationObserver(positionRight).observe(fresh, {
+          attributes: true, childList: true, subtree: true, characterData: true,
+        });
         obs.disconnect();
       }
     });
