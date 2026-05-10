@@ -228,29 +228,17 @@ The whole app is gamepad-first — browse the library, search, manage saves, and
 | L1 / R1 | Cycle filters |
 | Start | Play |
 
-**In-game** — keyboard bindings are rebindable per-user in **Profile → Controls** and sync across devices. Fast forward and rewind can be turned on or off for each emulator in **Admin → Emulators**. No gamepad? While playing, you can also use your [phone as a gamepad](#phone-as-gamepad).
+**In-game** — both keyboard and controller bindings are fully rebindable. Open the **Controls** pill while playing, or visit **Profile → Controls**. Changes save instantly and sync across devices. No gamepad? Use your [phone as one](#phone-as-gamepad).
 
-| Action | Gamepad | Keyboard |
+| Shortcut | Gamepad | Keyboard |
 |---|---|---|
-| D-pad Up | D-pad ↑ | Up |
-| D-pad Down | D-pad ↓ | Down |
-| D-pad Left | D-pad ← | Left |
-| D-pad Right | D-pad → | Right |
-| A | A / ✕ | X |
-| B | B / ○ | Z |
-| X | X / □ | S |
-| Y | Y / △ | A |
-| L1 | L1 | Q |
-| R1 | R1 | E |
-| Start | Start | Enter |
-| Select | Select | V |
-| Fast forward\* | R2 | Space |
-| Rewind\* | L2 | Backspace |
 | Save state | Select + L1 | F2 |
 | Load state | Select + R1 | F4 |
+| Fast forward\* | R2 | Space |
+| Rewind\* | L2 | Backspace |
 | Exit game | Select + Start | Esc |
 
-\* Only for supported emulators.
+\* Available on supported cores (toggle per system in **Admin → Emulators**).
 
 ## Covers & Metadata
 

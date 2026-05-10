@@ -8,7 +8,7 @@ import { applyEarly, hydrate } from "./theme.js";
 import { saveCache } from "./save-cache.js";
 import { escapeHtml, loadVendorScript, withBusy } from "./util.js";
 import { isControllerInputMode } from "./input-mode.js";
-import { friendlyKey, isBindable } from "./key-codes.js";
+import { mountBindings } from "./bindings-ui.js";
 import "./gamepad-nav.js";
 
 applyEarly();
@@ -670,6 +670,9 @@ async function disable2fa() {
 /* ---------- dispatch ---------- */
 
 function renderSection() {
+  // Tear down the bindings mount before swapping panes — its document
+  // keydown listener and rAF loop would otherwise leak across visits.
+  if (_bindingsHandle) { _bindingsHandle.destroy(); _bindingsHandle = null; }
   if (active === "account") renderAccount();
   else if (active === "stats") renderMyStats();
   else if (active === "saves") renderMySaves();
@@ -677,81 +680,25 @@ function renderSection() {
   else if (active === "controls") renderControls();
 }
 
-/* ---------- Controls ---------- */
+/* ---------- Controls ----------
+ *
+ * Two cards:
+ *   1. Navigation — read-only legend for app-wide gamepad shortcuts
+ *      (these aren't user-rebindable; remapping them would conflict
+ *      with in-game input on systems that share buttons).
+ *   2. In-game bindings — the shared bindings-ui component, also used
+ *      by the in-game Controls pill dialog. Profile mode does NOT
+ *      live-apply (no emulator running); rebinds persist and are
+ *      picked up the next time a game starts. */
 
-// Defaults are KeyboardEvent.code values so rebinds are layout-independent
-// (a German QWERTZ user picking "Y" still gets KeyY). Two groups, one
-// table — game inputs are sent into the emulator, RetroX shortcuts are
-// intercepted around it. Both must mirror play.js: SHORTCUT_DEFAULTS
-// matches the KB fallback at the keyboard wiring block; GAME_INPUT_DEFAULTS
-// matches GAME_INPUT_DEFAULTS in play.js.
-const SHORTCUT_DEFAULTS = {
-  fast_forward: "Space",
-  rewind:       "Backspace",
-  save_state:   "F2",
-  load_state:   "F4",
-  exit_game:    "Escape",
-};
-const GAME_INPUT_DEFAULTS = {
-  game_up:     "ArrowUp",
-  game_down:   "ArrowDown",
-  game_left:   "ArrowLeft",
-  game_right:  "ArrowRight",
-  game_a:      "KeyX",
-  game_b:      "KeyZ",
-  game_x:      "KeyS",
-  game_y:      "KeyA",
-  game_l1:     "KeyQ",
-  game_r1:     "KeyE",
-  game_start:  "Enter",
-  game_select: "KeyV",
-};
-// Display order in the unified table: D-pad, face buttons, shoulders,
-// menu buttons, then RetroX meta-actions. `gamepad` is the label shown
-// in the gamepad column; `note` flips on the asterisk for actions that
-// are gated per-emulator.
-const BINDINGS = [
-  { key: "game_up",     group: "in-game", label: "D-pad Up",      gamepad: "D-pad ↑" },
-  { key: "game_down",   group: "in-game", label: "D-pad Down",    gamepad: "D-pad ↓" },
-  { key: "game_left",   group: "in-game", label: "D-pad Left",    gamepad: "D-pad ←" },
-  { key: "game_right",  group: "in-game", label: "D-pad Right",   gamepad: "D-pad →" },
-  { key: "game_a",      group: "in-game", label: "A",             gamepad: "A / ✕" },
-  { key: "game_b",      group: "in-game", label: "B",             gamepad: "B / ○" },
-  { key: "game_x",      group: "in-game", label: "X",             gamepad: "X / □" },
-  { key: "game_y",      group: "in-game", label: "Y",             gamepad: "Y / △" },
-  { key: "game_l1",     group: "in-game", label: "L1",            gamepad: "L1" },
-  { key: "game_r1",     group: "in-game", label: "R1",            gamepad: "R1" },
-  { key: "game_start",  group: "in-game", label: "Start",         gamepad: "Start" },
-  { key: "game_select", group: "in-game", label: "Select",        gamepad: "Select" },
-  { key: "fast_forward", group: "retrox", label: "Fast forward",  gamepad: "R2",              note: true },
-  { key: "rewind",       group: "retrox", label: "Rewind",        gamepad: "L2",              note: true },
-  { key: "save_state",   group: "retrox", label: "Save state",    gamepad: "Select + L1" },
-  { key: "load_state",   group: "retrox", label: "Load state",    gamepad: "Select + R1" },
-  { key: "exit_game",    group: "retrox", label: "Exit game",     gamepad: "Select + Start" },
-];
-const ALL_DEFAULTS = { ...GAME_INPUT_DEFAULTS, ...SHORTCUT_DEFAULTS };
+// `_bindingsHandle` lives at module scope so renderSection() can tear
+// the bindings mount down on every section switch — its document
+// keydown listener and rAF loop would otherwise leak across visits.
+// renderSection is the single cleanup point; renderControls below
+// always starts from a clean slate.
+let _bindingsHandle = null;
 
-// One-shot module-level capture state. The keydown listener installed
-// at the bottom of the file watches this to know when to intercept.
-let _rebindCapture = null;
-
-async function renderControls() {
-  paneEl.innerHTML = `<div style="padding:32px;text-align:center"><div class="spinner"></div></div>`;
-  let prefs;
-  try { prefs = await api.get("/profile/preferences"); } catch { prefs = {}; }
-  const stored = (prefs && prefs.keyboard_bindings) || {};
-  const effective = (action) => stored[action] || ALL_DEFAULTS[action];
-
-  const renderRow = (b) => `
-    <tr>
-      <td>${escapeHtml(b.label)}${b.note ? `<sup>*</sup>` : ""}</td>
-      <td><strong>${escapeHtml(b.gamepad)}</strong></td>
-      <td><button class="btn btn--ghost btn--sm" type="button" data-rebind="${b.key}" style="font-family:var(--font-mono);min-width:96px">${escapeHtml(friendlyKey(effective(b.key)))}</button></td>
-    </tr>
-  `;
-  const inGameRows = BINDINGS.filter(b => b.group === "in-game").map(renderRow).join("");
-  const retroxRows = BINDINGS.filter(b => b.group === "retrox").map(renderRow).join("");
-
+function renderControls() {
   paneEl.innerHTML = `
     <div class="section-card">
       <h2>Navigation</h2>
@@ -772,134 +719,18 @@ async function renderControls() {
     </div>
     <div class="section-card">
       <h2>In-game</h2>
-      <p class="lead">Click any keyboard binding to change it. Game inputs are sent to the emulator.</p>
-      <table class="table" style="margin-top:16px">
-        <thead><tr><th>Action</th><th>Gamepad</th><th>Keyboard</th></tr></thead>
-        <tbody>
-          ${inGameRows}
-          <tr class="table__group-row"><td colspan="3">RetroX actions</td></tr>
-          ${retroxRows}
-        </tbody>
-      </table>
-      <div style="display:flex;gap:8px;margin-top:16px;align-items:center">
-        <button class="btn btn--ghost btn--sm" type="button" id="reset-binds-btn">${icon("refresh", { size: 14 })} Restore defaults</button>
-        <span class="field__hint" id="rebind-status" aria-live="polite"></span>
-      </div>
-      <p class="lead" style="margin-top:12px;font-size:var(--fs-sm);color:var(--text-muted)"><sup>*</sup> Where the emulator supports it. On systems where fast forward is off (e.g. PSX, N64), the gamepad L2/R2 triggers send their normal game input instead and the keyboard equivalents do nothing.</p>
+      <p class="lead">
+        Remap any controller button or keyboard key. Changes save instantly
+        and apply the next time you start a game. You can also reach this
+        from the Controls pill while playing.
+      </p>
+      <div id="bindings-host"></div>
     </div>
   `;
 
-  const status = document.getElementById("rebind-status");
-  const setStatus = (msg, isError = false) => {
-    status.textContent = msg || "";
-    status.style.color = isError ? "var(--danger)" : "var(--text-dim)";
-  };
-
-  paneEl.querySelectorAll("button[data-rebind]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      // Cancel any other pending capture so we never have two highlighted buttons.
-      if (_rebindCapture && _rebindCapture.btn !== btn) {
-        _rebindCapture.btn.textContent = _rebindCapture.original;
-        _rebindCapture = null;
-      }
-      const action = btn.dataset.rebind;
-      const original = btn.textContent;
-      btn.textContent = "Press a key…";
-      btn.style.color = "var(--accent)";
-      _rebindCapture = {
-        action,
-        btn,
-        original,
-        commit: async (code) => {
-          // Reject keys we can't apply to EJS — the converter is the
-          // authoritative list of bindable codes.
-          if (!isBindable(code)) {
-            setStatus(`${friendlyKey(code)} can't be used as a binding.`, true);
-            btn.textContent = original;
-            btn.style.color = "";
-            return;
-          }
-          // Conflict scope spans both groups — a key bound to a game input
-          // can't simultaneously fire a RetroX shortcut and vice versa.
-          const conflict = BINDINGS.find(b => b.key !== action && effective(b.key) === code);
-          if (conflict) {
-            setStatus(`${friendlyKey(code)} is already used for ${conflict.label}.`, true);
-            btn.textContent = original;
-            btn.style.color = "";
-            return;
-          }
-          stored[action] = code;
-          btn.textContent = friendlyKey(code);
-          btn.style.color = "";
-          try {
-            await api.put("/profile/preferences", { data: { keyboard_bindings: stored } });
-            setStatus("Saved. Restart any running game to apply game input changes.");
-          } catch (err) {
-            toast.fromError(err, "Couldn't save keybinding");
-            // Revert local state on failure so the next render reflects what's
-            // actually persisted.
-            delete stored[action];
-            btn.textContent = original;
-          }
-        },
-        cancel: () => {
-          btn.textContent = _rebindCapture.original;
-          btn.style.color = "";
-        },
-      };
-      setStatus("Press a key (Esc to cancel).");
-    });
-  });
-
-  document.getElementById("reset-binds-btn").addEventListener("click", async () => {
-    if (_rebindCapture) { _rebindCapture.cancel(); _rebindCapture = null; }
-    try {
-      await api.put("/profile/preferences", { data: { keyboard_bindings: {} } });
-      // Patch the existing DOM in place rather than re-rendering the pane.
-      // A full re-render flashes a spinner, collapses the page height, and
-      // the browser clamps scrollY to the top — jarring when the user is
-      // mid-scroll over a tall table.
-      for (const k of Object.keys(stored)) delete stored[k];
-      paneEl.querySelectorAll("button[data-rebind]").forEach(btn => {
-        btn.textContent = friendlyKey(ALL_DEFAULTS[btn.dataset.rebind]);
-        btn.style.color = "";
-      });
-      toast.success("Defaults restored");
-      setStatus("");
-    } catch (err) {
-      toast.fromError(err, "Couldn't restore defaults");
-    }
-  });
+  const host = document.getElementById("bindings-host");
+  _bindingsHandle = mountBindings(host, { liveApply: false });
 }
-
-// Module-level keydown interceptor for the rebind flow. Capture phase so
-// we run before any other listener (the Escape→back handler in play.js
-// runs at bubble phase; here we don't care since /profile is its own
-// page, but the discipline is right).
-function _rebindKeydown(e) {
-  if (!_rebindCapture) return;
-  e.preventDefault();
-  e.stopPropagation();
-  if (e.code === "Escape") {
-    _rebindCapture.cancel();
-    _rebindCapture = null;
-    return;
-  }
-  // Ignore bare modifier keypresses — wait for an actual key.
-  if (["ShiftLeft","ShiftRight","ControlLeft","ControlRight","AltLeft","AltRight","MetaLeft","MetaRight"].includes(e.code)) {
-    return;
-  }
-  const cap = _rebindCapture;
-  _rebindCapture = null;
-  cap.commit(e.code);
-}
-// Soft-nav re-imports this module; replace any previously-installed
-// handler so listeners don't accumulate across visits.
-if (document.__retroxProfileRebindHandler) {
-  document.removeEventListener("keydown", document.__retroxProfileRebindHandler, true);
-}
-document.__retroxProfileRebindHandler = _rebindKeydown;
-document.addEventListener("keydown", _rebindKeydown, true);
 
 renderSection();
 

@@ -68,7 +68,7 @@ router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 # Whitelist of preference keys we accept. Keeps the surface area small even
 # though storage is opaque JSON.
-_PREF_KEYS = {"theme", "tv_mode", "reduce_motion", "keyboard_bindings"}
+_PREF_KEYS = {"theme", "tv_mode", "reduce_motion", "keyboard_bindings", "gamepad_bindings"}
 _PREF_THEMES = {"coral", "phosphor", "sunset", "ocean", "monochrome"}
 
 # Keyboard rebinding actions. Values are KeyboardEvent.code strings
@@ -82,16 +82,55 @@ _PREF_THEMES = {"coral", "phosphor", "sunset", "ocean", "monochrome"}
 #   - RetroX shortcuts: intercepted around the emulator (save state, etc.).
 #   - Game inputs: re-applied to EmulatorJS's defaultControllers at boot,
 #     so the user's bindings are the source of truth across devices.
-#     Player 1 only — multi-player rebinds aren't surfaced in the UI.
+# Stored bindings are SHARED across all players — gamepad bindings are
+# mirrored to player slots 1-3 at boot in play.js, but keyboard stays on
+# player 0 only because EJS's keyboard handler broadcasts keypresses to
+# every player whose value matches (a per-player keyboard map would
+# collide on every press in multi-player co-op).
 _KEYBOARD_ACTIONS = {
     # RetroX shortcuts
     "fast_forward", "rewind", "save_state", "load_state", "exit_game",
-    # Game inputs (player 1)
+    # Game inputs
     "game_up", "game_down", "game_left", "game_right",
     "game_a", "game_b", "game_x", "game_y",
     "game_l1", "game_r1",
     "game_start", "game_select",
 }
+
+# Gamepad rebinding actions — only the 12 game inputs are remappable
+# to a single physical button. RetroX meta-actions (save state, fast
+# forward, exit) are reserved as Select-modifier combos to avoid
+# conflicts with game input and aren't user-rebindable. Values are
+# EmulatorJS-format gamepad labels stored on `defaultControllers[*].value2`
+# (e.g. "BUTTON_1", "DPAD_UP", "LEFT_TOP_SHOULDER"). The whitelist below
+# mirrors EJS's GamepadHandler.buttonLabels — the only labels the runtime
+# knows how to dispatch.
+_GAMEPAD_ACTIONS = {
+    "game_up", "game_down", "game_left", "game_right",
+    "game_a", "game_b", "game_x", "game_y",
+    "game_l1", "game_r1",
+    "game_start", "game_select",
+}
+_GAMEPAD_LABELS = {
+    "BUTTON_1", "BUTTON_2", "BUTTON_3", "BUTTON_4",
+    "LEFT_TOP_SHOULDER", "RIGHT_TOP_SHOULDER",
+    "LEFT_BOTTOM_SHOULDER", "RIGHT_BOTTOM_SHOULDER",
+    "SELECT", "START",
+    "LEFT_STICK", "RIGHT_STICK",
+    "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
+    # Stick-axis labels — the rebind dialog falls back to these on
+    # controllers that report the D-pad as analog stick movement instead
+    # of buttons 12-15 (common on Firefox + Sony pads). Format matches
+    # EJS GamepadHandler.getAxisLabel exactly so EJS dispatches them at
+    # runtime without translation.
+    "LEFT_STICK_X:+1",  "LEFT_STICK_X:-1",
+    "LEFT_STICK_Y:+1",  "LEFT_STICK_Y:-1",
+    "RIGHT_STICK_X:+1", "RIGHT_STICK_X:-1",
+    "RIGHT_STICK_Y:+1", "RIGHT_STICK_Y:-1",
+}
+# Hat/extra axes some non-standard controllers expose. Accept any
+# numeric index so we don't have to enumerate every quirky pad.
+_GAMEPAD_EXTRA_AXIS_RE = re.compile(r"^EXTRA_STICK_\d+:[+-]1$")
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
@@ -231,6 +270,29 @@ def _sanitize_keyboard_bindings(value: object) -> dict | None:
     return out
 
 
+def _sanitize_gamepad_bindings(value: object) -> dict | None:
+    """Coerce a gamepad_bindings payload into a clean dict[str, str].
+
+    Mirrors _sanitize_keyboard_bindings: drops anything not in the
+    action whitelist and anything whose label isn't recognised by EJS's
+    GamepadHandler. Returns None on a totally invalid payload.
+    """
+    if not isinstance(value, dict):
+        return None
+    out: dict[str, str] = {}
+    for action in _GAMEPAD_ACTIONS:
+        if action not in value:
+            continue
+        v = value[action]
+        if not isinstance(v, str):
+            continue
+        v = v.strip()
+        if v not in _GAMEPAD_LABELS and not _GAMEPAD_EXTRA_AXIS_RE.match(v):
+            continue
+        out[action] = v
+    return out
+
+
 def _sanitize_prefs(data: dict) -> dict:
     out: dict = {}
     for key in _PREF_KEYS:
@@ -247,6 +309,10 @@ def _sanitize_prefs(data: dict) -> dict:
             cleaned = _sanitize_keyboard_bindings(value)
             if cleaned is not None:
                 out["keyboard_bindings"] = cleaned
+        elif key == "gamepad_bindings":
+            cleaned = _sanitize_gamepad_bindings(value)
+            if cleaned is not None:
+                out["gamepad_bindings"] = cleaned
     return out
 
 
