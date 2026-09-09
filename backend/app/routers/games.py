@@ -196,12 +196,15 @@ def random_game(
 @router.get("", response_model=GameListResponse)
 def list_games(
     q: str | None = Query(default=None, max_length=128),
+    system: str | None = Query(default=None, max_length=16),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=48, ge=1, le=200),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> GameListResponse:
     games = library.index.search(q)
+    if system:
+        games = [g for g in games if g.system == system]
     total = len(games)
     start = (page - 1) * page_size
     chunk = games[start : start + page_size]

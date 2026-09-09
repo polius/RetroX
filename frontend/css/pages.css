@@ -1389,6 +1389,64 @@
   margin-bottom: var(--sp-5);
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
+.pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Tracks the chip token so page buttons scale with chrome on TV tiers. */
+  min-width: var(--chip-h);
+  height: var(--chip-h);
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.pagination__btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+.pagination__btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.pagination__btn.is-active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
+.pagination__btn.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--chip-h);
+  height: var(--chip-h);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  user-select: none;
+}
+
 /* =========================
    Page-level helpers
    ========================= */

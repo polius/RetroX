@@ -161,8 +161,45 @@ const SORT_FNS = {
   recent: (a, b) => (b.added_at || "").localeCompare(a.added_at || ""),
 };
 
-async function renderLibraryView({ items, title, hint, allowSystemFilter = true }) {
-  if (!items.length) {
+function renderPagination({ currentPage, totalPages, basePath }) {
+  const pages = [];
+  pages.push(1);
+  if (totalPages <= 7) {
+    for (let i = 2; i <= totalPages; i++) pages.push(i);
+  } else {
+    const start = Math.max(2, currentPage - 2);
+    const end = Math.min(totalPages - 1, currentPage + 2);
+    if (start > 2) pages.push("...");
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 1) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+  }
+  const sep = basePath.includes("?") ? "&" : "?";
+  const prevDisabled = currentPage <= 1;
+  const nextDisabled = currentPage >= totalPages;
+  return `
+    <nav class="pagination" aria-label="Page navigation">
+      <a class="pagination__btn${prevDisabled ? " is-disabled" : ""}"
+         href="${prevDisabled ? "" : `${basePath}${sep}page=${currentPage - 1}`}"
+         ${prevDisabled ? 'aria-disabled="true" tabindex="-1"' : ""}
+         aria-label="Previous page">&lsaquo;</a>
+      ${pages.map(p => {
+        if (p === "...") return `<span class="pagination__ellipsis">&hellip;</span>`;
+        const active = p === currentPage;
+        return `<a class="pagination__btn${active ? " is-active" : ""}"
+                   href="${basePath}${sep}page=${p}"
+                   ${active ? 'aria-current="page"' : ""}>${p}</a>`;
+      }).join("")}
+      <a class="pagination__btn${nextDisabled ? " is-disabled" : ""}"
+         href="${nextDisabled ? "" : `${basePath}${sep}page=${currentPage + 1}`}"
+         ${nextDisabled ? 'aria-disabled="true" tabindex="-1"' : ""}
+         aria-label="Next page">&rsaquo;</a>
+    </nav>
+  `;
+}
+
+async function renderLibraryView({ items, title, hint, allowSystemFilter = true, pagination = null, systemNav = false }) {
+  if (!items.length && !pagination) {
     slot.innerHTML = `
       <div class="page">
         <div class="library-head">
@@ -191,6 +228,7 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
     list.sort(sortFn);
 
     const isGrid = viewState.layout === "grid";
+    const displayCount = pagination && pagination.totalItems != null ? pagination.totalItems : list.length;
 
     slot.innerHTML = `
       <div class="page">
@@ -198,7 +236,7 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
              data-nav-down=".library-filter, .card-grid, .list-view"
              data-nav-left=".sidebar">
           <h1>${escapeHtml(title)}</h1>
-          <span class="library-head__count">${list.length} game${list.length === 1 ? "" : "s"}</span>
+          <span class="library-head__count">${displayCount} game${displayCount === 1 ? "" : "s"}</span>
           <div class="library-head__controls">
             <div class="library-head__sort">
               <select class="select" id="sort-select" aria-label="Sort by">
@@ -257,6 +295,8 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
             <p>Try a different filter.</p>
           </div>
         `}
+
+        ${pagination && pagination.totalPages > 1 ? renderPagination(pagination) : ""}
       </div>
     `;
     bindCardFavorites(slot);
@@ -280,7 +320,16 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
     // System filter
     slot.querySelectorAll(".library-filter .chip").forEach(c => {
       c.addEventListener("click", () => {
-        viewState.systemFilter = c.dataset.sys || null;
+        const sys = c.dataset.sys || null;
+        if (systemNav) {
+          if (sys) {
+            location.href = `/games?system=${encodeURIComponent(sys)}`;
+          } else {
+            location.href = "/games";
+          }
+          return;
+        }
+        viewState.systemFilter = sys;
         draw();
       });
     });
@@ -346,9 +395,14 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
 /* ---------- views ---------- */
 
 async function renderLibrary() {
-  const list = await api.get("/games?page=1&page_size=200").catch(() => ({ items: [] }));
+  const currentPage = parseInt(params.get("page") || "1", 10);
+  const PAGE_SIZE = 200;
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE) });
+  const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
   const items = list.items || [];
-  if (!items.length) {
+  const total = list.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (!items.length && currentPage === 1) {
     renderEmptyLibrary();
     return;
   }
@@ -356,17 +410,25 @@ async function renderLibrary() {
     items,
     title: "Library",
     hint: "There are no games matching this view.",
+    pagination: { currentPage, totalPages, basePath: "/games", totalItems: total },
+    systemNav: true,
   });
 }
 
 async function renderSystem() {
-  const list = await api.get(`/games?page=1&page_size=200`).catch(() => ({ items: [] }));
-  const items = (list.items || []).filter(g => g.system === SYSTEM);
+  const currentPage = parseInt(params.get("page") || "1", 10);
+  const PAGE_SIZE = 200;
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), system: SYSTEM });
+  const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
+  const items = list.items || [];
+  const total = list.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
   await renderLibraryView({
     items,
     title: systemLabel(SYSTEM),
     hint: "No games for this system are indexed.",
     allowSystemFilter: false,
+    pagination: { currentPage, totalPages, basePath: `/games?system=${encodeURIComponent(SYSTEM)}`, totalItems: total },
   });
 }
 
