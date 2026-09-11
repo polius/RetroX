@@ -20,7 +20,10 @@ applyEarly();
 const params = new URLSearchParams(location.search);
 const VIEW = params.get("view");        // null | favorites | recent
 const SYSTEM = params.get("system");    // null | gb | gbc | gba | psx | n64...
-const COLLECTION = params.get("collection"); // null | collection id
+const COLLECTION = params.get("collection"); // null | collection name
+
+// Page size for the paginated library views.
+const PAGE_SIZE = 100;
 
 const VIEW_KEY =
   COLLECTION ? null :
@@ -161,8 +164,50 @@ const SORT_FNS = {
   recent: (a, b) => (b.added_at || "").localeCompare(a.added_at || ""),
 };
 
-async function renderLibraryView({ items, title, hint, allowSystemFilter = true }) {
-  if (!items.length) {
+function renderPagination({ currentPage, totalPages, basePath }) {
+  const pages = [];
+  pages.push(1);
+  if (totalPages <= 7) {
+    for (let i = 2; i <= totalPages; i++) pages.push(i);
+  } else {
+    const start = Math.max(2, currentPage - 2);
+    const end = Math.min(totalPages - 1, currentPage + 2);
+    if (start > 2) pages.push("...");
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 1) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+  }
+  const sep = basePath.includes("?") ? "&" : "?";
+  const prevDisabled = currentPage <= 1;
+  const nextDisabled = currentPage >= totalPages;
+  return `
+    <nav class="pagination" aria-label="Page navigation"
+         data-nav-group
+         data-nav-up=".card-grid, .list-view"
+         data-nav-left=".sidebar">
+      <a class="pagination__btn${prevDisabled ? " is-disabled" : ""}"
+         href="${prevDisabled ? "" : `${basePath}${sep}page=${currentPage - 1}`}"
+         ${prevDisabled ? 'aria-disabled="true" tabindex="-1"' : ""}
+         aria-label="Previous page">&lsaquo;</a>
+      ${pages.map(p => {
+        if (p === "...") return `<span class="pagination__ellipsis">&hellip;</span>`;
+        const active = p === currentPage;
+        return `<a class="pagination__btn${active ? " is-active" : ""}"
+                   href="${basePath}${sep}page=${p}"
+                   ${active ? 'aria-current="page"' : ""}>${p}</a>`;
+      }).join("")}
+      <a class="pagination__btn${nextDisabled ? " is-disabled" : ""}"
+         href="${nextDisabled ? "" : `${basePath}${sep}page=${currentPage + 1}`}"
+         ${nextDisabled ? 'aria-disabled="true" tabindex="-1"' : ""}
+         aria-label="Next page">&rsaquo;</a>
+    </nav>
+  `;
+}
+
+async function renderLibraryView({ items, title, hint, allowSystemFilter = true, pagination = null, systemNav = false }) {
+  // Empty state only on page 1; later pages are out-of-range URLs.
+  const onFirstPage = !pagination || pagination.currentPage <= 1;
+  if (!items.length && onFirstPage) {
     slot.innerHTML = `
       <div class="page">
         <div class="library-head">
@@ -191,6 +236,7 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
     list.sort(sortFn);
 
     const isGrid = viewState.layout === "grid";
+    const displayCount = pagination && pagination.totalItems != null ? pagination.totalItems : list.length;
 
     slot.innerHTML = `
       <div class="page">
@@ -198,7 +244,7 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
              data-nav-down=".library-filter, .card-grid, .list-view"
              data-nav-left=".sidebar">
           <h1>${escapeHtml(title)}</h1>
-          <span class="library-head__count">${list.length} game${list.length === 1 ? "" : "s"}</span>
+          <span class="library-head__count">${displayCount} game${displayCount === 1 ? "" : "s"}</span>
           <div class="library-head__controls">
             <div class="library-head__sort">
               <select class="select" id="sort-select" aria-label="Sort by">
@@ -235,12 +281,14 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
         ${list.length ? (isGrid ? `
           <div class="card-grid" data-nav-group
                data-nav-up=".library-filter, .library-head"
+               data-nav-down=".pagination"
                data-nav-left=".sidebar">
             ${list.map(gcardHTML).join("")}
           </div>
         ` : `
           <div class="list-view" data-nav-group
                data-nav-up=".library-filter, .library-head"
+               data-nav-down=".pagination"
                data-nav-left=".sidebar">
             <div class="list-view__header">
               <span></span>
@@ -257,6 +305,8 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
             <p>Try a different filter.</p>
           </div>
         `}
+
+        ${pagination && pagination.totalPages > 1 ? renderPagination(pagination) : ""}
       </div>
     `;
     bindCardFavorites(slot);
@@ -277,10 +327,18 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
       });
     });
 
-    // System filter
+    // Paginated views hold only a slice of the library, so chips
+    // navigate (`systemNav` = base URL) instead of filtering locally.
     slot.querySelectorAll(".library-filter .chip").forEach(c => {
       c.addEventListener("click", () => {
-        viewState.systemFilter = c.dataset.sys || null;
+        const sys = c.dataset.sys || null;
+        if (systemNav) {
+          location.href = sys
+            ? `${systemNav}${systemNav.includes("?") ? "&" : "?"}system=${encodeURIComponent(sys)}`
+            : systemNav;
+          return;
+        }
+        viewState.systemFilter = sys;
         draw();
       });
     });
@@ -346,9 +404,13 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true 
 /* ---------- views ---------- */
 
 async function renderLibrary() {
-  const list = await api.get("/games?page=1&page_size=200").catch(() => ({ items: [] }));
+  const currentPage = parseInt(params.get("page") || "1", 10) || 1;
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE) });
+  const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
   const items = list.items || [];
-  if (!items.length) {
+  const total = list.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (!items.length && currentPage === 1) {
     renderEmptyLibrary();
     return;
   }
@@ -356,17 +418,50 @@ async function renderLibrary() {
     items,
     title: "Library",
     hint: "There are no games matching this view.",
+    pagination: { currentPage, totalPages, basePath: "/games", totalItems: total },
+    systemNav: "/games",
   });
 }
 
 async function renderSystem() {
-  const list = await api.get(`/games?page=1&page_size=200`).catch(() => ({ items: [] }));
-  const items = (list.items || []).filter(g => g.system === SYSTEM);
+  // Chips on a collection page navigate to /games?collection=X&system=Y;
+  // carry the collection filter along or the context is lost. An
+  // unknown collection degrades to the plain system view.
+  let collectionId = null;
+  let title = systemLabel(SYSTEM);
+  let hint = "No games for this system are indexed.";
+  let chipTarget = null;
+  let collectionName = null;
+  if (COLLECTION) {
+    const collections = await api.get("/collections").catch(() => []);
+    const coll = collections.find(c => c.name === COLLECTION);
+    if (coll) {
+      collectionId = coll.id;
+      collectionName = coll.name;
+      title = coll.name;
+      hint = "No games for this system are in this collection.";
+      chipTarget = `/games?collection=${encodeURIComponent(COLLECTION)}`;
+      document.title = `${coll.name} · RetroX`;
+    }
+  }
+  const currentPage = parseInt(params.get("page") || "1", 10) || 1;
+  const basePath = collectionName
+    ? `/games?collection=${encodeURIComponent(COLLECTION)}&system=${encodeURIComponent(SYSTEM)}`
+    : `/games?system=${encodeURIComponent(SYSTEM)}`;
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), system: SYSTEM });
+  if (collectionId) qs.set("collection", String(collectionId));
+  const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
+  const items = list.items || [];
+  const total = list.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (collectionId) viewState.systemFilter = SYSTEM; // marks the active chip
   await renderLibraryView({
     items,
-    title: systemLabel(SYSTEM),
-    hint: "No games for this system are indexed.",
-    allowSystemFilter: false,
+    title,
+    hint,
+    allowSystemFilter: Boolean(chipTarget),
+    systemNav: chipTarget,
+    pagination: { currentPage, totalPages, basePath, totalItems: total },
   });
 }
 
@@ -389,27 +484,30 @@ async function renderRecent() {
 }
 
 async function renderCollection() {
-  const [collections, allGames] = await Promise.all([
-    api.get("/collections").catch(() => []),
-    api.get("/games?page=1&page_size=200").catch(() => ({ items: [] })),
-  ]);
+  const collections = await api.get("/collections").catch(() => []);
   const coll = collections.find(c => c.name === COLLECTION);
   if (!coll) {
     slot.innerHTML = `<div class="page"><div class="empty"><h3>Collection not found</h3><p>This collection may have been deleted.</p></div></div>`;
     return;
   }
-  const memberList = await api.get(`/collections/${coll.id}/games`).catch(() => []);
-  const memberIds = new Set((memberList || []).map(g => g.id));
-  const items = (allGames.items || []).filter(g => memberIds.has(g.id));
   document.title = `${coll.name} · RetroX`;
+  // Server-side filter + pagination: a collection can span multiple
+  // library pages, so filtering one fetched page client-side would
+  // hide members.
+  const currentPage = parseInt(params.get("page") || "1", 10) || 1;
+  const basePath = `/games?collection=${encodeURIComponent(COLLECTION)}`;
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), collection: String(coll.id) });
+  const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
+  const items = list.items || [];
+  const total = list.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
   await renderLibraryView({
     items,
     title: coll.name,
     hint: "This collection is empty. Add games from Admin → Collections.",
-    // System chips are useful here — collections often span multiple
-    // systems and the user wants to drill in by platform within the
-    // collection. Defaults to true; explicit for clarity.
     allowSystemFilter: true,
+    systemNav: basePath,
+    pagination: { currentPage, totalPages, basePath, totalItems: total },
   });
 }
 

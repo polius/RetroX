@@ -17,12 +17,8 @@ let cachedAt = 0;
 async function loadGames() {
   const fresh = cache !== null && (Date.now() - cachedAt) < CACHE_TTL_MS;
   if (fresh) return cache;
-  try {
-    const r = await api.get("/games?page=1&page_size=200");
-    cache = (r && r.items) || [];
-  } catch {
-    cache = [];
-  }
+  // allGames() walks every page so nothing is unsearchable.
+  cache = await api.allGames();
   cachedAt = Date.now();
   return cache;
 }
