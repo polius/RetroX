@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..deps import current_user, get_db
-from ..models import Emulator, Favorite, GameMeta, GamePlayStat, SaveSlot, User
+from ..models import CollectionGame, Emulator, Favorite, GameMeta, GamePlayStat, SaveSlot, User
 from ..models.schemas import (
     GameDetail,
     GameListResponse,
@@ -197,6 +197,7 @@ def random_game(
 def list_games(
     q: str | None = Query(default=None, max_length=128),
     system: str | None = Query(default=None, max_length=16),
+    collection: int | None = Query(default=None, ge=1),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=48, ge=1, le=200),
     user: User = Depends(current_user),
@@ -205,6 +206,14 @@ def list_games(
     games = library.index.search(q)
     if system:
         games = [g for g in games if g.system == system]
+    if collection is not None:
+        member_ids = {
+            r[0]
+            for r in db.query(CollectionGame.game_id)
+            .filter(CollectionGame.collection_id == collection)
+            .all()
+        }
+        games = [g for g in games if g.id in member_ids]
     total = len(games)
     start = (page - 1) * page_size
     chunk = games[start : start + page_size]

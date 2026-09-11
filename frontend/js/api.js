@@ -188,6 +188,25 @@ async function del(path, headers) {
 
 function url(path) { return BASE + path; }
 
+/* Full-library fetch for bulk consumers (command palette, admin
+ * collection picker). Walks pages so games past the first page aren't
+ * missed; capped at 100 pages (10,000 games). */
+async function allGames() {
+  const items = [];
+  for (let page = 1; page <= 100; page++) {
+    let r;
+    try {
+      r = await json("GET", `/games?page=${page}&page_size=100`);
+    } catch {
+      break;
+    }
+    const batch = (r && r.items) || [];
+    items.push(...batch);
+    if (!batch.length || items.length >= ((r && r.total) || 0)) break;
+  }
+  return items;
+}
+
 export const api = {
   get:   (p) => json("GET", p),
   post:  (p, b) => json("POST", p, b),
@@ -197,6 +216,7 @@ export const api = {
   upload,
   raw,
   rawPut,
+  allGames,
   url,
   onRateLimit(fn) { _rateLimitListeners.add(fn); return () => _rateLimitListeners.delete(fn); },
   APIError,

@@ -36,9 +36,8 @@ async function renderCollections() {
   try { collections = await api.get("/collections"); }
   catch { collections = []; }
 
-  let games = [];
-  try { const r = await api.get("/games?page=1&page_size=200"); games = r.items || []; }
-  catch { games = []; }
+  // Full library — the picker must offer every game.
+  const games = await api.allGames();
 
   pane.innerHTML = `
     <div class="admin-section-head">
