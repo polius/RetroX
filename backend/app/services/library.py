@@ -17,6 +17,7 @@ from pathlib import Path
 
 from ..config import settings
 from ..db import SessionLocal
+from ..models import CollectionGame
 from . import cores
 from .slugs import ensure_meta_for_index
 
@@ -129,8 +130,37 @@ class Library:
         with self._lock:
             self._index = LibraryIndex(games=stamped, scanned_at=datetime.now(tz=UTC))
 
+        self._prune_orphaned_collection_games(stamped)
+
         log.info("Library scan: %d games indexed", len(stamped))
         return len(stamped)
+
+    @staticmethod
+    def _prune_orphaned_collection_games(valid_ids: dict[str, Game]) -> None:
+        """Drop collection memberships whose game_id is no longer indexed.
+
+        Covers ROMs renamed/removed outside the app; stale rows break
+        collection saves and inflate game_count. Skipped on an empty
+        index so a failed/missing ROM mount can't wipe all collections.
+        """
+        if not valid_ids:
+            return
+        with SessionLocal() as db:
+            stored = {gid for (gid,) in db.query(CollectionGame.game_id).distinct().all()}
+            orphans = stored - valid_ids.keys()
+            if not orphans:
+                return
+            deleted = (
+                db.query(CollectionGame)
+                .filter(CollectionGame.game_id.in_(orphans))
+                .delete(synchronize_session=False)
+            )
+            db.commit()
+            log.info(
+                "Pruned %d orphaned collection game row(s): %s",
+                deleted,
+                ", ".join(sorted(orphans)[:5]) + ("..." if len(orphans) > 5 else ""),
+            )
 
     # ---------- internal builders ----------
 
