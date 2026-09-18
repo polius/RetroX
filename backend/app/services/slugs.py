@@ -37,7 +37,9 @@ def ensure_meta_for_index(games: dict) -> dict[str, datetime]:
     out: dict[str, datetime] = {}
     with SessionLocal() as db:
         metas = {m.game_id: m for m in db.query(GameMeta).all()}
-        used_slugs: dict[str, str] = {}
+        # Stale rows (game no longer indexed) still hold their slug; counting
+        # them makes collisions bump instead of crashing the commit below.
+        used_slugs: dict[str, str] = {m.slug: m.game_id for m in metas.values() if m.slug}
 
         for game_id, game in games.items():
             meta = metas.get(game_id)

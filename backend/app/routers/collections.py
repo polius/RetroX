@@ -108,7 +108,9 @@ def get_collection_games(collection_id: int, user: User = Depends(current_user),
     if not c:
         raise HTTPException(404, "Collection not found.")
     rows = db.query(CollectionGame).filter(CollectionGame.collection_id == collection_id).all()
-    return [{"id": r.game_id} for r in rows]
+    # Skip ids missing from the live index so the manage-games modal can't
+    # round-trip stale ids back to the PUT endpoint, which rejects them.
+    return [{"id": r.game_id} for r in rows if library.index.get(r.game_id) is not None]
 
 
 @router.put("/{collection_id}/games", status_code=204)
