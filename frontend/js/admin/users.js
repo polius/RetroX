@@ -17,10 +17,12 @@ const TAB_DESCRIPTION =
 let firstLoad = true;
 let pane = null;
 let me = null;
+let isStale = () => false;
 
 export async function render(ctx) {
   pane = ctx.pane;
   me = ctx.me;
+  isStale = ctx.isStale || (() => false);
   return renderUsers();
 }
 
@@ -34,6 +36,7 @@ async function renderUsers() {
   let users = [];
   try { users = await api.get("/admin/users"); }
   catch (err) { toast.fromError(err, "Couldn't load users"); return; }
+  if (isStale()) return;
 
   pane.innerHTML = `
     <div class="admin-section-head">

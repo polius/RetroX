@@ -17,9 +17,11 @@ const TAB_DESCRIPTION =
 
 let firstLoad = true;
 let pane = null;
+let isStale = () => false;
 
 export async function render(ctx) {
   pane = ctx.pane;
+  isStale = ctx.isStale || (() => false);
   return renderEmulators();
 }
 
@@ -40,6 +42,7 @@ async function renderEmulators() {
     toast.fromError(err, "Couldn't load emulators");
     return;
   }
+  if (isStale()) return;
   pane.innerHTML = `
     <div class="admin-section-head">
       <span class="admin-section-head__desc">${TAB_DESCRIPTION}</span>

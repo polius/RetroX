@@ -232,7 +232,22 @@ function setEntryStatus(text, tone) {
 
 /* ---------- Connecting ---------- */
 
+// In-flight guard: double-submitting (double-tap on flaky mobile
+// networks) would otherwise open two pads and let the server evict the
+// first with 4001 — killing the working session.
+let connectInFlight = false;
+
 async function connect(code) {
+  if (connectInFlight) return;
+  connectInFlight = true;
+  try {
+    await connectInner(code);
+  } finally {
+    connectInFlight = false;
+  }
+}
+
+async function connectInner(code) {
   setEntryStatus("Looking up code…");
   try {
     await api.get(`/controller/lookup/${encodeURIComponent(code)}`);
@@ -250,9 +265,20 @@ async function connect(code) {
 }
 
 function openSocket(code) {
-  socket = new WebSocket(wsUrlFor(`/api/controller/pad?code=${encodeURIComponent(code)}`));
+  // Ownership rule: event handlers only act while `socket` still points
+  // at the socket they belong to. Closing a superseded socket therefore
+  // can't run teardown against its replacement.
+  const mySocket = new WebSocket(wsUrlFor(`/api/controller/pad?code=${encodeURIComponent(code)}`));
+  const previous = socket;
+  socket = mySocket;
+  if (previous) {
+    try { previous.close(1000, "user closed"); } catch { /* already closed */ }
+  }
 
-  socket.addEventListener("open", () => {
+  const isCurrent = () => socket === mySocket;
+
+  mySocket.addEventListener("open", () => {
+    if (!isCurrent()) return;
     // The "hello" message will land momentarily; render the live UI
     // immediately so the user sees a snappy transition rather than a
     // second of blank screen while the host's layout broadcast races
@@ -262,7 +288,8 @@ function openSocket(code) {
     void requestWakeLock();
   });
 
-  socket.addEventListener("message", (ev) => {
+  mySocket.addEventListener("message", (ev) => {
+    if (!isCurrent()) return;
     let msg;
     try { msg = JSON.parse(ev.data); } catch { return; }
     if (msg.t === "hello") {
@@ -281,7 +308,8 @@ function openSocket(code) {
     }
   });
 
-  socket.addEventListener("close", (ev) => {
+  mySocket.addEventListener("close", (ev) => {
+    if (!isCurrent()) return;
     teardownSocket();
     document.body.classList.remove("is-paired");
     // 1000 = clean close we initiated (X button, navigation away).
@@ -318,7 +346,7 @@ function openSocket(code) {
     }
   });
 
-  socket.addEventListener("error", () => {
+  mySocket.addEventListener("error", () => {
     // close handler covers cleanup — error alone (without close) means
     // the upgrade itself failed mid-flight.
   });

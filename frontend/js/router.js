@@ -44,12 +44,15 @@ let hasNavigated = false;
 
 // In-app navigation depth — number of soft-nav forward steps we've
 // taken since landing in this document. Each forward navigate() bumps
-// it; popstate (back/forward) decrements. Exposed so back-gesture
-// handlers can tell whether history.back() would stay inside the app
-// shell (depth > 0) or would land somewhere else — most notably
-// /login, the only common entry route into a fresh shell document.
-// The B/Circle controller button refuses to go back when depth is 0
-// so the user never gets bounced out to /login by accident.
+// it; back/forward popstate restores it from the entry's stamped
+// depth (stamping survives the Back→Forward round-trip, which a plain
+// decrement did not). Exposed so back-gesture handlers can tell
+// whether history.back() would stay inside the app shell (depth > 0)
+// or would land somewhere else — most notably /login, the only common
+// entry route into a fresh shell document. The B/Circle controller
+// button refuses to go back when depth is 0 so the user never gets
+// bounced out to /login by accident.
+const DEPTH_KEY = "retroxDepth";
 let _navDepth = 0;
 export function canGoBackInApp() { return _navDepth > 0; }
 
@@ -95,12 +98,15 @@ function onLinkClick(e) {
   navigate(url.pathname + url.search + url.hash);
 }
 
-function onPopState() {
-  // Browser back/forward; URL has already updated. Re-mount the page
-  // for the new path without pushing another history entry. Depth
-  // decrements one step toward 0 — back outside the shell would have
-  // already left the document by the time popstate fires.
-  if (_navDepth > 0) _navDepth -= 1;
+function onPopState(e) {
+  // Browser back/forward; URL has already updated. Restore the depth
+  // from the entry's stamp (back AND forward both land here), falling
+  // back to a decrement for entries pushed before this scheme existed.
+  if (e.state && typeof e.state[DEPTH_KEY] === "number") {
+    _navDepth = Math.max(0, e.state[DEPTH_KEY]);
+  } else if (_navDepth > 0) {
+    _navDepth -= 1;
+  }
   navigate(location.pathname + location.search + location.hash, { replace: true });
 }
 
@@ -173,11 +179,12 @@ export async function navigate(target, { replace = false } = {}) {
   await mergeStylesheets(doc);
 
   // History push BEFORE module re-import so the module sees the new
-  // location.pathname when it reads it at top level.
+  // location.pathname when it reads it at top level. Entries carry the
+  // post-push depth so popstate can restore it in either direction.
   if (replace) {
-    history.replaceState(null, "", path);
+    history.replaceState(history.state, "", path);
   } else {
-    history.pushState(null, "", path);
+    history.pushState({ [DEPTH_KEY]: _navDepth + 1 }, "", path);
     _navDepth += 1;
   }
   if (newTitle) document.title = newTitle;

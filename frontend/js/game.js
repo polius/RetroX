@@ -574,7 +574,7 @@ function openPlayPicker(continueSlot) {
         row.type = "button";
         row.className = `slot-row${existing ? " slot-row--filled" : ""}`;
         if (existing) {
-          const isContinue = continueSlot === n;
+          const isContinue = continueSlot?.slot === n;
           const tags = `
             <span class="slot-row__tags">
               ${existing.has_save  ? `<span class="slot-tag slot-tag--save"  title="Battery save — your in-game progress">SAVE</span>`  : ""}
@@ -806,8 +806,8 @@ function shouldAutoFocusPlay() {
 
 
 async function downloadFile(path, filename) {
+  // api.raw() already throws on non-2xx via handle().
   const r = await api.raw(path);
-  if (!r.ok) throw new Error("Slot file not found");
   const blob = await r.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

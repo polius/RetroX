@@ -71,7 +71,7 @@ document.querySelectorAll(".admin-tabs .chip").forEach(c => {
   c.addEventListener("click", (e) => {
     e.preventDefault();
     active = c.dataset.tab;
-    history.replaceState(null, "", `/admin/${active}`);
+    history.replaceState(history.state, "", `/admin/${active}`);
     document.querySelectorAll(".admin-tabs .chip").forEach(x => x.setAttribute("aria-pressed", x.dataset.tab === active ? "true" : "false"));
     render();
   });
@@ -81,17 +81,23 @@ document.querySelectorAll(".admin-tabs .chip").forEach(c => {
 // needs — keeping that surface small makes it obvious what cross-tab
 // dependencies exist (in practice: just the palette cache invalidation
 // from library, and the sidebar collection refresh from collections).
+// isStale lets async renders bail when the user has already switched
+// tabs, so a slow fetch can't overwrite the active pane.
+let tabToken = 0;
+
 function render() {
+  const token = ++tabToken;
+  const isStale = () => token !== tabToken;
   if (active === "users") {
-    usersTab.render({ pane, me });
+    usersTab.render({ pane, me, isStale });
   } else if (active === "library") {
-    libraryTab.render({ pane, invalidatePalette: invalidatePaletteCache });
+    libraryTab.render({ pane, invalidatePalette: invalidatePaletteCache, isStale });
   } else if (active === "emulators") {
-    emulatorsTab.render({ pane });
+    emulatorsTab.render({ pane, isStale });
   } else if (active === "collections") {
-    collectionsTab.render({ pane, refreshCollections });
+    collectionsTab.render({ pane, refreshCollections, isStale });
   } else if (active === "saves") {
-    savesTab.render({ pane, me });
+    savesTab.render({ pane, me, isStale });
   }
 }
 render();

@@ -18,10 +18,12 @@ const TAB_DESCRIPTION =
 let firstLoad = true;
 let pane = null;
 let refreshSidebarCollections = () => {};
+let isStale = () => false;
 
 export async function render(ctx) {
   pane = ctx.pane;
   refreshSidebarCollections = ctx.refreshCollections || (() => {});
+  isStale = ctx.isStale || (() => false);
   return renderCollections();
 }
 
@@ -38,6 +40,7 @@ async function renderCollections() {
 
   // Full library — the picker must offer every game.
   const games = await api.allGames();
+  if (isStale()) return;
 
   pane.innerHTML = `
     <div class="admin-section-head">

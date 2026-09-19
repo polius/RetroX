@@ -118,6 +118,12 @@ function followSyncPillParent(el) {
 function injectPairButton(onClick) {
   if (document.getElementById(PAIR_BUTTON_ID)) return null;
 
+  // Everything that outlives the click handler (observers, listeners,
+  // the relocated pill itself) registers a cleanup here so a soft-nav
+  // away from the player can tear the whole pill down.
+  const cleanups = [];
+  const track = (fn) => cleanups.push(fn);
+
   const btn = document.createElement("button");
   btn.id = PAIR_BUTTON_ID;
   btn.type = "button";
@@ -172,7 +178,7 @@ function injectPairButton(onClick) {
   // Initial mount on body; followSyncPillParent moves it into the
   // sync pill's current parent immediately and on every fullscreenchange.
   document.body.appendChild(btn);
-  followSyncPillParent(btn);
+  track(followSyncPillParent(btn));
 
   // Position the pill immediately to the LEFT of the Controls pill
   // (#controller-bindings-btn). The Controls pill itself sits to the
@@ -201,23 +207,29 @@ function injectPairButton(onClick) {
   // the Controls pill's appearance.
   const controlsEl = document.getElementById("controller-bindings-btn");
   if (controlsEl) {
-    new MutationObserver(positionRight).observe(controlsEl, {
+    const obs = new MutationObserver(positionRight);
+    obs.observe(controlsEl, {
       attributes: true, childList: true, subtree: true, characterData: true,
     });
+    track(() => obs.disconnect());
   } else {
     const obs = new MutationObserver(() => {
       const fresh = document.getElementById("controller-bindings-btn");
       if (fresh) {
         positionRight();
-        new MutationObserver(positionRight).observe(fresh, {
+        const freshObs = new MutationObserver(positionRight);
+        freshObs.observe(fresh, {
           attributes: true, childList: true, subtree: true, characterData: true,
         });
+        track(() => freshObs.disconnect());
         obs.disconnect();
       }
     });
     obs.observe(document.body, { childList: true, subtree: true });
+    track(() => obs.disconnect());
   }
   window.addEventListener("resize", positionRight);
+  track(() => window.removeEventListener("resize", positionRight));
 
   // Mirror the back button's auto-fade behavior — player.js fades
   // `.player__back` after 3s of pointer idleness. Observe that class
@@ -229,7 +241,9 @@ function injectPairButton(onClick) {
       btn.style.opacity = faded ? "0" : "1";
       btn.style.pointerEvents = faded ? "none" : "auto";
     };
-    new MutationObserver(syncFade).observe(backEl, { attributes: true, attributeFilter: ["class"] });
+    const fadeObs = new MutationObserver(syncFade);
+    fadeObs.observe(backEl, { attributes: true, attributeFilter: ["class"] });
+    track(() => fadeObs.disconnect());
     syncFade();
   }
 
@@ -297,7 +311,16 @@ function injectPairButton(onClick) {
       lastPaired = false;
     }
   }
-  return { setState };
+  return {
+    setState,
+    destroy() {
+      for (const fn of cleanups) {
+        try { fn(); } catch { /* teardown is best-effort */ }
+      }
+      cleanups.length = 0;
+      btn.remove();
+    },
+  };
 }
 
 /* ---------- Pairing modal ---------- */
@@ -317,9 +340,13 @@ function injectPairButton(onClick) {
  *                  also calls onDisconnect.
  */
 function buildModal({ code, expiresIn, onHide, onDisconnect }) {
-  // Backdrop + card. CSS is inline for the same drop-in reason.
+  // Backdrop + card. CSS is inline for the same drop-in reason. The
+  // .modal-backdrop class marks this as a blocking modal so gamepad-nav's
+  // B gesture and play.js's Escape guard treat it as one (it has no
+  // class of its own otherwise).
   const wrap = document.createElement("div");
   wrap.id = MODAL_ID;
+  wrap.className = "modal-backdrop";
   wrap.style.cssText = `
     position: fixed;
     inset: 0;
@@ -820,4 +847,14 @@ function makePairClickHandler(pillHandle) {
   let clickHandler;
   const pillHandle = injectPairButton(() => clickHandler?.());
   clickHandler = makePairClickHandler(pillHandle);
+
+  // A soft-nav away from the player (in-place overlay on /game) leaves
+  // the emulator behind — tear down the pairing session and the pill
+  // so neither floats over the next page nor keeps a dead WS open.
+  // The player pages are hard-nav-only routes, so a single navigation
+  // event is all the teardown this module ever needs.
+  window.addEventListener("retrox:navigated", () => {
+    activeSession?.disconnect("host-end");
+    pillHandle?.destroy();
+  }, { once: true });
 })();

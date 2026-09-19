@@ -22,10 +22,12 @@ let cacheBust = Date.now();
 
 let pane = null;
 let invalidatePalette = () => {};
+let isStale = () => false;
 
 export async function render(ctx) {
   pane = ctx.pane;
   invalidatePalette = ctx.invalidatePalette || (() => {});
+  isStale = ctx.isStale || (() => false);
   return renderLibrary();
 }
 
@@ -46,6 +48,7 @@ async function renderLibrary() {
     toast.fromError(err, "Couldn't load library");
     return;
   }
+  if (isStale()) return;
   games.sort((a, b) => a.system.localeCompare(b.system) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
   pane.innerHTML = `
     <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:16px">${TAB_DESCRIPTION}</p>
