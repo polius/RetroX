@@ -55,6 +55,14 @@ def _slugs(db: Session, game_ids: list[str]) -> dict[str, str]:
     return {r[0]: r[1] for r in rows}
 
 
+def _search_names(db: Session) -> dict[str, tuple[str, str]]:
+    """Per-game (display_name, slug) for LibraryIndex.search matching."""
+    return {
+        m.game_id: (m.display_name or "", m.slug or "")
+        for m in db.query(GameMeta.game_id, GameMeta.display_name, GameMeta.slug).all()
+    }
+
+
 router = APIRouter(prefix="/api/games", tags=["games"])
 
 
@@ -203,7 +211,7 @@ def list_games(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> GameListResponse:
-    games = library.index.search(q)
+    games = library.index.search(q, _search_names(db) if q else None)
     if system:
         games = [g for g in games if g.system == system]
     if collection is not None:
@@ -434,19 +442,36 @@ def _ranged_file_response(request: Request, path: Path) -> Response:
     if not path.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "ROM file not found.")
 
-    # Decompress .gz on the fly so EmulatorJS receives raw ROM data
+    # Decompress .gz on the fly so EmulatorJS receives raw ROM data. The
+    # inflated bytes are cached on disk keyed by (name, size, mtime) and
+    # served via FileResponse, which handles Range natively — otherwise
+    # every seek re-downloads and re-decompresses the whole ROM.
     if path.suffix.lower() == ".gz":
         import gzip
+        import hashlib
 
         stat = path.stat()
         etag = f'"{stat.st_size:x}-{int(stat.st_mtime):x}-gz"'
         if request.headers.get("if-none-match") == etag:
             return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers={"ETag": etag})
-        data = gzip.decompress(path.read_bytes())
-        return Response(
-            content=data,
+
+        cache_dir = settings.rom_cache_dir
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        name_key = hashlib.sha256(path.name.encode()).hexdigest()[:16]
+        key = hashlib.sha256(f"{path.name}:{stat.st_size}:{int(stat.st_mtime)}".encode()).hexdigest()
+        cached = cache_dir / f"{name_key}-{key}.rom"
+        if not cached.is_file():
+            tmp = cache_dir / f"{name_key}-{key}.tmp"
+            tmp.write_bytes(gzip.decompress(path.read_bytes()))
+            tmp.replace(cached)
+            # Drop superseded entries for this ROM (old size/mtime keys).
+            for stale in cache_dir.glob(f"{name_key}-*.rom"):
+                if stale != cached:
+                    stale.unlink(missing_ok=True)
+        return FileResponse(
+            cached,
             media_type="application/octet-stream",
-            headers={"ETag": etag, "Content-Length": str(len(data))},
+            headers={"ETag": etag, "Accept-Ranges": "bytes"},
         )
 
     stat = path.stat()

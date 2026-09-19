@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -20,11 +20,11 @@ class CollectionOut(BaseModel):
 
 
 class CollectionCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
 
 
 class CollectionUpdate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
 
 
 class CollectionGamesUpdate(BaseModel):
@@ -57,10 +57,13 @@ def create_collection(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    existing = db.query(Collection).filter(Collection.name == body.name.strip()).first()
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(400, "Collection name cannot be empty.")
+    existing = db.query(Collection).filter(Collection.name == name).first()
     if existing:
         raise HTTPException(409, "A collection with that name already exists.")
-    c = Collection(name=body.name.strip())
+    c = Collection(name=name)
     db.add(c)
     db.commit()
     db.refresh(c)
@@ -82,7 +85,17 @@ def update_collection(
     c = db.get(Collection, collection_id)
     if not c:
         raise HTTPException(404, "Collection not found.")
-    c.name = body.name.strip()
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(400, "Collection name cannot be empty.")
+    duplicate = (
+        db.query(Collection)
+        .filter(Collection.name == name, Collection.id != collection_id)
+        .first()
+    )
+    if duplicate:
+        raise HTTPException(409, "A collection with that name already exists.")
+    c.name = name
     db.commit()
     count = db.query(CollectionGame).filter(CollectionGame.collection_id == c.id).count()
     return CollectionOut(

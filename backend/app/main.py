@@ -235,7 +235,13 @@ def create_app() -> FastAPI:
             from fastapi import HTTPException
 
             core_path = (settings.cores_dir / filename).resolve()
-            if core_path.is_file() and str(core_path).startswith(str(settings.cores_dir.resolve())):
+            try:
+                # relative_to, not a prefix compare: "../cores-secret/x" also
+                # starts with the cores prefix as a string but escapes the dir.
+                core_path.relative_to(settings.cores_dir.resolve())
+            except ValueError:
+                raise HTTPException(404, "Core not found.") from None
+            if core_path.is_file():
                 return FileResponse(core_path, headers={"Cache-Control": "public, max-age=86400"})
             raise HTTPException(404, "Core not found.")
 

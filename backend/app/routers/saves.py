@@ -98,7 +98,7 @@ def upsert_slot(
     slot: int,
     save: UploadFile | None = File(default=None),
     state: UploadFile | None = File(default=None),
-    name: str | None = Form(default=None),
+    name: str | None = Form(default=None, max_length=128),
     x_slot_generation: str | None = Header(default=None, alias="X-Slot-Generation"),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
