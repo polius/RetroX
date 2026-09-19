@@ -1,0 +1,4 @@
+# Test-only dependencies (installed alongside requirements.txt in CI):
+#   pip install -r requirements.txt -r requirements-dev.txt
+httpx==0.28.1
+pytest==8.4.2
