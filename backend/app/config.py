@@ -58,6 +58,12 @@ class Settings(BaseSettings):
         return self.data_dir / "cores"
 
     @property
+    def rom_cache_dir(self) -> Path:
+        # Decompressed .gz ROMs, keyed by source (name, size, mtime) so
+        # repeated seeks serve straight from disk instead of re-inflating.
+        return self.data_dir / ".rom-cache"
+
+    @property
     def db_path(self) -> Path:
         return self.data_dir / "retrox.db"
 

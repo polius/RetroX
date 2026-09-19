@@ -242,7 +242,7 @@ The whole app is gamepad-first — browse the library, search, manage saves, and
 
 ## Covers & Metadata
 
-Edit metadata in **AdSmin → Library → Edit game**.
+Edit metadata in **Admin → Library → Edit game**.
 
 A great source of cover art and game info: [LaunchBox Games Database](https://gamesdb.launchbox-app.com/).
 

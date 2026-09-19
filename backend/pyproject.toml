@@ -12,3 +12,5 @@ ignore = ["B008"]  # FastAPI Depends() in defaults is idiomatic
 
 [tool.ruff.lint.per-file-ignores]
 "app/__init__.py" = ["F401"]
+# conftest.py must set env vars before any app import.
+"tests/conftest.py" = ["E402"]

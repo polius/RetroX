@@ -261,6 +261,16 @@ class AdminLibraryStatus(BaseModel):
     scanned_at: UtcDatetime | None
 
 
+class GameMetaUpdateRequest(BaseModel):
+    """PATCH body for game metadata. Lengths mirror the admin UI's input
+    caps; release_date stays free-text (UI accepts "September 07, 2005").
+    Empty/whitespace strings are the UI's "clear this field" signal, so
+    name only caps length — the endpoint strips empties to None."""
+    name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    release_date: str | None = Field(default=None, max_length=32)
+
+
 # ---- Emulators ----
 
 class EmulatorSummary(BaseModel):

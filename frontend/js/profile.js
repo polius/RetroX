@@ -59,7 +59,7 @@ navEl.addEventListener("click", (e) => {
   if (!btn) return;
   active = btn.dataset.key;
   navEl.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", b.dataset.key === active ? "true" : "false"));
-  history.replaceState(null, "", `#${active}`);
+  history.replaceState(history.state, "", `#${active}`);
   renderSection();
 });
 
@@ -105,7 +105,7 @@ function renderAccount() {
 
 /* ---------- My Stats ---------- */
 
-async function renderMyStats() {
+async function renderMyStats(token) {
   paneEl.innerHTML = `<div style="padding:32px;text-align:center"><div class="spinner"></div></div>`;
   let stats = [];
   try {
@@ -113,6 +113,7 @@ async function renderMyStats() {
   } catch {
     stats = [];
   }
+  if (token !== sectionToken) return;
 
   if (!stats.length) {
     paneEl.innerHTML = `
@@ -192,10 +193,11 @@ async function renderMyStats() {
 
 /* ---------- My Saves ---------- */
 
-async function renderMySaves() {
+async function renderMySaves(token) {
   paneEl.innerHTML = `<div style="padding:32px;text-align:center"><div class="spinner"></div></div>`;
   let allSlots = [];
   try { allSlots = await api.get("/profile/saves"); } catch { allSlots = []; }
+  if (token !== sectionToken) return;
 
   if (!allSlots.length) {
     paneEl.innerHTML = `
@@ -302,7 +304,7 @@ async function renderMySaves() {
             saveCache.delete(me.username, gameId, slotNum).catch(() => {});
           }
           toast.success("Save deleted");
-          renderMySaves();
+          renderMySaves(sectionToken);
         } catch (err) { toast.fromError(err, "Delete failed"); }
       });
     });
@@ -669,13 +671,18 @@ async function disable2fa() {
 
 /* ---------- dispatch ---------- */
 
+// Incremented per render; async renders bail if their token went stale,
+// so a slow fetch can't overwrite the currently-active pane.
+let sectionToken = 0;
+
 function renderSection() {
   // Tear down the bindings mount before swapping panes — its document
   // keydown listener and rAF loop would otherwise leak across visits.
   if (_bindingsHandle) { _bindingsHandle.destroy(); _bindingsHandle = null; }
+  const token = ++sectionToken;
   if (active === "account") renderAccount();
-  else if (active === "stats") renderMyStats();
-  else if (active === "saves") renderMySaves();
+  else if (active === "stats") renderMyStats(token);
+  else if (active === "saves") renderMySaves(token);
   else if (active === "security") renderSecurity();
   else if (active === "controls") renderControls();
 }

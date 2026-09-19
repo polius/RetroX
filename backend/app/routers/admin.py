@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 from datetime import UTC, datetime
@@ -40,6 +41,7 @@ from ..models.schemas import (
     EmulatorCreateRequest,
     EmulatorSummary,
     EmulatorUpdateRequest,
+    GameMetaUpdateRequest,
 )
 from ..security import hash_password
 from ..services import recovery as recovery_service
@@ -425,7 +427,15 @@ def list_games_admin(
     db: Session = Depends(get_db),
 ) -> list[dict]:
     """Listing for the admin Library tab; includes save counts per game."""
-    games = library.index.search(q)
+    # Match display names/slugs too, mirroring the public /api/games search.
+    search_names = (
+        {
+            m.game_id: (m.display_name or "", m.slug or "")
+            for m in db.query(GameMeta.game_id, GameMeta.display_name, GameMeta.slug).all()
+        }
+        if q else None
+    )
+    games = library.index.search(q, search_names)
     counts: dict[str, dict[str, int]] = {}
     names: dict[str, str] = {}
     descriptions: dict[str, str] = {}
@@ -475,32 +485,31 @@ def list_games_admin(
 @router.patch("/games/{game_id}/name", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 def update_game_meta(
     game_id: str,
-    payload: dict,
+    payload: GameMetaUpdateRequest,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> Response:
     game = library.index.get(game_id)
     if game is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Game not found.")
-    name = (payload.get("name") or "").strip() or None
-    description = payload.get("description")
-    if isinstance(description, str):
-        description = description.strip() or None
+    sent = payload.model_fields_set
+    name = payload.name.strip() if isinstance(payload.name, str) else None
+    description = payload.description.strip() if isinstance(payload.description, str) else None
+    release_date = payload.release_date.strip() if isinstance(payload.release_date, str) else None
 
     meta = db.query(GameMeta).filter(GameMeta.game_id == game_id).first()
     if meta is None:
         meta = GameMeta(game_id=game_id)
         db.add(meta)
-    if "name" in payload:
+    if "name" in sent:
         meta.display_name = name
         # Regenerate slug from new display name (or original game name)
         display = name or game.name
         meta.slug = regenerate_slug(db, game_id, display, game.system)
-    if "description" in payload:
+    if "description" in sent:
         meta.description = description
-    if "release_date" in payload:
-        rd = payload.get("release_date")
-        meta.release_date = rd.strip() if isinstance(rd, str) and rd.strip() else None
+    if "release_date" in sent:
+        meta.release_date = release_date or None
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -703,7 +712,15 @@ def download_save_file(
 
     if not path.is_file():
         raise HTTPException(404, f"No {file_type} file for this slot.")
-    return FR(path, media_type="application/octet-stream")
+    # Attachment hint with a readable name — browsers otherwise derive a
+    # generic name from the URL. Keep it filesystem-safe across OSes.
+    safe_game = re.sub(r"[^A-Za-z0-9._-]+", "_", slot.game_id)
+    filename = f"{safe_game}_slot{slot.slot}.{file_type}"
+    return FR(
+        path,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.delete("/saves/{save_id}", status_code=status.HTTP_204_NO_CONTENT)

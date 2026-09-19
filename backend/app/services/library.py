@@ -65,11 +65,21 @@ class LibraryIndex:
     def get(self, game_id: str) -> Game | None:
         return self.games.get(game_id)
 
-    def search(self, query: str | None) -> list[Game]:
+    def search(
+        self, query: str | None, extra_names: dict[str, tuple[str, str]] | None = None,
+    ) -> list[Game]:
+        """Filter by query against the filesystem name, plus the optional
+        per-game (display_name, slug) metadata the DB layer knows about."""
         items = list(self.games.values())
         if query:
             q = query.lower()
-            items = [g for g in items if q in g.name.lower()]
+            meta = extra_names or {}
+            items = [
+                g for g in items
+                if q in g.name.lower()
+                or q in meta.get(g.id, ("", ""))[0].lower()
+                or q in meta.get(g.id, ("", ""))[1].lower()
+            ]
         items.sort(key=lambda g: (g.system, g.name.lower()))
         return items
 

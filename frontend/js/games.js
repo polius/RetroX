@@ -377,6 +377,12 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true,
     didInitialFocus = true;
     focusFirstCard();
   }
+  // Soft-nav re-imports this module with a fresh instance each time —
+  // swap the previous instance's listener out so they don't pile up.
+  if (window.__retroxGamepadFocusHandler) {
+    window.removeEventListener("gamepadconnected", window.__retroxGamepadFocusHandler);
+  }
+  window.__retroxGamepadFocusHandler = lateAutoFocus;
   window.addEventListener("gamepadconnected", lateAutoFocus);
   const pollDeadline = Date.now() + 3000;
   const pollId = setInterval(() => {

@@ -36,7 +36,9 @@ import { hatDpad } from "./gamepad-hat.js";
 const params = new URLSearchParams(location.search);
 const slug = location.pathname.replace(/^\/play\/?/, "") || params.get("id");
 const requestedSlot = parseInt(params.get("slot"), 10);
-const requestedDisk = parseInt(params.get("disk") || "1", 10);
+const parsedDisk = parseInt(params.get("disk") || "1", 10);
+// `?disk=abc` parses to NaN — fall back to disk 1 instead of leaking NaN into the ROM URL.
+const requestedDisk = Number.isInteger(parsedDisk) && parsedDisk >= 1 ? parsedDisk : 1;
 
 if (!slug) {
   document.body.textContent = "Missing game id.";
@@ -79,7 +81,16 @@ const goBack = () => {
 };
 
 document.getElementById("back-btn").addEventListener("click", goBack);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") goBack(); });
+
+function isPlayerModalOpen() {
+  return !!document.querySelector(".modal-backdrop, .palette-backdrop");
+}
+// Escape must not hard-navigate out of the game while an in-player dialog
+// (overwrite confirm, sync pill, phone pairing…) is open — that dialog's
+// own Escape handler owns the keypress.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !isPlayerModalOpen()) goBack();
+});
 
 /* ============ Player chrome: back button + status pill + play hint ============
  *
@@ -1012,9 +1023,6 @@ setTimeout(() => {
     load_state:   userBindings.load_state   || KEYBOARD_DEFAULTS.load_state,
     exit_game:    userBindings.exit_game    || KEYBOARD_DEFAULTS.exit_game,
   };
-  function isPlayerModalOpen() {
-    return !!document.querySelector(".modal-backdrop, .palette-backdrop");
-  }
   /* Capture-phase listeners — keep player shortcuts working regardless of
    * what currently has focus. Without `useCapture=true` here, if focus
    * has drifted onto a `<button>` (e.g. the Controls pill, or a focused

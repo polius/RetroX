@@ -22,10 +22,12 @@ let gamesCache = null;
 
 let pane = null;
 let me = null;
+let isStale = () => false;
 
 export async function render(ctx) {
   pane = ctx.pane;
   me = ctx.me;
+  isStale = ctx.isStale || (() => false);
   return renderSaves();
 }
 
@@ -51,6 +53,7 @@ async function renderSaves() {
     await ensureGamesCache();
     saves = await api.get("/admin/saves");
   } catch (err) { toast.fromError(err, "Couldn't load saves"); return; }
+  if (isStale()) return;
 
   const gameIndex = gamesCache || [];
   const gameMap = new Map(gameIndex.map(g => [g.id, g]));
