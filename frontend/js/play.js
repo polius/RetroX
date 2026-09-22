@@ -30,6 +30,7 @@ import {
   KEYBOARD_DEFAULTS,
 } from "./bindings-defaults.js";
 import { hatDpad } from "./gamepad-hat.js";
+import { initTouchLayout } from "./touch-layout.js";
 
 /* ============ URL parsing ============ */
 
@@ -1244,7 +1245,11 @@ async function onGameStart() {
   // buttons first so the alignment math measures the final (post-
   // rewire) layout.
   customizeSpeedButtons();
-  installVirtualGamepadAlignment();
+  // Touch layout editor (pill + drag-to-reposition). Needs the final
+  // post-rewire controls, so it runs after the two calls above; it takes
+  // the alignment hook so stock layout and custom layout hand over cleanly.
+  const alignment = installVirtualGamepadAlignment();
+  initTouchLayout({ serverPrefs: prefs, realign: alignment?.reapply });
   // The audio context is now live. Try unlocking once immediately —
   // if the user already interacted while EJS was loading (sticky
   // activation acquired), this succeeds with no popup, no hint.
@@ -1407,6 +1412,9 @@ function installVirtualGamepadAlignment() {
     const right  = pad?.querySelector(".ejs_virtualGamepad_right");
     const bottom = pad?.querySelector(".ejs_virtualGamepad_bottom");
     if (!pad || !left || !right || !bottom) return;
+    // A user-customized layout owns control placement; re-measuring would
+    // read the moved controls back as input and corrupt the cluster vars.
+    if (pad.classList.contains("rx-vpad-custom")) return;
 
     const leftBox   = measureContent(left);
     const rightBox  = measureContent(right);
@@ -1486,6 +1494,7 @@ function installVirtualGamepadAlignment() {
     window.addEventListener("resize", apply);
     window.addEventListener("orientationchange", apply);
   }
+  return { reapply: apply };
 }
 
 /* ============ Exit handlers ============ */

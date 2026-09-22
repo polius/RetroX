@@ -241,6 +241,18 @@ def main():
             print(f"setup error: {e}", file=sys.stderr)
             sys.exit(2)
 
+        # This test pins the STOCK (uncustomized) virtual gamepad geometry.
+        # The touch-layout feature syncs a customized layout to the account,
+        # so clear it first — a fresh user is the contract here.
+        r = page.context.request.put(
+            f"{BASE}/api/profile/preferences",
+            data={"data": {"touch_layout": {"layouts": {}}}},
+            headers={"Origin": BASE},
+        )
+        if r.status >= 300:
+            print(f"setup error: prefs cleanup failed: HTTP {r.status}", file=sys.stderr)
+            sys.exit(2)
+
         # Direct navigation — mirrors the deep link the user typed.
         page.goto(f"{BASE}/play/{SLUG}?slot=1")
 

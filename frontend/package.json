@@ -6,7 +6,7 @@
   "description": "Lint config for RetroX's vanilla-JS frontend. Backend code lives under /backend with its own pyproject.toml; this package.json exists solely to wire ESLint up for the JS in this directory.",
   "scripts": {
     "lint": "eslint js",
-    "test": "node --test tests/jsdom/controller-host.test.mjs tests/jsdom/pair.test.mjs tests/jsdom/router.test.mjs"
+    "test": "node --test tests/jsdom/controller-host.test.mjs tests/jsdom/pair.test.mjs tests/jsdom/router.test.mjs tests/jsdom/touch-layout.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
