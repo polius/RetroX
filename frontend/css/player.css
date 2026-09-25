@@ -178,10 +178,22 @@
  * regular CSS rule wins without `!important`. */
 @media (max-width: 480px) {
   #ctrlbind-label,
-  #controller-pair-label { display: none; }
+  #controller-pair-label,
+  #touchlayout-label { display: none; }
   #controller-bindings-btn,
   #controller-pair-btn,
+  #touch-layout-btn,
   .player__status { padding: 10px 12px; }
+  /* Portrait phones: the Layout pill drops below the pill row so four
+   * pills + Back never collide, and the sync label truncates cleanly. */
+  #touch-layout-btn { top: 76px; }
+  .player__status { max-width: 148px; }
+}
+.player__status__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* ---------------- Save details dialog ---------------- */
@@ -427,5 +439,280 @@
   }
   .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_slow { left: 0 !important; }
   .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button.b_speed_fast { left: 70px !important; }
+}
+
+/* ---------------- Virtual gamepad: custom user layout ----------------
+ *
+ * touch-layout.js lets the user drag every control wherever they want.
+ * Per-control positions arrive as --rx-x-<id>/--rx-y-<id> custom
+ * properties from !important rules generated into #rx-vpad-style (the
+ * dynamic sheet wins the cascade over both EJS's inline styles and the
+ * landscape rules above). Scale rides on a transform so layout geometry
+ * — and with it the drag math — stays untouched. Gated behind
+ * .rx-vpad-custom so the stock layout is pixel-identical when the user
+ * has never customized. */
+.ejs_virtualGamepad_parent.rx-vpad-custom {
+  /* Fill the player in both orientations so pinned clusters resolve
+   * against the viewport origin, not the default bottom-hugging strip. */
+  inset: 0 !important;
+  opacity: var(--rx-vpad-opacity, 1);
+}
+/* Custom/editing controls float above EJS's own chrome (menu bar is
+ * z 9999) so a parked control never becomes un-grabbable under it. The
+ * pad box itself never intercepts — only the controls do. */
+.ejs_virtualGamepad_parent.rx-vpad-custom,
+.ejs_virtualGamepad_parent.rx-vpad-editing {
+  z-index: 10000;
+  pointer-events: none;
+}
+.ejs_virtualGamepad_parent.rx-vpad-custom .ejs_virtualGamepad_button,
+.ejs_virtualGamepad_parent.rx-vpad-custom .ejs_dpad_main {
+  pointer-events: auto;
+}
+.ejs_virtualGamepad_parent.rx-vpad-custom .rx-vpad-pin {
+  top: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+.ejs_virtualGamepad_parent.rx-vpad-custom .ejs_dpad_main {
+  /* Its cluster is pinned to 0x0, so the 100%-of-cluster sizing collapses. */
+  width: 125px !important;
+  height: 125px !important;
+}
+.ejs_virtualGamepad_parent.rx-vpad-noanim .ejs_virtualGamepad_button,
+.ejs_virtualGamepad_parent.rx-vpad-noanim .ejs_dpad_main {
+  transition: none !important;
+}
+.ejs_virtualGamepad_parent.rx-vpad-custom .ejs_virtualGamepad_button,
+.ejs_virtualGamepad_parent.rx-vpad-custom .ejs_dpad_main {
+  transform: scale(var(--rx-vpad-scale, 1));
+  /* EJS ships `transition: all .2s` — left/top must move instantly
+   * while dragging, so only feedback properties stay animated. */
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1.1), background-color .15s ease;
+}
+.ejs_virtualGamepad_parent.rx-vpad-custom.rx-vpad-square .ejs_virtualGamepad_button {
+  border-radius: 12px;
+}
+
+/* Editing affordances: a quiet solid ring around every grab box, lifted
+ * glow on the one being dragged. The dark scrim keeps controls readable
+ * over bright game frames. */
+.ejs_virtualGamepad_parent.rx-vpad-editing .rx-vpad-control {
+  cursor: grab;
+  touch-action: none;
+  outline: 2px solid rgba(255, 255, 255, .5);
+  outline-offset: 3px;
+  background-color: rgba(8, 10, 14, .5);
+}
+.ejs_virtualGamepad_parent.rx-vpad-editing .ejs_dpad_main.rx-vpad-control {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .1);
+}
+.ejs_virtualGamepad_parent.rx-vpad-editing .rx-vpad-control.rx-dragging {
+  cursor: grabbing;
+  z-index: 30;
+  transform: scale(calc(var(--rx-vpad-scale, 1) * 1.08));
+  outline: 2px solid rgba(255, 255, 255, .95);
+  outline-offset: 4px;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, .55));
+}
+
+/* ---------------- Touch-layout pill + editor panel ---------------- */
+
+.player__pill {
+  position: fixed;
+  top: 16px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font: 500 13px/1 var(--font-ui, system-ui), sans-serif;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: opacity 200ms ease, background 150ms ease;
+}
+.player__pill:hover { background: rgba(0, 0, 0, 0.85); }
+
+.rx-editor {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 58px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: max-content;
+  padding: 12px 44px 9px 16px;
+  max-width: min(96vw, 720px);
+  background: rgba(13, 16, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  color: #fff;
+  font: 500 13px/1 var(--font-ui, system-ui), sans-serif;
+  animation: rx-editor-in .18s ease-out;
+  transition: opacity .16s ease;
+}
+@keyframes rx-editor-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.97); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.rx-editor.rx-editor--hidden { display: none; }
+
+.rx-editor__collapse {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+.rx-editor__collapse:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.rx-editor--min .rx-editor__collapse { transform: rotate(180deg); }
+
+.rx-editor__main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.rx-editor__slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rx-editor__slider > span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+}
+.rx-editor__slider output {
+  min-width: 36px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.rx-editor input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 104px;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+.rx-editor input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.rx-editor input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.rx-editor input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.rx-editor input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.rx-editor__seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.rx-editor__seg button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.rx-editor__seg button.is-active {
+  background: var(--accent, #e5a00d);
+  color: #14161b;
+}
+.rx-editor__btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.rx-editor__btn:hover { background: rgba(255, 255, 255, 0.14); }
+.rx-editor__btn.is-active {
+  background: var(--accent-tint, rgba(229, 160, 13, 0.14));
+  border-color: var(--accent, #e5a00d);
+  color: var(--accent, #e5a00d);
+}
+.rx-editor--min .rx-editor__btn,
+.rx-editor--min .rx-editor__seg,
+.rx-editor--min .rx-editor__slider,
+.rx-editor--min .rx-editor__hint { display: none; }
+
+.rx-editor__done {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent, #e5a00d);
+  color: #14161b;
+  font: 600 13px/1 var(--font-ui, system-ui), sans-serif;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.rx-editor__done:hover { background: var(--accent-hover, #f5b94d); }
+.rx-editor__done:active { background: var(--accent-press, #c98a08); }
+
+.rx-editor__hint {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
 }
 

@@ -68,7 +68,8 @@ router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 # Whitelist of preference keys we accept. Keeps the surface area small even
 # though storage is opaque JSON.
-_PREF_KEYS = {"theme", "tv_mode", "reduce_motion", "keyboard_bindings", "gamepad_bindings"}
+_PREF_KEYS = {"theme", "tv_mode", "reduce_motion", "keyboard_bindings", "gamepad_bindings",
+              "touch_layout"}
 _PREF_THEMES = {"coral", "phosphor", "sunset", "ocean", "monochrome"}
 
 # Keyboard rebinding actions. Values are KeyboardEvent.code strings
@@ -293,6 +294,54 @@ def _sanitize_gamepad_bindings(value: object) -> dict | None:
     return out
 
 
+# Touch-layout storage: global options plus per-scheme+orientation maps of
+# control-id → percent-of-viewport center. Mirrors the frontend sanitizer in
+# touch-layout.js; caps keep the JSON column from becoming free-form storage.
+_TOUCH_LAYOUT_KEY_RE = re.compile(r"^[a-z0-9_-]{1,40}:(landscape|portrait)$")
+_TOUCH_CONTROL_ID_RE = re.compile(r"^[a-z0-9_]{1,24}$")
+
+
+def _sanitize_touch_layout(value: object) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    out: dict = {}
+    scale = value.get("scale")
+    if isinstance(scale, (int, float)) and not isinstance(scale, bool):
+        out["scale"] = round(min(1.8, max(0.6, float(scale))), 2)
+    opacity = value.get("opacity")
+    if isinstance(opacity, (int, float)) and not isinstance(opacity, bool):
+        out["opacity"] = round(min(1.0, max(0.25, float(opacity))), 2)
+    if value.get("shape") in ("round", "square"):
+        out["shape"] = value["shape"]
+    if isinstance(value.get("lefty"), bool):
+        out["lefty"] = value["lefty"]
+    layouts = value.get("layouts")
+    if isinstance(layouts, dict):
+        clean_layouts: dict = {}
+        for key, layout in list(layouts.items())[:32]:
+            if not isinstance(key, str) or not _TOUCH_LAYOUT_KEY_RE.match(key):
+                continue
+            if not isinstance(layout, dict):
+                continue
+            entries: dict = {}
+            for cid, pos in list(layout.items())[:100]:
+                if not isinstance(cid, str) or not _TOUCH_CONTROL_ID_RE.match(cid):
+                    continue
+                if not isinstance(pos, dict):
+                    continue
+                x, y = pos.get("x"), pos.get("y")
+                if (isinstance(x, (int, float)) and not isinstance(x, bool)
+                        and isinstance(y, (int, float)) and not isinstance(y, bool)):
+                    entries[cid] = {
+                        "x": round(min(100.0, max(0.0, float(x))), 2),
+                        "y": round(min(100.0, max(0.0, float(y))), 2),
+                    }
+            if entries:
+                clean_layouts[key] = entries
+        out["layouts"] = clean_layouts
+    return out
+
+
 def _sanitize_prefs(data: dict) -> dict:
     out: dict = {}
     for key in _PREF_KEYS:
@@ -313,6 +362,10 @@ def _sanitize_prefs(data: dict) -> dict:
             cleaned = _sanitize_gamepad_bindings(value)
             if cleaned is not None:
                 out["gamepad_bindings"] = cleaned
+        elif key == "touch_layout":
+            cleaned = _sanitize_touch_layout(value)
+            if cleaned is not None:
+                out["touch_layout"] = cleaned
     return out
 
 
