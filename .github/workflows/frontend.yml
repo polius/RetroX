@@ -19,7 +19,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          # jsdom 30 requires Node ^22.22.2 || ^24.15.0 || >=26.0.0.
+          # Node 20 crashes at import: its undici dependency calls
+          # worker_threads.markAsUncloneable, which doesn't exist there.
+          node-version: '24'
           cache: 'npm'
           # setup-node looks for a lockfile to compute the cache key.
           # We moved package-lock.json under frontend/, so point the
@@ -54,7 +57,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          # See the lint job above for why 24 and not 20.
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
