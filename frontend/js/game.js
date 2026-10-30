@@ -331,10 +331,22 @@ function render() {
             })()}
           </div>
           <div class="detail__actions">
-            <button class="btn btn--primary btn--lg" type="button" id="play-btn" data-gp-start>
-              ${icon("play", { size: 18 })}
-              <span>Play</span>
-            </button>
+            ${continueSlot ? `
+              <button class="btn btn--primary btn--lg" type="button" id="continue-btn" data-gp-start
+                      aria-label="Continue slot ${continueSlot.slot}">
+                ${icon("play", { size: 18 })}
+                <span>Continue</span>
+                <span class="btn__hint">Slot ${continueSlot.slot} · ${escapeHtml(relativeTime(continueSlot.updated_at) || formatLocal(continueSlot.updated_at))}</span>
+              </button>
+              <button class="btn btn--ghost btn--lg" type="button" id="play-btn">
+                <span>Choose slot</span>
+              </button>
+            ` : `
+              <button class="btn btn--primary btn--lg" type="button" id="play-btn" data-gp-start>
+                ${icon("play", { size: 18 })}
+                <span>Play</span>
+              </button>
+            `}
             <button class="btn ${isFav ? "btn--secondary" : "btn--ghost"}" type="button" id="fav-btn" data-gp-y>
               ${icon(isFav ? "heartFilled" : "heart", { size: 16 })}
               <span>${isFav ? "Favorited" : "Favorite"}</span>
@@ -370,7 +382,8 @@ function render() {
       <div class="slots__grid" data-nav-group
            data-nav-up="[data-gp-start], .detail__actions"
            data-nav-left=".sidebar">
-        ${[1, 2, 3, 4, 5].map(n => slotCardHTML(slotMap.get(n), n)).join("")}
+        ${[1, 2, 3, 4, 5].filter(n => slotMap.has(n)).map(n => slotCardHTML(slotMap.get(n), n)).join("")}
+        ${emptySlotsHTML([1, 2, 3, 4, 5].filter(n => !slotMap.has(n)))}
       </div>
     </section>
   `;
@@ -378,16 +391,25 @@ function render() {
   bindActions(continueSlot);
 }
 
+// Empty slots collapse into one tile: importing a save is the rare case,
+// and five big upload tiles used to dominate the page. Playing a new game
+// in an empty slot happens from "Choose slot".
+function emptySlotsHTML(empty) {
+  if (!empty.length) return "";
+  const n = empty[0];
+  const hint = empty.length === 5
+    ? "Play to create one, or import from another device"
+    : `${empty.length} empty slot${empty.length === 1 ? "" : "s"} · goes into slot ${n}`;
+  return `
+    <button class="slot slot--empty" type="button" data-slot="${n}" data-act="upload-new" aria-label="Import a save into slot ${n}">
+      ${icon("upload", { size: 22 })}
+      <span style="margin-top:6px;font-size:var(--fs-sm);font-weight:600">Import a save</span>
+      <span style="font-size:11px;color:var(--text-dim);margin-top:2px">${hint}</span>
+    </button>
+  `;
+}
+
 function slotCardHTML(s, n) {
-  if (!s) {
-    return `
-      <button class="slot slot--empty" type="button" data-slot="${n}" data-act="upload-new" aria-label="Upload save to slot ${n}">
-        ${icon("upload", { size: 22 })}
-        <span style="margin-top:6px;font-size:var(--fs-sm);font-weight:600">Slot ${n} — empty</span>
-        <span style="font-size:11px;color:var(--text-dim);margin-top:2px">Upload a save file</span>
-      </button>
-    `;
-  }
   return `
     <div class="slot" data-slot="${n}">
       <div class="slot__head">
@@ -400,6 +422,7 @@ function slotCardHTML(s, n) {
       <div class="slot__name">${escapeHtml(s.name || `Save slot ${n}`)}</div>
       <div class="slot__time">${escapeHtml(formatLocal(s.updated_at))}</div>
       <div class="slot__actions">
+        <button class="btn btn--primary" type="button" data-act="play" title="Play slot ${n}" aria-label="Play slot ${n}">${icon("play", { size: 14 })}</button>
         <button class="btn btn--ghost" type="button" data-act="rename" title="Rename">${icon("edit", { size: 14 })}</button>
         <button class="btn btn--ghost" type="button" data-act="download" title="Download save files">${icon("download", { size: 14 })}</button>
         <button class="btn btn--ghost" type="button" data-act="upload" title="Replace with file">${icon("upload", { size: 14 })}</button>
@@ -508,14 +531,16 @@ function bindActions(continueSlot) {
   });
 
   const playBtn = document.getElementById("play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => openPlayPicker(continueSlot));
-    // Auto-focus Play when shouldAutoFocusPlay() decides this arrival
-    // had no other meaningful focus to preserve (a card that's now
-    // gone, fresh page load, etc) AND the user is on a controller.
-    if (shouldAutoFocusPlay()) {
-      requestAnimationFrame(() => playBtn.focus({ preventScroll: true }));
-    }
+  const continueBtn = document.getElementById("continue-btn");
+  playBtn?.addEventListener("click", () => openPlayPicker(continueSlot));
+  // Resuming is the common case: one click, straight into the latest slot.
+  continueBtn?.addEventListener("click", () => startPlayInPlace(continueSlot.slot));
+  const primary = continueBtn || playBtn;
+  // Auto-focus the primary action when shouldAutoFocusPlay() decides this
+  // arrival had no other meaningful focus to preserve (a card that's now
+  // gone, fresh page load, etc) AND the user is on a controller.
+  if (primary && shouldAutoFocusPlay()) {
+    requestAnimationFrame(() => primary.focus({ preventScroll: true }));
   }
 
   const diskSelect = document.getElementById("disk-select");
@@ -532,7 +557,8 @@ function bindActions(continueSlot) {
       const act = btn.dataset.act;
       btn.addEventListener("click", (e) => {
         e.preventDefault();
-        if (act === "rename") renameSlot(n);
+        if (act === "play") startPlayInPlace(n);
+        else if (act === "rename") renameSlot(n);
         else if (act === "delete") deleteSlot(n);
         else if (act === "download") downloadSlot(n);
         else if (act === "upload") uploadSlot(n);

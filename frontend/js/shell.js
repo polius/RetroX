@@ -152,6 +152,11 @@ async function loadSystems() {
 }
 
 function renderSystems(systems, currentSystem) {
+  // Only systems that have games: an empty one is a dead end ("Nothing to
+  // show"), and on a fresh install it suggests content that isn't there.
+  // Keep the open one so a direct link still shows where you are. Admins
+  // see every system under Admin → Emulators.
+  systems = systems.filter((s) => s.count > 0 || s.system === currentSystem);
   if (!systems.length) return;
   const section = document.getElementById("systems-section");
   const divider = document.getElementById("systems-divider");
@@ -162,9 +167,10 @@ function renderSystems(systems, currentSystem) {
   total.textContent = "";
   nav.innerHTML = systems
     .sort((a, b) => (a.name || systemLabel(a.system)).localeCompare(b.name || systemLabel(b.system)))
-    .map(({ system, name }) => `
+    .map(({ system, name, count }) => `
       <a class="nav-item" href="/games?system=${encodeURIComponent(system)}" data-system="${system}">
         <span class="nav-item__label">${escapeHtml(name || systemLabel(system))}</span>
+        <span class="nav-item__count">${Number(count) || 0}</span>
       </a>
     `).join("");
   if (currentSystem) {
