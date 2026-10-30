@@ -107,11 +107,23 @@ document.getElementById("back-btn").addEventListener("click", goBack);
 function isPlayerModalOpen() {
   return !!document.querySelector(".modal-backdrop, .palette-backdrop");
 }
+// Keys belong to the user, not to player shortcuts, while they type in a
+// field (e.g. EmulatorJS's cheat code input) or while one of
+// EmulatorJS's own menus/popups is open (Esc there means "close menu").
+function keysBelongElsewhere(e) {
+  const t = e.target;
+  if (t && t.closest && t.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return true;
+  const emu = window.EJS_emulator;
+  try {
+    if (emu && (emu.settingsMenuOpen || emu.disksMenuOpen || emu.isPopupOpen?.())) return true;
+  } catch { /* menus not built yet */ }
+  return false;
+}
 // Escape must not hard-navigate out of the game while an in-player dialog
 // (overwrite confirm, sync pill, phone pairing…) is open — that dialog's
 // own Escape handler owns the keypress.
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !isPlayerModalOpen()) goBack();
+  if (e.key === "Escape" && !isPlayerModalOpen() && !keysBelongElsewhere(e)) goBack();
 });
 
 /* ============ Player chrome: back button + status pill + play hint ============
@@ -1084,7 +1096,7 @@ setTimeout(() => {
    * rewind direction — when the core doesn't have rewind compiled in,
    * Backspace falls back to fast forward to match the L2 fallback. */
   document.addEventListener("keydown", (e) => {
-    if (isPlayerModalOpen()) return;
+    if (isPlayerModalOpen() || keysBelongElsewhere(e)) return;
     if (e.code === KB.fast_forward) {
       e.preventDefault();
       setFastForward(true);
@@ -1117,6 +1129,7 @@ setTimeout(() => {
     }
   }, true);
   document.addEventListener("keyup", (e) => {
+    if (keysBelongElsewhere(e) && !fastForwardOn && !rewindOn) return;
     if (e.code === KB.fast_forward) {
       e.preventDefault();
       setFastForward(false);
@@ -1139,23 +1152,64 @@ setTimeout(() => {
     return gp.buttons.some(b => b && (typeof b === "object" ? b.pressed : b > 0.5));
   }
 
+  // RetroX's shortcuts (stick → D-pad, L2/R2 trick-play, Select combos)
+  // follow player 1's pad only. Every pad used to run through the same
+  // edge-detection state, so a second pad (local co-op, Steam Input's
+  // duplicate, a phantom HID device) reset pad 1's state every frame:
+  // fast-forward flickered, the stick mirror died, and player 2's stick
+  // moved player 1.
+  function playerOnePad(live) {
+    const selected = window.EJS_emulator?.gamepadSelection?.[0];
+    if (selected) {
+      const match = live.find((gp) => `${gp.id}_${gp.index}` === selected);
+      if (match) return match;
+    }
+    return live[0] || null;
+  }
+  let playerOneKey = null;
+  function releaseShortcutState() {
+    for (const name of ["left", "right", "up", "down"]) {
+      if (stickPressed[name]) {
+        const idx = name === "up" ? RETRO_UP : name === "down" ? RETRO_DOWN : name === "left" ? RETRO_LEFT : RETRO_RIGHT;
+        setStickButton(name, idx, false);
+      }
+    }
+    setFastForward(false);
+    setRewind(false);
+    prevLTrig = prevRTrig = false;
+    prev = {};
+    exitHoldSince = 0;
+  }
+
+  // Select+Start must be held to exit: a quick press is also part of the
+  // A+B+Start+Select soft-reset combo many GB/GBA games use.
+  const EXIT_HOLD_MS = 1000;
+  let exitHoldSince = 0;
+
   function poll() {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const live = Array.from(pads).filter(Boolean);
     // When a modal is open atop the player (sync dialog, conflict
     // resolver, command palette, etc.), gamepad-nav.js takes over —
     // we'd otherwise both fight for the same buttons AND the in-game
     // D-pad would react to inputs the user is using to navigate the
     // modal. Stop driving the emulator and reset our edge state.
     const modalOpen = !!document.querySelector(".modal-backdrop, .palette-backdrop");
-    for (const gp of pads) {
-      if (!gp) continue;
-      // Audio unlock — only on the rising edge of any button. The
-      // unlock poll handles the case where AL isn't ready yet.
-      if (!audioUnlocked) {
-        const downNow = gamepadHasAnyButtonDown(gp);
-        if (downNow && !prevAnyButtonDown) onUserInputForUnlock();
-        prevAnyButtonDown = downNow;
-      }
+    // Audio unlock — any pad, only on the rising edge of any button. The
+    // unlock poll handles the case where AL isn't ready yet.
+    if (!audioUnlocked) {
+      const downNow = live.some(gamepadHasAnyButtonDown);
+      if (downNow && !prevAnyButtonDown) onUserInputForUnlock();
+      prevAnyButtonDown = downNow;
+    }
+    const p1 = playerOnePad(live);
+    const p1Key = p1 ? `${p1.id}_${p1.index}` : null;
+    if (p1Key !== playerOneKey) {
+      // Pad unplugged or swapped: don't leave its inputs held.
+      if (playerOneKey !== null) releaseShortcutState();
+      playerOneKey = p1Key;
+    }
+    for (const gp of p1 ? [p1] : []) {
       if (modalOpen) {
         // Release any held in-game inputs and clear edge state so we
         // don't fire a delayed rising edge when the modal closes.
@@ -1168,18 +1222,31 @@ setTimeout(() => {
         setFastForward(false);
         setRewind(false);
         prev = {};
+        exitHoldSince = 0;
         continue;
       }
       // Mirror left analog stick onto the D-pad while the game is running.
       pollDirections(gp);
       // L2 / R2 hold → fast-forward / rewind, gated by per-emulator flags.
       pollTriggers(gp);
-      if (!held(gp, 8)) { prev = {}; continue; }
+      if (!held(gp, 8)) { prev = {}; exitHoldSince = 0; continue; }
       // Select-modifier combos. With Select held, the Y-axis buttons
       // become CHROME shortcuts (sync pill / back) and the shoulder
       // buttons become save-state shortcuts. Without Select, these
       // buttons all reach the emulator normally.
-      if (pressed(gp, 9)) { goBack(); return; }                              // Select + Start
+      if (held(gp, 9)) {                                                     // Select + Start (hold)
+        const now = performance.now();
+        if (!exitHoldSince) {
+          exitHoldSince = now;
+          toast.info("Keep holding to exit", "Select + Start", EXIT_HOLD_MS + 300);
+        } else if (now - exitHoldSince >= EXIT_HOLD_MS) {
+          exitHoldSince = 0;
+          goBack();
+          return;
+        }
+      } else {
+        exitHoldSince = 0;
+      }
       if (pressed(gp, 3)) {                                                  // Select + Y
         // Open the sync-status dialog. After this fires the modal is
         // up; gamepad-nav handles A/B/D-pad from there (see the

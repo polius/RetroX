@@ -174,7 +174,7 @@
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: var(--text-faint);
+  color: var(--text-dim);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
@@ -212,7 +212,7 @@
 .sidebar__label .total {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  color: var(--text-faint);
+  color: var(--text-dim);
   font-weight: 500;
   letter-spacing: 0.04em;
 }

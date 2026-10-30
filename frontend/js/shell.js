@@ -265,12 +265,22 @@ function bindTopbar() {
     });
   }
 
-  // Search field opens the palette on click/focus. The input is `readonly` so
-  // it never accepts text — clicks just trigger the palette overlay.
+  // Search field opens the palette on click or Enter/Space. The input is
+  // `readonly` so it never accepts text. Not on focus: Tab passes through
+  // it on the way to the page, and opening the palette there trapped
+  // keyboard users between the sidebar and the palette.
   const search = document.getElementById("topbar-search");
   if (search) {
-    search.addEventListener("focus", () => { openPalette(); search.blur(); });
     search.addEventListener("click", () => { openPalette(); });
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        // Stop here: the palette's own document-level Enter handler would
+        // otherwise see this same keypress and open the first result.
+        e.preventDefault();
+        e.stopPropagation();
+        openPalette();
+      }
+    });
   }
 
   // Mobile sidebar toggle

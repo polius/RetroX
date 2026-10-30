@@ -284,6 +284,13 @@ function startPlayInPlace(slotKey) {
     // something.
     location.href = url;
   });
+  // The Controls and Phone pills. game.html lists them as module scripts,
+  // but reaching /game through the in-app router (library → game) only
+  // runs the page's first module, so they never loaded on the most common
+  // path. Both wait for .player-host and are no-ops if already loaded.
+  for (const mod of ["./controller-host.js", "./controller-bindings.js"]) {
+    import(mod).catch((err) => console.error(`[game] failed to load ${mod}`, err));
+  }
 }
 
 function render() {
@@ -377,7 +384,7 @@ function slotCardHTML(s, n) {
       <button class="slot slot--empty" type="button" data-slot="${n}" data-act="upload-new" aria-label="Upload save to slot ${n}">
         ${icon("upload", { size: 22 })}
         <span style="margin-top:6px;font-size:var(--fs-sm);font-weight:600">Slot ${n} — empty</span>
-        <span style="font-size:11px;color:var(--text-faint);margin-top:2px">Upload a save file</span>
+        <span style="font-size:11px;color:var(--text-dim);margin-top:2px">Upload a save file</span>
       </button>
     `;
   }
