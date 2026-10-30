@@ -147,6 +147,7 @@ class GameListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+    systems: list[str] = []
 
 
 # ---- QR cross-device login ----

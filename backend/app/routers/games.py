@@ -4,6 +4,7 @@ import mimetypes
 import secrets
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response
@@ -208,12 +209,12 @@ def list_games(
     collection: int | None = Query(default=None, ge=1),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=48, ge=1, le=200),
+    sort: Literal["name", "recent", "system"] | None = Query(default=None),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> GameListResponse:
-    games = library.index.search(q, _search_names(db) if q else None)
-    if system:
-        games = [g for g in games if g.system == system]
+    meta_names = _search_names(db) if (q or sort) else None
+    games = library.index.search(q, meta_names)
     if collection is not None:
         member_ids = {
             r[0]
@@ -222,6 +223,24 @@ def list_games(
             .all()
         }
         games = [g for g in games if g.id in member_ids]
+    # Systems across the whole result (before the system filter), so the
+    # chip row is complete on every page.
+    systems = sorted({g.system for g in games})
+    if system:
+        games = [g for g in games if g.system == system]
+    if sort:
+        # Sort the full result before paginating; sorting one page on the
+        # client hid newer games and ignored renamed titles.
+        def shown(g):
+            return ((meta_names or {}).get(g.id, ("", ""))[0] or g.name).lower()
+        if sort == "name":
+            games.sort(key=shown)
+        elif sort == "system":
+            games.sort(key=lambda g: (g.system, shown(g)))
+        else:
+            games.sort(key=shown)
+            # SQLite may hand back naive datetimes; compare wall-clock values.
+            games.sort(key=lambda g: g.added_at.replace(tzinfo=None) if g.added_at else datetime.min, reverse=True)
     total = len(games)
     start = (page - 1) * page_size
     chunk = games[start : start + page_size]
@@ -250,6 +269,7 @@ def list_games(
         total=total,
         page=page,
         page_size=page_size,
+        systems=systems,
     )
 
 
