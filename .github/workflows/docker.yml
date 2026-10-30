@@ -1,0 +1,57 @@
+name: Docker
+
+# Builds the image and boots it, so a broken Dockerfile or entrypoint is
+# caught before a release instead of by users pulling it.
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - 'backend/requirements.txt'
+      - '.github/workflows/docker.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - 'backend/requirements.txt'
+      - '.github/workflows/docker.yml'
+  workflow_call:
+
+jobs:
+  smoke:
+    name: build + boot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -t retrox:ci .
+
+      - name: Boot as the default user and as a NAS-style user
+        run: |
+          set -eu
+          check() {
+            name="$1"; shift
+            mkdir -p "/tmp/$name" && chmod 777 "/tmp/$name"
+            docker run -d --name "$name" -p 18080:8080 -v "/tmp/$name:/data" "$@" retrox:ci
+            for _ in $(seq 1 60); do
+              if curl -fsS http://127.0.0.1:18080/health >/dev/null; then break; fi
+              sleep 1
+            done
+            curl -fsS http://127.0.0.1:18080/health
+            curl -fsS -X POST http://127.0.0.1:18080/api/auth/login \
+              -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:18080' \
+              -d '{"username":"admin","password":"admin"}' >/dev/null
+            echo "$name: healthy, login OK"
+            docker rm -f "$name" >/dev/null
+          }
+          check default
+          # Synology-style UID/GID: must not depend on the image's own user.
+          check nasuser --user 1026:100
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker ps -a && for c in $(docker ps -aq); do docker logs "$c"; done

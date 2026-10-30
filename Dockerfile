@@ -2,7 +2,7 @@ FROM python:3.14-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH=/home/retrox/.local/bin:$PATH
+    PATH=/opt/venv/bin:$PATH
 
 # UID 1000 keeps a host-bind-mounted /data writable without manual chowns
 # on Linux hosts. BusyBox adduser/addgroup — Alpine has no useradd.
@@ -10,18 +10,23 @@ RUN addgroup -S -g 1000 retrox \
  && adduser  -S -u 1000 -G retrox -h /home/retrox -s /sbin/nologin retrox \
  && mkdir -p /data /app && chown retrox:retrox /data /app
 
-# Install as retrox so ~/.local lands with correct ownership in a single
-# layer — a post-hoc `chown -R` would otherwise duplicate ~30MB.
-USER retrox
-WORKDIR /app
-COPY --chown=retrox:retrox backend/requirements.txt /tmp/req.txt
-RUN PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    pip install --user --no-warn-script-location -r /tmp/req.txt \
- && find /home/retrox/.local -depth \
+# Dependencies live in a root-owned, world-readable venv rather than the
+# retrox user's ~/.local, so the image also runs under any other UID
+# (`user: 1026:100` on Synology, 99:100 on Unraid). pip itself is removed
+# afterwards; nothing installs at runtime.
+COPY backend/requirements.txt /tmp/req.txt
+RUN python -m venv /opt/venv \
+ && PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    /opt/venv/bin/pip install -r /tmp/req.txt \
+ && /opt/venv/bin/pip uninstall -y -q pip \
+ && find /opt/venv -depth \
       \( -name '__pycache__' -o -name '*.pyc' -o -name '*.pyo' \
          -o -name 'tests' -o -name 'test' \) \
       -exec rm -rf {} + \
  && rm /tmp/req.txt
+
+USER retrox
+WORKDIR /app
 
 COPY --chown=retrox:retrox backend  /app/backend
 COPY --chown=retrox:retrox frontend /app/frontend
