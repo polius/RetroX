@@ -6,6 +6,10 @@ def _create(client, name):
     return client.post("/api/collections", json={"name": name}, headers=SAME_ORIGIN)
 
 
+def _set_games(client, collection_id, game_ids):
+    return client.put(f"/api/collections/{collection_id}/games", json={"game_ids": game_ids}, headers=SAME_ORIGIN)
+
+
 def _rename(client, collection_id, name):
     return client.patch(f"/api/collections/{collection_id}", json={"name": name}, headers=SAME_ORIGIN)
 
@@ -51,7 +55,7 @@ def test_membership_survives_a_scan_that_misses_the_game(admin_client, seeded_ro
 
     gid = seeded_roms["plain_id"]
     c = _create(admin_client, "Survivors").json()
-    assert admin_client.put(f"/api/collections/{c['id']}/games", json={"game_ids": [gid]}, headers=SAME_ORIGIN).status_code == 204
+    assert _set_games(admin_client, c["id"], [gid]).status_code == 204
 
     # The ROM disappears for a scan (share offline, typo in extensions…).
     hidden = seeded_roms["plain"].with_suffix(".offline")
@@ -62,7 +66,7 @@ def test_membership_survives_a_scan_that_misses_the_game(admin_client, seeded_ro
     assert admin_client.get(f"/api/collections/{c['id']}/games").json() == []
     # Editing the collection meanwhile must not drop the hidden member.
     other = seeded_roms["gz_id"]
-    assert admin_client.put(f"/api/collections/{c['id']}/games", json={"game_ids": [other]}, headers=SAME_ORIGIN).status_code == 204
+    assert _set_games(admin_client, c["id"], [other]).status_code == 204
 
     # It comes back.
     hidden.rename(seeded_roms["plain"])
