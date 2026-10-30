@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -20,6 +20,7 @@ from ..models.schemas import (
     PlaytimePingRequest,
     SlotSummary,
 )
+from ..services import cue as cue_service
 from ..services.library import library
 from ..services.saves import (
     MAX_SLOT,
@@ -444,7 +445,22 @@ def _get_rom_handler(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Game not found.")
     if disk > len(game.disks):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Disk {disk} not found.")
-    return _ranged_file_response(request, game.disks[disk - 1])
+    path = game.disks[disk - 1]
+    if path.suffix.lower() == ".cue" and path.is_file():
+        plan = cue_service.bundle(path)
+        if plan is not None:
+            return _cue_bundle_response(request, plan)
+    return _ranged_file_response(request, path)
+
+
+def _cue_bundle_response(request: Request, plan: cue_service.CueBundle) -> Response:
+    """A .cue disc with its tracks, as one uncompressed zip (see services/cue.py)."""
+    headers = {"ETag": plan.etag, "Content-Length": str(plan.size), "Cache-Control": "no-cache"}
+    if request.headers.get("if-none-match") == plan.etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers={"ETag": plan.etag})
+    if request.method == "HEAD":
+        return Response(headers=headers, media_type="application/zip")
+    return StreamingResponse(plan.iter_bytes(), headers=headers, media_type="application/zip")
 
 
 # Two routes: with and without filename suffix (EmulatorJS needs the extension in the URL)

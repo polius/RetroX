@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 
 from ..config import settings
 from ..db import SessionLocal
-from . import cores
+from . import cores, cue
 from .slugs import ensure_meta_for_index
 
 log = logging.getLogger("retrox.library")
@@ -128,7 +128,10 @@ class Library:
             except OSError as e:
                 log.warning("Skipping %s: can't list it (%s)", system_dir, e)
                 continue
+            skip = self._bare_files_to_skip(system, system_extensions, entries)
             for entry in entries:
+                if entry in skip:
+                    continue
                 # One unreadable folder or malformed metadata.json must not
                 # take the whole library down (at boot that would crash-loop
                 # the container), so each entry is indexed independently.
@@ -222,7 +225,8 @@ class Library:
                 p for p in folder.iterdir()
                 if p.is_file() and cores.is_rom(ext_map, system, p.name)
             )
-            disks = self._filter_preferred(system, candidates)
+            tracks = self._cue_tracks(candidates)
+            disks = self._filter_preferred(system, [p for p in candidates if p not in tracks])
 
         if not disks:
             return None
@@ -237,6 +241,30 @@ class Library:
             fast_forward_enabled=flags.fast_forward_enabled,
             rewind_enabled=flags.rewind_enabled,
         )
+
+    @staticmethod
+    def _cue_tracks(files: list[Path]) -> set[Path]:
+        """Files referenced by a .cue among ``files``: they're part of that
+        disc (served with it), not discs of their own."""
+        tracks: set[Path] = set()
+        for f in files:
+            if f.suffix.lower() == ".cue":
+                tracks.update(path for _, path in cue.referenced_files(f))
+        return tracks
+
+    def _bare_files_to_skip(
+        self, system: str, ext_map: dict[str, frozenset[str]], entries: list[Path],
+    ) -> set[Path]:
+        """Loose files at the system root that belong to another entry: tracks
+        of a .cue, or a same-named alternative (Game.bin next to Game.cue)."""
+        try:
+            files = [e for e in entries if not e.name.startswith(".") and e.is_file()
+                     and cores.is_rom(ext_map, system, e.name)]
+        except OSError:
+            return set()
+        tracks = self._cue_tracks(files)
+        rest = [f for f in files if f not in tracks]
+        return tracks | (set(rest) - set(self._filter_preferred(system, rest)))
 
     @staticmethod
     def _is_inside(name: object) -> bool:
