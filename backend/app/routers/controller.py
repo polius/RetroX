@@ -420,8 +420,13 @@ async def controller_host_ws(websocket: WebSocket) -> None:
             return
 
         code = session.code
-        log.info("host WS accepted: code=%s user=%d", code, user.id)
-        room = _get_or_create_room(code, user.id)
+        user_id = user.id
+        # Release the pooled connection before the long-lived receive loop.
+        # Holding it for the socket's lifetime let ~15 open sockets
+        # exhaust the pool and hang every HTTP request.
+        db.close()
+        log.info("host WS accepted: code=%s user=%d", code, user_id)
+        room = _get_or_create_room(code, user_id)
 
         # If a stale host WS is still attached (page reload during the
         # same paired session), evict it so the new one can take over.
@@ -469,9 +474,9 @@ async def controller_host_ws(websocket: WebSocket) -> None:
             _remove_room(code)
             # Once the host is gone the pairing is over. A fresh pair
             # requires a fresh /start.
-            with suppress(Exception):
-                db.query(ControllerSession).filter(ControllerSession.token == token).delete()
-                db.commit()
+            with suppress(Exception), SessionLocal() as cleanup:
+                cleanup.query(ControllerSession).filter(ControllerSession.token == token).delete()
+                cleanup.commit()
     finally:
         db.close()
 
@@ -547,6 +552,7 @@ async def controller_pad_ws(websocket: WebSocket) -> None:
             return
 
         log.info("pad WS accepted: code=%s user=%d", code, user.id)
+        db.close()  # nothing below needs the DB; see controller_host_ws
         room.pads.append(websocket)
         held: set[int] = set()
         room.held_per_pad[id(websocket)] = held
