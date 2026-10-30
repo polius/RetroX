@@ -118,6 +118,12 @@ def upsert_slot(
     state_bytes: bytes | None = None
     if state is not None:
         state_bytes = _read_capped(state, "State")
+    # An empty file is never a real save (e.g. SRAM read before the core
+    # booted); accepting it would wipe the stored progress.
+    if save_bytes is not None and not save_bytes:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Save file is empty.")
+    if state_bytes is not None and not state_bytes:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "State file is empty.")
 
     row = (
         db.query(SaveSlot)
@@ -140,6 +146,15 @@ def upsert_slot(
                 status.HTTP_400_BAD_REQUEST,
                 "X-Slot-Generation must be an integer.",
             ) from None
+        if row is None and client_generation != 0:
+            # The client last saw this slot at some generation, but it's
+            # gone: deleted from another device. Recreating it silently
+            # would undo that delete; the client's conflict flow lets
+            # the user overwrite explicitly (a PUT without the header).
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Slot was deleted by another session.",
+            )
         if row is not None and client_generation != row.generation:
             # Fast-path 409: we already know the SELECT-ed generation
             # doesn't match. Avoids staging files we'd just discard.

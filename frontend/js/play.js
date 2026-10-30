@@ -70,8 +70,29 @@ let persistor = null;
 let indicator = null;
 let playHint  = null;
 
-const goBack = () => {
-  if (persistor) persistor.flushSync();
+// How long an in-app exit waits for the last save to upload. The cache
+// already holds the bytes, so giving up only defers the sync to the next
+// launch; it never loses them.
+const EXIT_SAVE_TIMEOUT_MS = 3000;
+let leaving = false;
+
+const goBack = async () => {
+  if (leaving) return;
+  leaving = true;
+  if (persistor) {
+    // Wait for the upload instead of firing it and navigating: navigation
+    // cancels a normal fetch, and saves over the keepalive limit (PSX
+    // memory cards, N64, most GBA) can't use keepalive. Exiting right
+    // after an in-game save is the most common way to quit.
+    const slow = setTimeout(() => toast.info("Saving…", "Uploading your latest progress."), 400);
+    try {
+      await Promise.race([
+        persistor.drain(),
+        new Promise((r) => setTimeout(r, EXIT_SAVE_TIMEOUT_MS)),
+      ]);
+    } catch { /* cache already holds the bytes */ }
+    clearTimeout(slow);
+  }
   // Use replace, not assign: when /play was reached via the in-app
   // pushState flow from /game, history looks like [..., /game/<slug>,
   // /play/<slug>]. assign() would push a new /game entry, leaving the
@@ -353,6 +374,20 @@ function reconcile() {
   if (!cachedDirty) {
     // Local was in sync. If server changed since (another device wrote),
     // those new bytes are the truth.
+    return {
+      source: "server",
+      bytes: serverResult.bytes,
+      serverGeneration: serverResult.generation,
+      serverUpdatedAt: serverResult.updatedAt,
+      shouldUpload: false,
+      conflictLost: false,
+    };
+  }
+
+  // The cache is "dirty" but holds exactly what the server has: the
+  // previous session's last upload (e.g. a tab-close keepalive PUT)
+  // landed without the cache being marked synced. Nothing to resolve.
+  if (cached.hash && fnv1a(serverResult.bytes) === cached.hash) {
     return {
       source: "server",
       bytes: serverResult.bytes,
@@ -1505,8 +1540,14 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") persistor?.flush();
 });
 
-// True unload: keepalive PUT as last-ditch fallback.
-document.addEventListener("pagehide", () => persistor?.flushSync());
+// True unload: keepalive PUT as last-ditch fallback on tab close / reload.
+// EmulatorJS's own beforeunload handler resets the
+// core and unmounts /data/saves, so by pagehide the save file is gone:
+// flush in the capture phase, which runs before EmulatorJS's listener.
+// pagehide stays for browsers that skip beforeunload (iOS Safari); it
+// fires on window only, never on document. flushSync skips a repeat.
+window.addEventListener("beforeunload", () => persistor?.flushSync(), { capture: true });
+window.addEventListener("pagehide", () => persistor?.flushSync());
 
 /* ============ Manual save/load state (toolbar buttons) ============ */
 
@@ -1581,6 +1622,9 @@ async function onSaveState(stateEvent) {
       ram: ramBytes ? new Uint8Array(ramBytes) : null,
       updatedAt: Date.now(),
       pendingUpload: true,
+      // The slot version this snapshot was taken on top of. If the server
+      // has moved past it by the time we upload, another device wrote.
+      baseGeneration: persistor?.generation ?? initialSlotGeneration,
     });
   }
 
@@ -1741,6 +1785,15 @@ async function _drainPendingState() {
   if (!cached || !cached.pendingUpload || !cached.state) return;
   _draining = true;
   try {
+    if (await _serverMovedSince(cached)) {
+      const choice = await _askAboutQueuedState();
+      if (choice === "keep-server") {
+        await stateCache.delete(username, game.id, activeSlot);
+        toast.info("Kept the server's progress", "The snapshot from this device was discarded.");
+        return;
+      }
+      if (choice !== "upload") return; // dismissed: ask again next time
+    }
     const result = await _putState(cached.state, cached.ram);
     await stateCache.markSynced(username, game.id, activeSlot, result?.updated_at || null);
     persistor?.acknowledgeExternalUpload(
@@ -1754,6 +1807,49 @@ async function _drainPendingState() {
   } finally {
     _draining = false;
   }
+}
+
+// Did another device write this slot after the queued snapshot was taken?
+// Our own uploads in this tab don't count.
+async function _serverMovedSince(cached) {
+  const list = await api.get(`/games/${encodeURIComponent(game.id)}/saves`);
+  const slots = Array.isArray(list) ? list : (list?.slots || []);
+  const current = slots.find((s) => s.slot === activeSlot)?.generation ?? null;
+  // Snapshots queued before this check existed carry no base; keep their
+  // old behaviour (upload) rather than prompting about something unknowable.
+  if (!("baseGeneration" in cached)) return false;
+  const base = Number.isFinite(cached.baseGeneration) ? cached.baseGeneration : null;
+  if (current === base) return false;
+  if (current != null && persistor?.ownGenerations?.has(current)) return false;
+  return true;
+}
+
+function _askAboutQueuedState() {
+  return modal.open({
+    title: "Newer progress on the server",
+    render(body, close, foot) {
+      const p = document.createElement("p");
+      p.style.margin = "0";
+      p.style.color = "var(--text-muted)";
+      p.style.lineHeight = "1.6";
+      p.textContent =
+        `A save state made on this device while it was offline is waiting to upload to slot ${activeSlot}, ` +
+        "but this slot was saved from another device since. Uploading replaces that progress.";
+      body.appendChild(p);
+      const keep = document.createElement("button");
+      keep.type = "button";
+      keep.className = "btn btn--ghost";
+      keep.textContent = "Keep server's";
+      keep.addEventListener("click", () => close("keep-server"));
+      const upload = document.createElement("button");
+      upload.type = "button";
+      upload.className = "btn btn--danger";
+      upload.textContent = "Upload this device's";
+      upload.addEventListener("click", () => close("upload"));
+      foot.append(keep, upload);
+    },
+    initialFocus: () => null,
+  });
 }
 
 if (typeof window !== "undefined") {
