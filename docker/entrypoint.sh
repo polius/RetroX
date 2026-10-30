@@ -55,4 +55,5 @@ exec uvicorn app.main:app \
   --app-dir /app/backend \
   --host "${RETROX_HOST:-0.0.0.0}" \
   --port "${RETROX_PORT:-8080}" \
-  --proxy-headers
+  --proxy-headers \
+  --forwarded-allow-ips "${RETROX_TRUSTED_PROXIES:-127.0.0.1}"

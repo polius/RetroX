@@ -115,7 +115,7 @@ function buildShell({ active, title, hideTopbar }) {
       ${hideTopbar ? "" : `
         <header class="topbar" id="topbar">
           <button class="menu-btn" id="menu-toggle" aria-label="Open navigation">${icon("more", { size: 20 })}</button>
-          <span class="topbar__title" id="topbar-title">${title || ""}</span>
+          <span class="topbar__title" id="topbar-title">${escapeHtml(title || "")}</span>
           <label class="topbar__search">
             <span class="topbar__search-icon">${icon("search", { size: 16 })}</span>
             <input id="topbar-search" type="search" placeholder="Search games..." autocomplete="off" readonly/>

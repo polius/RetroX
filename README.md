@@ -78,6 +78,18 @@ docker compose up -d
 ```
 </details>
 
+<details>
+<summary><b>Behind a reverse proxy (HTTPS)?</b></summary>
+
+Tell RetroX which proxy to trust, so it sees the real client IP and marks its cookies `Secure`:
+
+```bash
+-e RETROX_TRUSTED_PROXIES=172.18.0.2   # your proxy's IP, or a CIDR such as 172.18.0.0/16
+```
+
+Without it, forwarded headers are ignored: cookies aren't marked `Secure`, and every visitor shares the proxy's login rate limit. Don't use `*` if the RetroX port is also reachable directly — anyone could then fake their IP.
+</details>
+
 ## Features
 
 | | |

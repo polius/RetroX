@@ -13,13 +13,15 @@ applyEarly();
 document.title = "Sign in · RetroX";
 
 // Constrain `?next=` to same-origin paths only — prevents an open
-// redirect ( /login?next=https://evil/ or //evil/ ) by allow-listing
-// strings that begin with a single "/" and rejecting protocol-relative
-// "//" URLs.
+// redirect. A prefix check isn't enough: the URL parser turns "/\\evil"
+// into "//evil" and strips tabs/newlines, so resolve it the way the
+// browser will and compare origins.
 function safeNext(raw, fallback = "/games") {
-  if (typeof raw !== "string") return fallback;
-  if (!raw.startsWith("/") || raw.startsWith("//")) return fallback;
-  return raw;
+  if (typeof raw !== "string" || !raw.startsWith("/")) return fallback;
+  let url;
+  try { url = new URL(raw, location.origin); } catch { return fallback; }
+  if (url.origin !== location.origin) return fallback;
+  return url.pathname + url.search + url.hash;
 }
 
 const root = document.getElementById("auth-root");
