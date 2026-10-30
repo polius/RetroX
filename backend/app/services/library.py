@@ -7,13 +7,14 @@ name and disk order.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
 import threading
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ..config import settings
 from ..db import SessionLocal
@@ -123,10 +124,23 @@ class Library:
             if system not in system_flags:
                 continue
             flags = system_flags[system]
-            for entry in sorted(system_dir.iterdir()):
-                game = self._build_game(system, flags, system_extensions, entry)
-                if game is not None:
-                    new_index[game.id] = game
+            try:
+                entries = sorted(system_dir.iterdir())
+            except OSError as e:
+                log.warning("Skipping %s: can't list it (%s)", system_dir, e)
+                continue
+            for entry in entries:
+                # One unreadable folder or malformed metadata.json must not
+                # take the whole library down (at boot that would crash-loop
+                # the container), so each entry is indexed independently.
+                try:
+                    game = self._build_game(system, flags, system_extensions, entry)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("Skipping %s: couldn't index it (%s)", entry, e)
+                    continue
+                if game is None:
+                    continue
+                self._add_resolving_collision(new_index, game, roms_root)
 
         # Persist slug + first-seen timestamp, then materialize a final
         # index whose Game.added_at reflects what's stored, not what's
@@ -172,6 +186,27 @@ class Library:
                 ", ".join(sorted(orphans)[:5]) + ("..." if len(orphans) > 5 else ""),
             )
 
+    def _add_resolving_collision(self, index: dict[str, Game], game: Game, roms_root: Path) -> None:
+        """Insert ``game``; on an ID clash keep both games.
+
+        Before this, the later entry silently replaced the earlier one
+        (e.g. every non-Latin title slugs to ``untitled``). The later entry
+        still gets the plain ID so the game that was visible before keeps
+        its saves; the earlier one moves to a path-derived suffix.
+        """
+        prev = index.get(game.id)
+        if prev is not None:
+            source = prev.folder or prev.disks[0]
+            digest = hashlib.sha1(str(source.relative_to(roms_root)).encode()).hexdigest()[:6]
+            alt_id = f"{prev.id}-{digest}"
+            cover, custom = self._cover_for(alt_id, prev.folder)
+            index[alt_id] = replace(prev, id=alt_id, cover_path=cover, custom_cover=custom)
+            log.warning(
+                "Game ID %s is used by both %s and %s; indexing the first as %s",
+                game.id, source, game.folder or game.disks[0], alt_id,
+            )
+        index[game.id] = game
+
     # ---------- internal builders ----------
 
     def _build_game(
@@ -211,7 +246,7 @@ class Library:
         disks: list[Path]
         meta_disks = meta.get("disks") if isinstance(meta.get("disks"), list) else None
         if meta_disks:
-            disks = [folder / name for name in meta_disks if (folder / name).is_file()]
+            disks = [folder / name for name in meta_disks if self._is_inside(name) and (folder / name).is_file()]
         else:
             candidates = sorted(
                 p for p in folder.iterdir()
@@ -234,15 +269,32 @@ class Library:
         )
 
     @staticmethod
+    def _is_inside(name: object) -> bool:
+        """A metadata.json disk entry must name a file inside the game folder.
+
+        Without this, ``"../../../retrox.db"`` would be served as a ROM.
+        """
+        if not isinstance(name, str) or not name:
+            return False
+        p = PurePosixPath(name)
+        return not p.is_absolute() and ".." not in p.parts
+
+    @staticmethod
     def _read_metadata(folder: Path) -> dict:
         path = folder / "metadata.json"
         if not path.is_file():
             return {}
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+            # Bytes, not text: json detects UTF-8/16/32 (with BOM), so a
+            # file saved by Windows Notepad still parses.
+            data = json.loads(path.read_bytes())
+        except (OSError, ValueError):
             log.warning("Invalid metadata.json in %s", folder)
             return {}
+        if not isinstance(data, dict):
+            log.warning("Ignoring metadata.json in %s: expected a JSON object", folder)
+            return {}
+        return data
 
     @staticmethod
     def _filter_preferred(system: str, candidates: list[Path]) -> list[Path]:
