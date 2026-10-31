@@ -119,7 +119,11 @@ def upsert_slot(
     if state is not None:
         state_bytes = _read_capped(state, "State")
     # An empty file is never a real save (e.g. SRAM read before the core
-    # booted); accepting it would wipe the stored progress.
+    # booted); accepting it would wipe the stored progress. Next to a real
+    # state it's just a core without battery RAM: keep the state, leave
+    # the stored SRAM alone.
+    if save_bytes is not None and not save_bytes and state_bytes:
+        save_bytes = None
     if save_bytes is not None and not save_bytes:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Save file is empty.")
     if state_bytes is not None and not state_bytes:

@@ -97,7 +97,11 @@ def update_collection(
         raise HTTPException(409, "A collection with that name already exists.")
     c.name = name
     db.commit()
-    count = db.query(CollectionGame).filter(CollectionGame.collection_id == c.id).count()
+    # Same rule as list_collections: only games currently in the library.
+    count = sum(
+        1 for (gid,) in db.query(CollectionGame.game_id).filter(CollectionGame.collection_id == c.id)
+        if library.index.get(gid) is not None
+    )
     return CollectionOut(
         id=c.id,
         name=c.name,

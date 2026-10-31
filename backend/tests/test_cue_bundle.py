@@ -133,3 +133,42 @@ def test_plain_disc_formats_are_still_served_raw(admin_client, psx):
     library.scan()
     res = admin_client.get(f"/api/games/{_game('Raw').id}/rom/Raw.iso?disk=1")
     assert res.status_code == 200 and res.content == b"ISO" * 10
+
+
+def test_utf8_cue_sheet_with_accented_names(admin_client, psx):
+    d, created = psx
+    folder = d / "Accents"
+    folder.mkdir()
+    created.append(folder)
+    (folder / "Pokémon (Track 1).bin").write_bytes(b"A" * 100)
+    (folder / "Pokémon (Track 2).bin").write_bytes(b"B" * 100)
+    (folder / "Pokémon.cue").write_bytes(
+        'FILE "Pokémon (Track 1).bin" BINARY\nFILE "Pokémon (Track 2).bin" BINARY\n'.encode())
+    library.scan()
+    game = _game("Accents")
+    assert [p.name for p in game.disks] == ["Pokémon.cue"]
+    files = _unzip(admin_client.get(f"/api/games/{game.id}/rom/x.cue?disk=1").content)
+    assert files["Pokémon (Track 1).bin"] == b"A" * 100 and files["Pokémon (Track 2).bin"] == b"B" * 100
+
+
+def test_head_does_not_read_the_tracks(admin_client, psx, monkeypatch):
+    """EmulatorJS sends HEAD before GET; sizing the zip must not CRC the disc."""
+    from app.services import cue as cue_service
+    d, created = psx
+    folder = d / "Headcheck"
+    folder.mkdir()
+    created.append(folder)
+    (folder / "disc.bin").write_bytes(b"H" * 1000)
+    (folder / "disc.cue").write_text('FILE "disc.bin" BINARY\n')
+    library.scan()
+    calls = []
+    real = cue_service._crc32
+    monkeypatch.setattr(cue_service, "_crc32", lambda *a: calls.append(a) or real(*a))
+    gid = _game("Headcheck").id
+    head = admin_client.head(f"/api/games/{gid}/rom/disc.cue?disk=1")
+    assert head.status_code == 200 and calls == []
+    get = admin_client.get(f"/api/games/{gid}/rom/disc.cue?disk=1")
+    assert int(get.headers["content-length"]) == len(get.content) == int(head.headers["content-length"])
+    assert get.headers["etag"] == head.headers["etag"]
+    again = admin_client.get(f"/api/games/{gid}/rom/disc.cue?disk=1", headers={"If-None-Match": head.headers["etag"]})
+    assert again.status_code == 304

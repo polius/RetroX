@@ -353,7 +353,9 @@ function reconcile() {
   // Server has no save for this slot.
   if (serverResult.status === "404") {
     if (cached && cachedDirty) {
-      // Offline-created save coming online for the first time.
+      // Either an offline-created save coming online for the first time,
+      // or (when the cache knows a server generation) a slot that existed
+      // and was deleted on another device. The latter asks first, below.
       return {
         source: "local",
         bytes: cached.bytes,
@@ -361,6 +363,7 @@ function reconcile() {
         serverUpdatedAt: null,
         shouldUpload: true,
         conflictLost: false,
+        deletedElsewhere: Number.isFinite(cached.serverGeneration),
       };
     }
     return {
@@ -444,7 +447,28 @@ function reconcile() {
   };
 }
 
-const decision = reconcile();
+let decision = reconcile();
+
+// Re-uploading silently would undo a delete made on purpose elsewhere;
+// dropping the copy silently could lose offline progress. Ask. Dismissing
+// the dialog keeps this device's copy (the non-destructive choice).
+if (decision.deletedElsewhere) {
+  const startEmpty = await modal.confirm({
+    title: "Slot deleted on another device",
+    body: `Slot ${activeSlot} was deleted on another device, but this device still has unsynced progress for it. Restore this device's copy, or start the slot empty?`,
+    confirmLabel: "Start empty",
+    cancelLabel: "Restore this device's copy",
+    danger: true,
+  });
+  if (startEmpty === true) {
+    decision = {
+      source: "empty", bytes: null,
+      serverGeneration: null, serverUpdatedAt: null,
+      shouldUpload: false, conflictLost: false,
+    };
+    await saveCache.delete(me.username, game.id, activeSlot).catch(() => {});
+  }
+}
 
 if (decision.conflictLost) {
   toast.warning(
@@ -1240,7 +1264,10 @@ setTimeout(() => {
           exitHoldSince = now;
           toast.info("Keep holding to exit", "Select + Start", EXIT_HOLD_MS + 300);
         } else if (now - exitHoldSince >= EXIT_HOLD_MS) {
-          exitHoldSince = 0;
+          // The poll loop stops here while goBack waits (up to 3 s) for
+          // the save upload; let go of stick/FF/rewind so the game
+          // doesn't keep running with them held.
+          releaseShortcutState();
           goBack();
           return;
         }
@@ -1635,7 +1662,7 @@ window.addEventListener("pagehide", () => persistor?.flushSync());
 async function _putState(stateBytes, ramBytes) {
   const fd = new FormData();
   fd.append("state", new Blob([stateBytes]), "state.bin");
-  if (ramBytes) fd.append("save", new Blob([ramBytes]), "save.bin");
+  if (ramBytes?.length) fd.append("save", new Blob([ramBytes]), "save.bin");
   // Manual save is user-initiated; always wins, no X-Slot-Generation sent.
   return api.upload(
     `/games/${encodeURIComponent(game.id)}/saves/${activeSlot}`,
@@ -1655,7 +1682,7 @@ async function onSaveState(stateEvent) {
   let ramBytes = null;
   try {
     const r = window.EJS_emulator?.gameManager?.getSaveFile?.();
-    if (r) ramBytes = new Uint8Array(r);
+    if (r?.length) ramBytes = new Uint8Array(r);
   } catch { /* core may not have SRAM */ }
 
   if (!stateBytes || stateBytes.length === 0) {

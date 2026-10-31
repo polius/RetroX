@@ -87,7 +87,7 @@ Tell RetroX which proxy to trust, so it sees the real client IP and marks its co
 -e RETROX_TRUSTED_PROXIES=172.18.0.2   # your proxy's IP, or a CIDR such as 172.18.0.0/16
 ```
 
-Without it, forwarded headers are ignored: cookies aren't marked `Secure`, and every visitor shares the proxy's login rate limit. Don't use `*` if the RetroX port is also reachable directly — anyone could then fake their IP.
+Without it, forwarded headers are ignored: cookies aren't marked `Secure`, and every visitor shares the proxy's login rate limit. Don't use `*` if the RetroX port is also reachable directly — anyone could then fake their IP. If you already set uvicorn's `FORWARDED_ALLOW_IPS`, it still works; `RETROX_TRUSTED_PROXIES` takes precedence.
 </details>
 
 ## Features

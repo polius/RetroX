@@ -58,9 +58,11 @@ if [ ! -f "${DEMO_SENTINEL}" ]; then
   : > "${DEMO_SENTINEL}"
 fi
 
+# RETROX_TRUSTED_PROXIES wins; FORWARDED_ALLOW_IPS (uvicorn's own variable,
+# which older setups may already set) is still honoured as a fallback.
 exec uvicorn app.main:app \
   --app-dir /app/backend \
   --host "${RETROX_HOST:-0.0.0.0}" \
   --port "${RETROX_PORT:-8080}" \
   --proxy-headers \
-  --forwarded-allow-ips "${RETROX_TRUSTED_PROXIES:-127.0.0.1}"
+  --forwarded-allow-ips "${RETROX_TRUSTED_PROXIES:-${FORWARDED_ALLOW_IPS:-127.0.0.1,::1}}"

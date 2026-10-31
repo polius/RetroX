@@ -833,7 +833,9 @@ export class SavePersistor {
       headers,
     );
     if (r.status === 409) {
-      this._notifyConflict();
+      let detail = "";
+      try { detail = (await r.json())?.detail || ""; } catch { /* no body */ }
+      this._notifyConflict(/deleted/i.test(detail));
       throw new ConflictError();
     }
     if (r.status === 401) {
@@ -887,10 +889,18 @@ export class SavePersistor {
     this.ownGenerations.add(generation);
   }
 
-  _notifyConflict() {
+  _notifyConflict(slotDeleted = false) {
     this.conflictHalted = true;
     clearTimeout(this.debounceTimer);
     clearTimeout(this.retryTimer);
+    if (slotDeleted) {
+      toast.warning(
+        "Slot deleted elsewhere",
+        "This slot was deleted on another device. Reload to choose whether to restore this device's copy.",
+        8000,
+      );
+      return;
+    }
     toast.warning(
       "Save updated elsewhere",
       "Another session uploaded a newer save for this slot. Reload to pull the latest copy.",

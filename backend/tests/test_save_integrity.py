@@ -62,3 +62,15 @@ def test_first_upload_to_a_new_slot_still_works(admin_client, seeded_roms):
     assert res.status_code == 200 and res.json()["generation"] == 1
     res = _put(admin_client, gid, 5, save=b"NEWER", gen=1)
     assert res.status_code == 200 and res.json()["generation"] == 2
+
+
+def test_state_with_empty_sram_part_is_accepted(admin_client, seeded_roms):
+    """Cores without battery RAM can hand over a 0-byte SRAM next to a valid
+    state; the state must still be stored (the empty part is ignored)."""
+    gid = seeded_roms["plain_id"]
+    _delete(admin_client, gid, 3)
+    _put(admin_client, gid, 3, save=b"KEEP")
+    res = _put(admin_client, gid, 3, state=b"STATE", save=b"")
+    assert res.status_code == 200, res.text
+    assert admin_client.get(f"/api/games/{gid}/saves/3/state").content == b"STATE"
+    assert admin_client.get(f"/api/games/{gid}/saves/3/save").content == b"KEEP"

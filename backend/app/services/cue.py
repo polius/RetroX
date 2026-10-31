@@ -5,9 +5,10 @@ leaves the core without the ``.bin`` tracks it references. A ``.cue`` disc
 is therefore served as an uncompressed (STORED) zip holding the sheet plus
 its tracks; EmulatorJS unpacks archives and picks the cue itself.
 
-The zip is streamed straight from the source files. Its size is known up
-front, and each file's CRC-32 is computed once and cached by (path, size,
-mtime), so later plays of the same disc cost a single read.
+The zip is streamed straight from the source files. Its size and ETag
+come from file sizes and mtimes alone, so HEAD and 304 answers never read
+the tracks. Each file's CRC-32 is computed while streaming and cached by
+(path, size, mtime), so later plays of the same disc cost a single read.
 """
 from __future__ import annotations
 
@@ -34,9 +35,15 @@ def referenced_files(cue: Path) -> list[tuple[str, Path]]:
     case still matches, since sheets are often written on Windows.
     """
     try:
-        text = cue.read_bytes().decode("latin-1")
+        raw_text = cue.read_bytes()
     except OSError:
         return []
+    # Modern tools write UTF-8 (optionally with a BOM); older Windows ones
+    # write a legacy code page, where latin-1 is the closest safe guess.
+    try:
+        text = raw_text.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw_text.decode("latin-1")
     folder = cue.parent
     by_lower: dict[str, Path] | None = None
     out: list[tuple[str, Path]] = []
@@ -77,8 +84,11 @@ class _Member:
     name: bytes
     path: Path
     size: int
-    crc: int
+    mtime_ns: int
     offset: int
+
+    def crc(self) -> int:
+        return _crc32(self.path, self.size, self.mtime_ns)
 
 
 @dataclass(frozen=True)
@@ -88,12 +98,14 @@ class CueBundle:
     etag: str
 
     def iter_bytes(self) -> Iterator[bytes]:
+        crcs: list[int] = []
         for m in self.members:
-            yield _local_header(m)
+            crcs.append(m.crc())
+            yield _local_header(m, crcs[-1])
             with m.path.open("rb") as f:
                 while chunk := f.read(_CHUNK):
                     yield chunk
-        central = b"".join(_central_header(m) for m in self.members)
+        central = b"".join(_central_header(m, c) for m, c in zip(self.members, crcs, strict=True))
         cd_offset = self.members[-1].offset + _local_len(self.members[-1]) + self.members[-1].size
         yield central
         yield struct.pack(
@@ -110,7 +122,7 @@ def bundle(cue: Path) -> CueBundle | None:
     tags: list[str] = []
     for name, path in files:
         st = path.stat()
-        m = _Member(name.encode("utf-8"), path, st.st_size, _crc32(path, st.st_size, st.st_mtime_ns), offset)
+        m = _Member(name.encode("utf-8"), path, st.st_size, st.st_mtime_ns, offset)
         members.append(m)
         offset += _local_len(m) + m.size
         tags.append(f"{st.st_size:x}-{st.st_mtime_ns:x}")
@@ -132,15 +144,15 @@ def _local_len(m: _Member) -> int:
     return 30 + len(m.name)
 
 
-def _local_header(m: _Member) -> bytes:
+def _local_header(m: _Member, crc: int) -> bytes:
     return struct.pack(
         "<IHHHHHIIIHH", 0x04034B50, 20, _FLAGS, 0, _DOS_TIME, _DOS_DATE,
-        m.crc, m.size, m.size, len(m.name), 0,
+        crc, m.size, m.size, len(m.name), 0,
     ) + m.name
 
 
-def _central_header(m: _Member) -> bytes:
+def _central_header(m: _Member, crc: int) -> bytes:
     return struct.pack(
         "<IHHHHHHIIIHHHHHII", 0x02014B50, 20, 20, _FLAGS, 0, _DOS_TIME, _DOS_DATE,
-        m.crc, m.size, m.size, len(m.name), 0, 0, 0, 0, 0, m.offset,
+        crc, m.size, m.size, len(m.name), 0, 0, 0, 0, 0, m.offset,
     ) + m.name

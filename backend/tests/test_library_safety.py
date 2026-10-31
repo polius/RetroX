@@ -111,3 +111,40 @@ def test_colliding_ids_keep_every_game(gb_files):
     library.scan()
     again = {g.name: g.id for g in library.index.games.values() if g.system == "gb"}
     assert again == names
+
+
+def test_colliding_ids_stay_put_when_files_come_and_go(gb_files):
+    """Once assigned, an ID sticks to its file: adding or removing another
+    file with the same slug must not move saves between games."""
+    gb, created = gb_files
+    (settings.data_dir / ".game-ids.json").unlink(missing_ok=True)  # earlier tests record claims too
+    def add(name):
+        (gb / name).write_bytes(b"ROM")
+        created.append(gb / name)
+    def ids():
+        games = library.index.games.values()
+        return {g.name: g.id for g in games if g.system == "gb" and g.id.startswith("gb:untitled")}
+
+    add("ゼルダ.gb")                       # alone: plain id
+    library.scan()
+    assert ids() == {"ゼルダ": "gb:untitled"}
+    add("ポケモン.gb")                     # sorts after ゼルダ
+    library.scan()
+    first = ids()
+    assert first["ゼルダ"] == "gb:untitled", "the existing game must keep its id"
+    assert first["ポケモン"].startswith("gb:untitled-")
+    (gb / "ゼルダ.gb").unlink()             # the plain-id holder goes away
+    library.scan()
+    assert ids() == {"ポケモン": first["ポケモン"]}, "the remaining game keeps its suffixed id"
+    add("ゼルダ.gb")                       # and comes back
+    library.scan()
+    assert ids() == first
+
+
+def test_bom_metadata_keeps_its_previous_meaning(psx_dir):
+    """metadata.json with a UTF-8 BOM was ignored before; honouring it now
+    would silently change the game's id on upgrade."""
+    psx, created = psx_dir
+    _folder(psx, created, "Bom Folder", raw=b"\xef\xbb\xbf" + json.dumps({"name": "Other Name"}).encode())
+    library.scan()
+    assert any(g.name == "Bom Folder" for g in library.index.games.values())

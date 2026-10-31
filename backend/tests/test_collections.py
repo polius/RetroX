@@ -75,3 +75,20 @@ def test_membership_survives_a_scan_that_misses_the_game(admin_client, seeded_ro
     assert ids == {gid, other}
     listed = {x["id"]: x for x in admin_client.get("/api/collections").json()}
     assert listed[c["id"]]["game_count"] == 2
+
+
+def test_rename_reports_the_same_count_as_the_list(admin_client, seeded_roms):
+    from app.services.library import library
+
+    c = _create(admin_client, "Counted").json()
+    _set_games(admin_client, c["id"], [seeded_roms["plain_id"], seeded_roms["gz_id"]])
+    hidden = seeded_roms["plain"].with_suffix(".offline")
+    seeded_roms["plain"].rename(hidden)
+    library.scan()
+    try:
+        renamed = _rename(admin_client, c["id"], "Counted 2").json()
+        listed = {x["id"]: x for x in admin_client.get("/api/collections").json()}[c["id"]]
+        assert renamed["game_count"] == listed["game_count"] == 1
+    finally:
+        hidden.rename(seeded_roms["plain"])
+        library.scan()

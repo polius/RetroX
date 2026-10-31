@@ -116,6 +116,9 @@ class Library:
         if not roms_root.exists():
             self.bootstrap_skeleton()
 
+        claims = self._load_id_claims()
+        claims_before = dict(claims)
+
         for system_dir in sorted(roms_root.iterdir()):
             if not system_dir.is_dir():
                 continue
@@ -142,7 +145,10 @@ class Library:
                     continue
                 if game is None:
                     continue
-                self._add_resolving_collision(new_index, game, roms_root)
+                self._add_resolving_collision(new_index, game, roms_root, claims)
+
+        if claims != claims_before:
+            self._save_id_claims(claims)
 
         # Persist slug + first-seen timestamp, then materialize a final
         # index whose Game.added_at reflects what's stored, not what's
@@ -159,26 +165,80 @@ class Library:
         log.info("Library scan: %d games indexed", len(stamped))
         return len(stamped)
 
-    def _add_resolving_collision(self, index: dict[str, Game], game: Game, roms_root: Path) -> None:
-        """Insert ``game``; on an ID clash keep both games.
+    # Game IDs come from file/folder names, so two entries can slug to the
+    # same ID (every non-Latin title becomes "untitled"; "(USA)" and "[USA]"
+    # collide). Saves, playtime, favourites and covers hang off the ID, so
+    # once an entry has been through a collision its ID is recorded here,
+    # keyed by its path under roms/, and reused on every later scan: adding
+    # or removing another same-named file must not move saves between games.
+    @staticmethod
+    def _claims_path() -> Path:
+        return settings.data_dir / ".game-ids.json"
 
-        Before this, the later entry silently replaced the earlier one
-        (e.g. every non-Latin title slugs to ``untitled``). The later entry
-        still gets the plain ID so the game that was visible before keeps
-        its saves; the earlier one moves to a path-derived suffix.
+    def _load_id_claims(self) -> dict[str, str]:
+        try:
+            data = json.loads(self._claims_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return {k: v for k, v in data.items() if isinstance(k, str) and isinstance(v, str)} \
+            if isinstance(data, dict) else {}
+
+    def _save_id_claims(self, claims: dict[str, str]) -> None:
+        path = self._claims_path()
+        tmp = path.with_suffix(".tmp")
+        try:
+            tmp.write_text(json.dumps(claims, ensure_ascii=False, indent=0, sort_keys=True), encoding="utf-8")
+            tmp.replace(path)
+        except OSError as e:
+            log.warning("Couldn't record game IDs in %s: %s", path, e)
+
+    def _with_id(self, game: Game, game_id: str) -> Game:
+        cover, custom = self._cover_for(game_id, game.folder)
+        return replace(game, id=game_id, cover_path=cover, custom_cover=custom)
+
+    def _add_resolving_collision(
+        self, index: dict[str, Game], game: Game, roms_root: Path, claims: dict[str, str],
+    ) -> None:
+        """Insert ``game``, keeping both games on an ID clash.
+
+        Before this, the later entry silently replaced the earlier one. On
+        a first clash the later entry keeps the plain ID (it's the one that
+        was visible, so its saves still line up) and the other gets a
+        path-derived suffix. Both are then recorded in ``claims``.
         """
+        def rel(g: Game) -> str:
+            return str((g.folder or g.disks[0]).relative_to(roms_root))
+
+        claimed = claims.get(rel(game))
+        if claimed and claimed != game.id:
+            game = self._with_id(game, claimed)
+
         prev = index.get(game.id)
-        if prev is not None:
-            source = prev.folder or prev.disks[0]
-            digest = hashlib.sha1(str(source.relative_to(roms_root)).encode()).hexdigest()[:6]
-            alt_id = f"{prev.id}-{digest}"
-            cover, custom = self._cover_for(alt_id, prev.folder)
-            index[alt_id] = replace(prev, id=alt_id, cover_path=cover, custom_cover=custom)
-            log.warning(
-                "Game ID %s is used by both %s and %s; indexing the first as %s",
-                game.id, source, game.folder or game.disks[0], alt_id,
-            )
-        index[game.id] = game
+        if prev is None:
+            index[game.id] = game
+            return
+
+        # The entry that has held this ID before keeps it: a recorded claim
+        # first, then whoever held it in the last scan. With neither (first
+        # scan after boot/upgrade) the later entry wins, which is what the
+        # old last-one-wins indexing showed, so its saves still line up.
+        if claims.get(rel(game)) == game.id:
+            keep, move = game, prev
+        elif claims.get(rel(prev)) == game.id:
+            keep, move = prev, game
+        else:
+            last = self._index.games.get(game.id)
+            keep, move = (prev, game) if last is not None and rel(last) == rel(prev) else (game, prev)
+        digest = hashlib.sha1(rel(move).encode()).hexdigest()[:6]
+        moved = self._with_id(move, f"{game.id}-{digest}")
+        index[keep.id] = keep
+        index[moved.id] = moved
+        claims[rel(keep)] = keep.id
+        claims[rel(moved)] = moved.id
+        log.warning(
+            "Game ID %s is used by both %s and %s; indexing %s as %s",
+            game.id, rel(keep), rel(move), rel(move), moved.id,
+        )
 
     # ---------- internal builders ----------
 
@@ -283,9 +343,10 @@ class Library:
         if not path.is_file():
             return {}
         try:
-            # Bytes, not text: json detects UTF-8/16/32 (with BOM), so a
-            # file saved by Windows Notepad still parses.
-            data = json.loads(path.read_bytes())
+            # UTF-8 only, as before: a file this rejects (BOM, UTF-16) was
+            # always ignored, and honouring it now would change game IDs.
+            # ValueError covers both bad JSON and bad encoding.
+            data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             log.warning("Invalid metadata.json in %s", folder)
             return {}
