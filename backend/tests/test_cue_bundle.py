@@ -172,3 +172,74 @@ def test_head_does_not_read_the_tracks(admin_client, psx, monkeypatch):
     assert get.headers["etag"] == head.headers["etag"]
     again = admin_client.get(f"/api/games/{gid}/rom/disc.cue?disk=1", headers={"If-None-Match": head.headers["etag"]})
     assert again.status_code == 304
+
+
+def _loose_multitrack(d, created, title):
+    """Redump-style multi-track disc loose in the system folder."""
+    for n, fill in ((1, b"D"), (2, b"A")):
+        f = d / f"{title} (Track {n}).bin"
+        f.write_bytes(fill * 100)
+        created.append(f)
+    cue_file = d / f"{title}.cue"
+    cue_file.write_text(f'FILE "{title} (Track 1).bin" BINARY\nFILE "{title} (Track 2).bin" BINARY\n')
+    created.append(cue_file)
+
+
+def _add_save(game_id, slot=1):
+    from app.db import SessionLocal
+    from app.models.slot import SaveSlot
+    from app.models.user import User
+    with SessionLocal() as db:
+        uid = db.query(User.id).filter(User.username == "admin").scalar()
+        db.add(SaveSlot(user_id=uid, game_id=game_id, slot=slot))
+        db.commit()
+
+
+def _drop_saves(*game_ids):
+    from app.db import SessionLocal
+    from app.models.slot import SaveSlot
+    with SessionLocal() as db:
+        db.query(SaveSlot).filter(SaveSlot.game_id.in_(game_ids)).delete(synchronize_session=False)
+        db.commit()
+
+
+def test_loose_multitrack_disc_keeps_saves_from_its_old_track_entry(admin_client, psx):
+    """Before .cue support, the playable entry for a loose multi-track disc was
+    "Title (Track 1)"; its saves must stay reachable once the tracks fold
+    into the .cue game."""
+    d, created = psx
+    _add_save("psx:carry-over-usa-track-1")
+    try:
+        _loose_multitrack(d, created, "Carry Over (USA)")
+        library.scan()
+        game = _game("Carry Over (USA)")
+        assert game.id == "psx:carry-over-usa-track-1"
+        assert [p.name for p in game.disks] == ["Carry Over (USA).cue"]
+        assert not any("Track" in g.name for g in library.index.games.values() if g.system == "psx")
+        slots = admin_client.get(f"/api/games/{game.id}/saves").json()["slots"]
+        assert [s["slot"] for s in slots] == [1]
+        # The ID sticks even once the old saves are gone.
+        _drop_saves("psx:carry-over-usa-track-1")
+        library.scan()
+        assert _game("Carry Over (USA)").id == "psx:carry-over-usa-track-1"
+    finally:
+        _drop_saves("psx:carry-over-usa-track-1")
+
+
+def test_loose_multitrack_disc_without_old_data_uses_its_own_id(psx):
+    d, created = psx
+    _loose_multitrack(d, created, "Fresh Disc (USA)")
+    library.scan()
+    assert _game("Fresh Disc (USA)").id == "psx:fresh-disc-usa"
+
+
+def test_cue_with_its_own_saves_keeps_its_id(psx):
+    d, created = psx
+    _add_save("psx:both-saved-usa")
+    _add_save("psx:both-saved-usa-track-1")
+    try:
+        _loose_multitrack(d, created, "Both Saved (USA)")
+        library.scan()
+        assert _game("Both Saved (USA)").id == "psx:both-saved-usa"
+    finally:
+        _drop_saves("psx:both-saved-usa", "psx:both-saved-usa-track-1")

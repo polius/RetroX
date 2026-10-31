@@ -118,6 +118,7 @@ class Library:
 
         claims = self._load_id_claims()
         claims_before = dict(claims)
+        data_ids: tuple[set[str], set[str]] | None = None  # loaded on first need
 
         for system_dir in sorted(roms_root.iterdir()):
             if not system_dir.is_dir():
@@ -132,6 +133,8 @@ class Library:
                 log.warning("Skipping %s: can't list it (%s)", system_dir, e)
                 continue
             skip = self._bare_files_to_skip(system, system_extensions, entries)
+            if skip and data_ids is None:
+                data_ids = self._ids_with_user_data()
             for entry in entries:
                 if entry in skip:
                     continue
@@ -145,6 +148,9 @@ class Library:
                     continue
                 if game is None:
                     continue
+                if data_ids is not None and entry.suffix.lower() == ".cue" and entry.is_file():
+                    self._adopt_track_id(game, entry, system, flags, system_extensions,
+                                         roms_root, claims, data_ids)
                 self._add_resolving_collision(new_index, game, roms_root, claims)
 
         if claims != claims_before:
@@ -191,6 +197,53 @@ class Library:
             tmp.replace(path)
         except OSError as e:
             log.warning("Couldn't record game IDs in %s: %s", path, e)
+
+    @staticmethod
+    def _ids_with_user_data() -> tuple[set[str], set[str]]:
+        """(game IDs with save slots, game IDs with any per-user data)."""
+        from ..models.collection import CollectionGame
+        from ..models.favorite import Favorite
+        from ..models.play_stat import GamePlayStat
+        from ..models.slot import SaveSlot
+
+        with SessionLocal() as db:
+            saves = {gid for (gid,) in db.query(SaveSlot.game_id).distinct()}
+            anything = set(saves)
+            for model in (GamePlayStat, Favorite, CollectionGame):
+                anything.update(gid for (gid,) in db.query(model.game_id).distinct())
+        return saves, anything
+
+    def _adopt_track_id(
+        self, game: Game, cue_file: Path, system: str, flags: cores.EmulatorFlags,
+        ext_map: dict[str, frozenset[str]], roms_root: Path,
+        claims: dict[str, str], data_ids: tuple[set[str], set[str]],
+    ) -> None:
+        """Carry user data over from older versions for a loose multi-track disc.
+
+        Before .cue support, ``Game.cue`` + ``Game (Track 1).bin`` + ... in a
+        system folder were separate games, and the playable one was Track 1
+        (the raw .cue couldn't load). Its tracks are now part of the .cue
+        game, so without this the saves, playtime and favourites on the old
+        track ID would vanish from the UI. The .cue takes over that ID when
+        its own ID holds nothing more important; the claim makes it stick.
+        """
+        rel = str(cue_file.relative_to(roms_root))
+        if rel in claims:
+            return
+        saves, anything = data_ids
+        if game.id in saves:
+            return
+        for _, track in cue.referenced_files(cue_file):
+            if track.parent != cue_file.parent:
+                continue  # only loose files next to the .cue were games of their own
+            old = self._build_game(system, flags, ext_map, track)
+            if old is None or old.id == game.id:
+                continue
+            if old.id in saves or (old.id in anything and game.id not in anything):
+                claims[rel] = old.id
+                log.info("%s keeps the ID %s from its track %s, which holds user data",
+                         rel, old.id, track.name)
+                return
 
     def _with_id(self, game: Game, game_id: str) -> Game:
         cover, custom = self._cover_for(game_id, game.folder)
