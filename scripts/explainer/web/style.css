@@ -1,0 +1,223 @@
+/* RetroX film — stage styling.
+   Fixed 1920x1080; every animation is driven from JS by absolute time, so the
+   page is fully deterministic frame-by-frame (no CSS animations / transitions).
+
+   The look is RetroX's own: the app's near-black canvas and amber accent, the
+   logo's handheld palette (peach body, slate pad, berry buttons, pale LCD),
+   Space Grotesk for headlines, Inter for UI, and a 5x7 pixel font drawn dot by
+   dot (scenes.js) for everything that should feel like a console. Fonts come
+   from the app (frontend/css/fonts.css), so the film carries no copies. */
+
+:root {
+  --bg: #07090c;
+  --surface: #11141a;
+  --raised: #20252e;
+  --ink: #f4f5f8;
+  --dim: #a8acb6;
+  --faint: #5b616d;
+  --amber: #e5a00d;
+  --amber-l: #f5b94d;
+  --peach: #edb068;
+  --slate: #55698a;
+  --berry: #e06a7a;
+  --lcd: #d3dbe5;
+  --green: #34d399;
+  --cyan: #38bdf8;
+  --accent: #e5a00d;         /* driven per frame by the engine */
+  --accent-l: #f5b94d;
+  --line: rgba(255, 255, 255, 0.1);
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --ui: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #000;
+  font-family: var(--ui);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+#stage { position: relative; width: 1920px; height: 1080px; background: var(--bg); overflow: hidden; }
+#scenes { position: absolute; inset: 0; }
+
+/* ---- persistent background ---------------------------------------------- */
+#bg { position: absolute; inset: 0; overflow: hidden; }
+#bg .glow {
+  position: absolute; left: 0; top: 0; width: 1800px; height: 1800px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 20%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 6%, transparent) 34%, transparent 64%);
+}
+#bg .glow.g2 {
+  width: 1500px; height: 1500px;
+  background: radial-gradient(circle, rgba(85, 105, 138, 0.22) 0%, rgba(85, 105, 138, 0.06) 34%, transparent 64%);
+}
+#dots { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+#bg .vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+/* CRT: faint scanlines over everything, and the power-on / power-off */
+#scan {
+  position: absolute; inset: 0; pointer-events: none; z-index: 900;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 4px);
+  opacity: 0.5;
+}
+#crt { position: absolute; inset: 0; z-index: 950; pointer-events: none; }
+#crt .lid { position: absolute; left: 0; right: 0; background: #000; }
+#crt .beam {
+  position: absolute; left: 50%; top: 50%; width: 1920px; height: 6px; margin: -3px 0 0 -960px;
+  background: linear-gradient(90deg, transparent, #fff 18%, #fff 82%, transparent);
+  box-shadow: 0 0 40px 10px rgba(255, 236, 200, 0.55);
+}
+#wipe { position: absolute; inset: 0; width: 1920px; height: 1080px; z-index: 800; pointer-events: none; }
+
+/* ---- layers ----------------------------------------------------------------- */
+.layer { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.cam { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.abs { position: absolute; }
+.ctr { position: absolute; width: 0; height: 0; display: flex; align-items: center; justify-content: center; }
+.ctr > * { flex: none; }
+
+/* ---- type ---------------------------------------------------------------------- */
+.kt { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.04em 0.12em; margin: -0.06em -0.04em -0.12em; }
+.kt > span { display: inline-block; will-change: transform; }
+
+.headline {
+  font-family: var(--display); font-weight: 700; letter-spacing: -0.035em; line-height: 1.02;
+  font-size: 112px; text-align: center; white-space: nowrap; color: var(--ink);
+}
+.headline.sm { font-size: 84px; }
+.headline.xs { font-size: 64px; }
+.headline .amb, .amb { color: var(--accent); }
+.sub {
+  font-family: var(--ui); font-weight: 500; font-size: 34px; color: var(--dim);
+  letter-spacing: -0.01em; white-space: nowrap; text-align: center;
+}
+
+.word {
+  font-family: var(--display); font-weight: 700; letter-spacing: -0.04em; white-space: nowrap;
+  display: flex; align-items: baseline;
+}
+.word .r { color: var(--amber); }
+.word .x { color: var(--ink); }
+
+/* the pixel font: an SVG of squares */
+.pix { display: block; overflow: visible; shape-rendering: crispEdges; }
+
+/* ---- devices ------------------------------------------------------------------ */
+.browser {
+  position: absolute; border-radius: 18px; overflow: hidden;
+  background: #0b0d11; border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 60px 120px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 90px -20px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.browser .chrome {
+  position: absolute; left: 0; right: 0; top: 0; height: 46px; background: #15181e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07); display: flex; align-items: flex-end; padding: 0 16px;
+}
+.browser .lights { position: absolute; left: 18px; top: 17px; display: flex; gap: 8px; }
+.browser .lights i { width: 12px; height: 12px; border-radius: 50%; background: #3a3f4a; display: block; }
+.browser .lights i:nth-child(1) { background: #ff5f57; }
+.browser .lights i:nth-child(2) { background: #febc2e; }
+.browser .lights i:nth-child(3) { background: #28c840; }
+.browser .tab {
+  margin-left: 86px; height: 36px; width: 300px; border-radius: 10px 10px 0 0; background: #0b0d11;
+  display: flex; align-items: center; gap: 10px; padding: 0 14px;
+  font: 500 15px/1 var(--ui); color: #cfd3db;
+}
+.browser .tab img { width: 18px; height: 18px; border-radius: 4px; }
+.browser .view { position: absolute; left: 0; right: 0; bottom: 0; top: 46px; overflow: hidden; background: var(--bg); }
+.browser .view img, .shot { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+
+.phone {
+  position: absolute; border-radius: 64px; background: #050608;
+  box-shadow: inset 0 0 0 2px #2a2f38, inset 0 0 0 7px #0d0f13, 0 50px 110px -20px rgba(0, 0, 0, 0.85),
+    0 0 90px -20px color-mix(in srgb, var(--accent) 30%, transparent);
+  transform-origin: 50% 50%;
+}
+.phone .screen { position: absolute; inset: 14px; border-radius: 51px; overflow: hidden; background: #000; }
+.phone .island {
+  position: absolute; left: 50%; top: 26px; width: 118px; height: 34px; margin-left: -59px;
+  border-radius: 20px; background: #000; z-index: 5;
+}
+.phone .btn { position: absolute; width: 5px; border-radius: 3px; background: #23272f; }
+
+.gbscreen, .game {
+  position: absolute; image-rendering: pixelated; display: block;
+}
+
+/* the real app's player pill, for the sync scene */
+.pill {
+  display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(0, 0, 0, 0.62);
+  color: #fff; font: 500 19px/1 var(--ui); white-space: nowrap;
+}
+.pill .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px var(--green); }
+
+/* terminal */
+.term {
+  position: absolute; border-radius: 18px; background: #0c0f14; border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 60px 120px -30px rgba(0, 0, 0, 0.8), 0 0 80px -20px color-mix(in srgb, var(--accent) 30%, transparent);
+  font: 500 34px/1.55 var(--mono); color: #d6dae2; overflow: hidden;
+}
+.term .bar { height: 50px; background: #151920; border-bottom: 1px solid rgba(255, 255, 255, 0.06); position: relative; }
+.term .bar .lights { position: absolute; left: 20px; top: 19px; display: flex; gap: 9px; }
+.term .bar .lights i { width: 13px; height: 13px; border-radius: 50%; display: block; background: #3a3f4a; }
+.term .body { padding: 30px 38px; white-space: pre; }
+.term .p { color: var(--amber); }
+.term .ok { color: var(--green); }
+.term .caret { display: inline-block; width: 16px; height: 32px; background: var(--amber); vertical-align: -5px; margin-left: 2px; }
+
+/* power-up cards */
+.card {
+  width: 330px; height: 330px; border-radius: 28px; position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.8);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px;
+}
+.card .glowc { position: absolute; inset: -40px; border-radius: 50%; }
+
+/* server box */
+.server {
+  width: 210px; height: 210px; border-radius: 34px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #1b2029, #12161c); border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.8), 0 0 70px -10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* the cover wall */
+.wall { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; }
+.wall img { position: absolute; width: 230px; height: 230px; border-radius: 14px; object-fit: cover;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7); }
+
+.cursor { position: absolute; width: 40px; height: 40px; z-index: 50; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 14px; padding: 16px 26px; border-radius: 16px;
+  background: rgba(17, 20, 26, 0.86); border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* ---- poster affordance (README thumbnail only, never in the video) ------- */
+#poster-play {
+  --d: 170px; --x: 960px; --y: 540px;
+  position: absolute; inset: 0; z-index: 1000; background: rgba(7, 9, 12, 0.35);
+}
+#poster-play::before {
+  content: ""; position: absolute; left: var(--x); top: var(--y); width: var(--d); height: var(--d);
+  margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  border-radius: 50%; background: rgba(229, 160, 13, 0.96);
+  box-shadow: 0 calc(var(--d) * 0.2) calc(var(--d) * 0.53) calc(var(--d) * -0.07) rgba(0, 0, 0, 0.7),
+              0 0 0 calc(var(--d) * 0.067) rgba(229, 160, 13, 0.22);
+}
+#poster-play::after {
+  content: ""; position: absolute; left: calc(var(--x) - var(--d) * 0.113); top: calc(var(--y) - var(--d) * 0.2);
+  border-left: calc(var(--d) * 0.333) solid #fff;
+  border-top: calc(var(--d) * 0.2) solid transparent; border-bottom: calc(var(--d) * 0.2) solid transparent;
+}

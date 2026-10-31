@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RetroX film</title>
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="bg">
+      <div class="glow g1"></div>
+      <div class="glow g2"></div>
+      <!-- an LCD dot field: light runs through it like a signal -->
+      <canvas id="dots" width="1920" height="1080"></canvas>
+      <div class="vignette"></div>
+    </div>
+    <div id="scenes"></div>
+    <!-- the arcade HUD: which stage we're on -->
+    <div id="hud"></div>
+    <!-- every cut is a wall of pixels that builds and breaks -->
+    <canvas id="wipe" width="1920" height="1080"></canvas>
+    <div id="scan"></div>
+    <div id="crt"></div>
+  </div>
+  <script src="engine.js"></script>
+  <script src="scenes.js"></script>
+</body>
+</html>
