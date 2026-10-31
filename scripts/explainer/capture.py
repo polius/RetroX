@@ -71,7 +71,7 @@ def init_page(page, timeline):
     page.evaluate("window.__ready")
 
 
-def capture_poster(pw, port, timeline, t, scale, out):
+def capture_poster(pw, port, timeline, t, scale, out, at=(960, 540)):
     """One still, downscaled exactly like the video encode, with the README play
     affordance layered on top (used for landing/images/video-poster.png).
 
@@ -82,7 +82,7 @@ def capture_poster(pw, port, timeline, t, scale, out):
     try:
         init_page(page, timeline)
         page.evaluate("(t) => window.__render(t)", t)
-        page.evaluate("window.__poster()")
+        page.evaluate("([x, y]) => window.__poster(x, y)", list(at))
         raw = os.path.join(HERE, "_poster_raw.png")
         page.screenshot(path=raw)
     finally:
@@ -107,6 +107,8 @@ def main():
                     help="comma-separated timestamps -> preview/N.png (1x, fast)")
     ap.add_argument("--poster", default=None,
                     help="timestamp -> a 1080p still with a play button (README thumbnail)")
+    ap.add_argument("--poster-at", default="960,540",
+                    help="x,y of the poster's play button, in film px (default: centre)")
     ap.add_argument("--poster-out",
                     default=os.path.join(HERE, "..", "..", "landing", "images", "video-poster.png"),
                     help="where --poster writes (defaults to landing/images/video-poster.png)")
@@ -126,7 +128,8 @@ def main():
         try:
             if args.poster is not None:
                 capture_poster(pw, port, timeline, float(args.poster),
-                               args.scale, args.poster_out)
+                               args.scale, args.poster_out,
+                               tuple(float(v) for v in args.poster_at.split(",")))
                 return
 
             if args.cues is not None:

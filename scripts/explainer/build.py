@@ -89,6 +89,8 @@ def main():
                     help="comma-separated timestamps: write stills to preview/ and stop")
     ap.add_argument("--poster", default=None,
                     help="timestamp: rewrite the README thumbnail and stop")
+    ap.add_argument("--poster-at", default="960,435",
+                    help="x,y of the thumbnail's play button, in film px")
     args = ap.parse_args()
     capture_py = os.path.join(HERE, "capture.py")
 
@@ -97,7 +99,8 @@ def main():
         run([PY, capture_py, "--preview", args.preview, "--scale", "1"])
         return
     if args.poster is not None:
-        run([PY, capture_py, "--poster", args.poster, "--scale", str(args.scale)])
+        run([PY, capture_py, "--poster", args.poster, "--poster-at", args.poster_at,
+             "--scale", str(args.scale)])
         return
 
     t0 = time.time()

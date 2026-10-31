@@ -14,7 +14,12 @@
 
 </div>
 
----
+<p align="center">
+  <a href="https://pol.alzina.dev/videos/retrox.mp4">
+    <img src="landing/images/video-poster.png"
+      alt="Watch the RetroX video — a one-minute tour of the library, playing in the browser and on a phone">
+  </a>
+</p>
 
 ## Screenshots
 

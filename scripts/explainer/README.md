@@ -82,7 +82,7 @@ Stills while iterating on the visuals:
 
 ```sh
 .venv/bin/python capture.py --preview 2.6,12.0,30.5    # -> preview/*.png
-.venv/bin/python capture.py --poster 58.8              # -> landing/images/video-poster.png
+.venv/bin/python capture.py --poster 7.7 --poster-at 960,435   # -> landing/images/video-poster.png
 ```
 
 ## Files
@@ -93,7 +93,7 @@ Stills while iterating on the visuals:
 | `web/engine.js` | the renderer: `render(t)`, scene layers + cameras, the pixel-wall cuts, the LCD dot field, CRT power on/off, the HUD, awaited image swaps, the pixel font, the cue registry |
 | `web/scenes.js` | the eight scenes: open, library, play, mobile, sync, features, selfhost, outro |
 | `web/style.css` | palette, type, browser / phone / terminal frames |
-| `capture.py` | http server + Playwright frame loop (`--preview`, `--poster`, `--cues`) |
+| `capture.py` | http server + Playwright frame loop (`--preview`, `--poster` + `--poster-at`, `--cues`) |
 | `music.py` | the chiptune: 150 BPM, C–G–Am–F; pulse lead and arpeggio (PolyBLEP), 4-bit triangle bass and kick, noise snare and hats, risers |
 | `sfx.py` | coin, select, blip, build, pop, jump, stamp, power-up, start, wipe, hit, keys |
 | `build.py` | orchestrates the seven stages |

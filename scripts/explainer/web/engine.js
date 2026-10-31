@@ -420,7 +420,12 @@
   window.__render = render;
   window.__cues = () => CUES;
   window.__duration = () => (TL ? TL.d.video_end : 0);
-  window.__poster = function () {
-    el("div", "", document.getElementById("stage")).id = "poster-play";
+  /* the README play button (fsend's, in RetroX amber), centred at (x, y) in
+   * film px so it can sit in the frame's empty space */
+  window.__poster = function (x = 960, y = 540) {
+    const b = el("div", "", document.getElementById("stage"));
+    b.id = "poster-play";
+    b.style.setProperty("--x", x + "px");
+    b.style.setProperty("--y", y + "px");
   };
 })();

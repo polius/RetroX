@@ -204,11 +204,20 @@ html, body {
   box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.8);
 }
 
+/* ---- poster affordance (README thumbnail only, never in the video) ------- */
 #poster-play {
-  position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px; z-index: 999;
-  border-radius: 50%; background: rgba(7, 9, 12, 0.72); border: 3px solid rgba(255, 255, 255, 0.85);
+  --d: 170px; --x: 960px; --y: 540px;
+  position: absolute; inset: 0; z-index: 1000; background: rgba(7, 9, 12, 0.35);
+}
+#poster-play::before {
+  content: ""; position: absolute; left: var(--x); top: var(--y); width: var(--d); height: var(--d);
+  margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  border-radius: 50%; background: rgba(229, 160, 13, 0.96);
+  box-shadow: 0 calc(var(--d) * 0.2) calc(var(--d) * 0.53) calc(var(--d) * -0.07) rgba(0, 0, 0, 0.7),
+              0 0 0 calc(var(--d) * 0.067) rgba(229, 160, 13, 0.22);
 }
 #poster-play::after {
-  content: ""; position: absolute; left: 58px; top: 44px;
-  border-left: 52px solid #fff; border-top: 31px solid transparent; border-bottom: 31px solid transparent;
+  content: ""; position: absolute; left: calc(var(--x) - var(--d) * 0.113); top: calc(var(--y) - var(--d) * 0.2);
+  border-left: calc(var(--d) * 0.333) solid #fff;
+  border-top: calc(var(--d) * 0.2) solid transparent; border-bottom: calc(var(--d) * 0.2) solid transparent;
 }
