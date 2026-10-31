@@ -115,7 +115,7 @@ function buildShell({ active, title, hideTopbar }) {
       ${hideTopbar ? "" : `
         <header class="topbar" id="topbar">
           <button class="menu-btn" id="menu-toggle" aria-label="Open navigation">${icon("more", { size: 20 })}</button>
-          <span class="topbar__title" id="topbar-title">${title || ""}</span>
+          <span class="topbar__title" id="topbar-title">${escapeHtml(title || "")}</span>
           <label class="topbar__search">
             <span class="topbar__search-icon">${icon("search", { size: 16 })}</span>
             <input id="topbar-search" type="search" placeholder="Search games..." autocomplete="off" readonly/>
@@ -152,6 +152,11 @@ async function loadSystems() {
 }
 
 function renderSystems(systems, currentSystem) {
+  // Only systems that have games: an empty one is a dead end ("Nothing to
+  // show"), and on a fresh install it suggests content that isn't there.
+  // Keep the open one so a direct link still shows where you are. Admins
+  // see every system under Admin → Emulators.
+  systems = systems.filter((s) => s.count > 0 || s.system === currentSystem);
   if (!systems.length) return;
   const section = document.getElementById("systems-section");
   const divider = document.getElementById("systems-divider");
@@ -162,9 +167,10 @@ function renderSystems(systems, currentSystem) {
   total.textContent = "";
   nav.innerHTML = systems
     .sort((a, b) => (a.name || systemLabel(a.system)).localeCompare(b.name || systemLabel(b.system)))
-    .map(({ system, name }) => `
+    .map(({ system, name, count }) => `
       <a class="nav-item" href="/games?system=${encodeURIComponent(system)}" data-system="${system}">
         <span class="nav-item__label">${escapeHtml(name || systemLabel(system))}</span>
+        <span class="nav-item__count">${Number(count) || 0}</span>
       </a>
     `).join("");
   if (currentSystem) {
@@ -265,12 +271,22 @@ function bindTopbar() {
     });
   }
 
-  // Search field opens the palette on click/focus. The input is `readonly` so
-  // it never accepts text — clicks just trigger the palette overlay.
+  // Search field opens the palette on click or Enter/Space. The input is
+  // `readonly` so it never accepts text. Not on focus: Tab passes through
+  // it on the way to the page, and opening the palette there trapped
+  // keyboard users between the sidebar and the palette.
   const search = document.getElementById("topbar-search");
   if (search) {
-    search.addEventListener("focus", () => { openPalette(); search.blur(); });
     search.addEventListener("click", () => { openPalette(); });
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        // Stop here: the palette's own document-level Enter handler would
+        // otherwise see this same keypress and open the first result.
+        e.preventDefault();
+        e.stopPropagation();
+        openPalette();
+      }
+    });
   }
 
   // Mobile sidebar toggle

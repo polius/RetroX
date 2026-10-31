@@ -70,8 +70,29 @@ let persistor = null;
 let indicator = null;
 let playHint  = null;
 
-const goBack = () => {
-  if (persistor) persistor.flushSync();
+// How long an in-app exit waits for the last save to upload. The cache
+// already holds the bytes, so giving up only defers the sync to the next
+// launch; it never loses them.
+const EXIT_SAVE_TIMEOUT_MS = 3000;
+let leaving = false;
+
+const goBack = async () => {
+  if (leaving) return;
+  leaving = true;
+  if (persistor) {
+    // Wait for the upload instead of firing it and navigating: navigation
+    // cancels a normal fetch, and saves over the keepalive limit (PSX
+    // memory cards, N64, most GBA) can't use keepalive. Exiting right
+    // after an in-game save is the most common way to quit.
+    const slow = setTimeout(() => toast.info("Saving…", "Uploading your latest progress."), 400);
+    try {
+      await Promise.race([
+        persistor.drain(),
+        new Promise((r) => setTimeout(r, EXIT_SAVE_TIMEOUT_MS)),
+      ]);
+    } catch { /* cache already holds the bytes */ }
+    clearTimeout(slow);
+  }
   // Use replace, not assign: when /play was reached via the in-app
   // pushState flow from /game, history looks like [..., /game/<slug>,
   // /play/<slug>]. assign() would push a new /game entry, leaving the
@@ -86,11 +107,23 @@ document.getElementById("back-btn").addEventListener("click", goBack);
 function isPlayerModalOpen() {
   return !!document.querySelector(".modal-backdrop, .palette-backdrop");
 }
+// Keys belong to the user, not to player shortcuts, while they type in a
+// field (e.g. EmulatorJS's cheat code input) or while one of
+// EmulatorJS's own menus/popups is open (Esc there means "close menu").
+function keysBelongElsewhere(e) {
+  const t = e.target;
+  if (t && t.closest && t.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return true;
+  const emu = window.EJS_emulator;
+  try {
+    if (emu && (emu.settingsMenuOpen || emu.disksMenuOpen || emu.isPopupOpen?.())) return true;
+  } catch { /* menus not built yet */ }
+  return false;
+}
 // Escape must not hard-navigate out of the game while an in-player dialog
 // (overwrite confirm, sync pill, phone pairing…) is open — that dialog's
 // own Escape handler owns the keypress.
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !isPlayerModalOpen()) goBack();
+  if (e.key === "Escape" && !isPlayerModalOpen() && !keysBelongElsewhere(e)) goBack();
 });
 
 /* ============ Player chrome: back button + status pill + play hint ============
@@ -320,7 +353,9 @@ function reconcile() {
   // Server has no save for this slot.
   if (serverResult.status === "404") {
     if (cached && cachedDirty) {
-      // Offline-created save coming online for the first time.
+      // Either an offline-created save coming online for the first time,
+      // or (when the cache knows a server generation) a slot that existed
+      // and was deleted on another device. The latter asks first, below.
       return {
         source: "local",
         bytes: cached.bytes,
@@ -328,6 +363,7 @@ function reconcile() {
         serverUpdatedAt: null,
         shouldUpload: true,
         conflictLost: false,
+        deletedElsewhere: Number.isFinite(cached.serverGeneration),
       };
     }
     return {
@@ -353,6 +389,20 @@ function reconcile() {
   if (!cachedDirty) {
     // Local was in sync. If server changed since (another device wrote),
     // those new bytes are the truth.
+    return {
+      source: "server",
+      bytes: serverResult.bytes,
+      serverGeneration: serverResult.generation,
+      serverUpdatedAt: serverResult.updatedAt,
+      shouldUpload: false,
+      conflictLost: false,
+    };
+  }
+
+  // The cache is "dirty" but holds exactly what the server has: the
+  // previous session's last upload (e.g. a tab-close keepalive PUT)
+  // landed without the cache being marked synced. Nothing to resolve.
+  if (cached.hash && fnv1a(serverResult.bytes) === cached.hash) {
     return {
       source: "server",
       bytes: serverResult.bytes,
@@ -397,7 +447,28 @@ function reconcile() {
   };
 }
 
-const decision = reconcile();
+let decision = reconcile();
+
+// Re-uploading silently would undo a delete made on purpose elsewhere;
+// dropping the copy silently could lose offline progress. Ask. Dismissing
+// the dialog keeps this device's copy (the non-destructive choice).
+if (decision.deletedElsewhere) {
+  const startEmpty = await modal.confirm({
+    title: "Slot deleted on another device",
+    body: `Slot ${activeSlot} was deleted on another device, but this device still has unsynced progress for it. Restore this device's copy, or start the slot empty?`,
+    confirmLabel: "Start empty",
+    cancelLabel: "Restore this device's copy",
+    danger: true,
+  });
+  if (startEmpty === true) {
+    decision = {
+      source: "empty", bytes: null,
+      serverGeneration: null, serverUpdatedAt: null,
+      shouldUpload: false, conflictLost: false,
+    };
+    await saveCache.delete(me.username, game.id, activeSlot).catch(() => {});
+  }
+}
 
 if (decision.conflictLost) {
   toast.warning(
@@ -1049,7 +1120,7 @@ setTimeout(() => {
    * rewind direction — when the core doesn't have rewind compiled in,
    * Backspace falls back to fast forward to match the L2 fallback. */
   document.addEventListener("keydown", (e) => {
-    if (isPlayerModalOpen()) return;
+    if (isPlayerModalOpen() || keysBelongElsewhere(e)) return;
     if (e.code === KB.fast_forward) {
       e.preventDefault();
       setFastForward(true);
@@ -1082,6 +1153,7 @@ setTimeout(() => {
     }
   }, true);
   document.addEventListener("keyup", (e) => {
+    if (keysBelongElsewhere(e) && !fastForwardOn && !rewindOn) return;
     if (e.code === KB.fast_forward) {
       e.preventDefault();
       setFastForward(false);
@@ -1104,23 +1176,64 @@ setTimeout(() => {
     return gp.buttons.some(b => b && (typeof b === "object" ? b.pressed : b > 0.5));
   }
 
+  // RetroX's shortcuts (stick → D-pad, L2/R2 trick-play, Select combos)
+  // follow player 1's pad only. Every pad used to run through the same
+  // edge-detection state, so a second pad (local co-op, Steam Input's
+  // duplicate, a phantom HID device) reset pad 1's state every frame:
+  // fast-forward flickered, the stick mirror died, and player 2's stick
+  // moved player 1.
+  function playerOnePad(live) {
+    const selected = window.EJS_emulator?.gamepadSelection?.[0];
+    if (selected) {
+      const match = live.find((gp) => `${gp.id}_${gp.index}` === selected);
+      if (match) return match;
+    }
+    return live[0] || null;
+  }
+  let playerOneKey = null;
+  function releaseShortcutState() {
+    for (const name of ["left", "right", "up", "down"]) {
+      if (stickPressed[name]) {
+        const idx = name === "up" ? RETRO_UP : name === "down" ? RETRO_DOWN : name === "left" ? RETRO_LEFT : RETRO_RIGHT;
+        setStickButton(name, idx, false);
+      }
+    }
+    setFastForward(false);
+    setRewind(false);
+    prevLTrig = prevRTrig = false;
+    prev = {};
+    exitHoldSince = 0;
+  }
+
+  // Select+Start must be held to exit: a quick press is also part of the
+  // A+B+Start+Select soft-reset combo many GB/GBA games use.
+  const EXIT_HOLD_MS = 1000;
+  let exitHoldSince = 0;
+
   function poll() {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const live = Array.from(pads).filter(Boolean);
     // When a modal is open atop the player (sync dialog, conflict
     // resolver, command palette, etc.), gamepad-nav.js takes over —
     // we'd otherwise both fight for the same buttons AND the in-game
     // D-pad would react to inputs the user is using to navigate the
     // modal. Stop driving the emulator and reset our edge state.
     const modalOpen = !!document.querySelector(".modal-backdrop, .palette-backdrop");
-    for (const gp of pads) {
-      if (!gp) continue;
-      // Audio unlock — only on the rising edge of any button. The
-      // unlock poll handles the case where AL isn't ready yet.
-      if (!audioUnlocked) {
-        const downNow = gamepadHasAnyButtonDown(gp);
-        if (downNow && !prevAnyButtonDown) onUserInputForUnlock();
-        prevAnyButtonDown = downNow;
-      }
+    // Audio unlock — any pad, only on the rising edge of any button. The
+    // unlock poll handles the case where AL isn't ready yet.
+    if (!audioUnlocked) {
+      const downNow = live.some(gamepadHasAnyButtonDown);
+      if (downNow && !prevAnyButtonDown) onUserInputForUnlock();
+      prevAnyButtonDown = downNow;
+    }
+    const p1 = playerOnePad(live);
+    const p1Key = p1 ? `${p1.id}_${p1.index}` : null;
+    if (p1Key !== playerOneKey) {
+      // Pad unplugged or swapped: don't leave its inputs held.
+      if (playerOneKey !== null) releaseShortcutState();
+      playerOneKey = p1Key;
+    }
+    for (const gp of p1 ? [p1] : []) {
       if (modalOpen) {
         // Release any held in-game inputs and clear edge state so we
         // don't fire a delayed rising edge when the modal closes.
@@ -1133,18 +1246,34 @@ setTimeout(() => {
         setFastForward(false);
         setRewind(false);
         prev = {};
+        exitHoldSince = 0;
         continue;
       }
       // Mirror left analog stick onto the D-pad while the game is running.
       pollDirections(gp);
       // L2 / R2 hold → fast-forward / rewind, gated by per-emulator flags.
       pollTriggers(gp);
-      if (!held(gp, 8)) { prev = {}; continue; }
+      if (!held(gp, 8)) { prev = {}; exitHoldSince = 0; continue; }
       // Select-modifier combos. With Select held, the Y-axis buttons
       // become CHROME shortcuts (sync pill / back) and the shoulder
       // buttons become save-state shortcuts. Without Select, these
       // buttons all reach the emulator normally.
-      if (pressed(gp, 9)) { goBack(); return; }                              // Select + Start
+      if (held(gp, 9)) {                                                     // Select + Start (hold)
+        const now = performance.now();
+        if (!exitHoldSince) {
+          exitHoldSince = now;
+          toast.info("Keep holding to exit", "Select + Start", EXIT_HOLD_MS + 300);
+        } else if (now - exitHoldSince >= EXIT_HOLD_MS) {
+          // The poll loop stops here while goBack waits (up to 3 s) for
+          // the save upload; let go of stick/FF/rewind so the game
+          // doesn't keep running with them held.
+          releaseShortcutState();
+          goBack();
+          return;
+        }
+      } else {
+        exitHoldSince = 0;
+      }
       if (pressed(gp, 3)) {                                                  // Select + Y
         // Open the sync-status dialog. After this fires the modal is
         // up; gamepad-nav handles A/B/D-pad from there (see the
@@ -1505,8 +1634,14 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") persistor?.flush();
 });
 
-// True unload: keepalive PUT as last-ditch fallback.
-document.addEventListener("pagehide", () => persistor?.flushSync());
+// True unload: keepalive PUT as last-ditch fallback on tab close / reload.
+// EmulatorJS's own beforeunload handler resets the
+// core and unmounts /data/saves, so by pagehide the save file is gone:
+// flush in the capture phase, which runs before EmulatorJS's listener.
+// pagehide stays for browsers that skip beforeunload (iOS Safari); it
+// fires on window only, never on document. flushSync skips a repeat.
+window.addEventListener("beforeunload", () => persistor?.flushSync(), { capture: true });
+window.addEventListener("pagehide", () => persistor?.flushSync());
 
 /* ============ Manual save/load state (toolbar buttons) ============ */
 
@@ -1527,7 +1662,7 @@ document.addEventListener("pagehide", () => persistor?.flushSync());
 async function _putState(stateBytes, ramBytes) {
   const fd = new FormData();
   fd.append("state", new Blob([stateBytes]), "state.bin");
-  if (ramBytes) fd.append("save", new Blob([ramBytes]), "save.bin");
+  if (ramBytes?.length) fd.append("save", new Blob([ramBytes]), "save.bin");
   // Manual save is user-initiated; always wins, no X-Slot-Generation sent.
   return api.upload(
     `/games/${encodeURIComponent(game.id)}/saves/${activeSlot}`,
@@ -1547,7 +1682,7 @@ async function onSaveState(stateEvent) {
   let ramBytes = null;
   try {
     const r = window.EJS_emulator?.gameManager?.getSaveFile?.();
-    if (r) ramBytes = new Uint8Array(r);
+    if (r?.length) ramBytes = new Uint8Array(r);
   } catch { /* core may not have SRAM */ }
 
   if (!stateBytes || stateBytes.length === 0) {
@@ -1581,6 +1716,9 @@ async function onSaveState(stateEvent) {
       ram: ramBytes ? new Uint8Array(ramBytes) : null,
       updatedAt: Date.now(),
       pendingUpload: true,
+      // The slot version this snapshot was taken on top of. If the server
+      // has moved past it by the time we upload, another device wrote.
+      baseGeneration: persistor?.generation ?? initialSlotGeneration,
     });
   }
 
@@ -1741,6 +1879,15 @@ async function _drainPendingState() {
   if (!cached || !cached.pendingUpload || !cached.state) return;
   _draining = true;
   try {
+    if (await _serverMovedSince(cached)) {
+      const choice = await _askAboutQueuedState();
+      if (choice === "keep-server") {
+        await stateCache.delete(username, game.id, activeSlot);
+        toast.info("Kept the server's progress", "The snapshot from this device was discarded.");
+        return;
+      }
+      if (choice !== "upload") return; // dismissed: ask again next time
+    }
     const result = await _putState(cached.state, cached.ram);
     await stateCache.markSynced(username, game.id, activeSlot, result?.updated_at || null);
     persistor?.acknowledgeExternalUpload(
@@ -1754,6 +1901,49 @@ async function _drainPendingState() {
   } finally {
     _draining = false;
   }
+}
+
+// Did another device write this slot after the queued snapshot was taken?
+// Our own uploads in this tab don't count.
+async function _serverMovedSince(cached) {
+  const list = await api.get(`/games/${encodeURIComponent(game.id)}/saves`);
+  const slots = Array.isArray(list) ? list : (list?.slots || []);
+  const current = slots.find((s) => s.slot === activeSlot)?.generation ?? null;
+  // Snapshots queued before this check existed carry no base; keep their
+  // old behaviour (upload) rather than prompting about something unknowable.
+  if (!("baseGeneration" in cached)) return false;
+  const base = Number.isFinite(cached.baseGeneration) ? cached.baseGeneration : null;
+  if (current === base) return false;
+  if (current != null && persistor?.ownGenerations?.has(current)) return false;
+  return true;
+}
+
+function _askAboutQueuedState() {
+  return modal.open({
+    title: "Newer progress on the server",
+    render(body, close, foot) {
+      const p = document.createElement("p");
+      p.style.margin = "0";
+      p.style.color = "var(--text-muted)";
+      p.style.lineHeight = "1.6";
+      p.textContent =
+        `A save state made on this device while it was offline is waiting to upload to slot ${activeSlot}, ` +
+        "but this slot was saved from another device since. Uploading replaces that progress.";
+      body.appendChild(p);
+      const keep = document.createElement("button");
+      keep.type = "button";
+      keep.className = "btn btn--ghost";
+      keep.textContent = "Keep server's";
+      keep.addEventListener("click", () => close("keep-server"));
+      const upload = document.createElement("button");
+      upload.type = "button";
+      upload.className = "btn btn--danger";
+      upload.textContent = "Upload this device's";
+      upload.addEventListener("click", () => close("upload"));
+      foot.append(keep, upload);
+    },
+    initialFocus: () => null,
+  });
 }
 
 if (typeof window !== "undefined") {

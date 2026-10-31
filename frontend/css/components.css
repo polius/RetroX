@@ -65,6 +65,8 @@
 .btn--danger:hover { background: var(--danger-tint); border-color: var(--danger); }
 
 .btn--lg { --_h: var(--btn-h-lg); padding: 0 var(--sp-6); font-size: var(--fs-lg); }
+/* Secondary detail inside a button, e.g. "Continue · Slot 2 · 3h ago". */
+.btn__hint { font-size: var(--fs-sm); font-weight: 500; opacity: 0.75; white-space: nowrap; }
 .btn--sm { --_h: var(--btn-h-sm); padding: 0 var(--sp-3); font-size: var(--fs-sm); }
 .btn--icon-only { padding: 0; width: var(--_h); }
 

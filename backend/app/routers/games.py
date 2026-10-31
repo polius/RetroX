@@ -4,9 +4,10 @@ import mimetypes
 import secrets
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -19,6 +20,7 @@ from ..models.schemas import (
     PlaytimePingRequest,
     SlotSummary,
 )
+from ..services import cue as cue_service
 from ..services.library import library
 from ..services.saves import (
     MAX_SLOT,
@@ -208,12 +210,12 @@ def list_games(
     collection: int | None = Query(default=None, ge=1),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=48, ge=1, le=200),
+    sort: Literal["name", "recent", "system"] | None = Query(default=None),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> GameListResponse:
-    games = library.index.search(q, _search_names(db) if q else None)
-    if system:
-        games = [g for g in games if g.system == system]
+    meta_names = _search_names(db) if (q or sort) else None
+    games = library.index.search(q, meta_names)
     if collection is not None:
         member_ids = {
             r[0]
@@ -222,6 +224,24 @@ def list_games(
             .all()
         }
         games = [g for g in games if g.id in member_ids]
+    # Systems across the whole result (before the system filter), so the
+    # chip row is complete on every page.
+    systems = sorted({g.system for g in games})
+    if system:
+        games = [g for g in games if g.system == system]
+    if sort:
+        # Sort the full result before paginating; sorting one page on the
+        # client hid newer games and ignored renamed titles.
+        def shown(g):
+            return ((meta_names or {}).get(g.id, ("", ""))[0] or g.name).lower()
+        if sort == "name":
+            games.sort(key=shown)
+        elif sort == "system":
+            games.sort(key=lambda g: (g.system, shown(g)))
+        else:
+            games.sort(key=shown)
+            # SQLite may hand back naive datetimes; compare wall-clock values.
+            games.sort(key=lambda g: g.added_at.replace(tzinfo=None) if g.added_at else datetime.min, reverse=True)
     total = len(games)
     start = (page - 1) * page_size
     chunk = games[start : start + page_size]
@@ -250,6 +270,7 @@ def list_games(
         total=total,
         page=page,
         page_size=page_size,
+        systems=systems,
     )
 
 
@@ -424,7 +445,22 @@ def _get_rom_handler(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Game not found.")
     if disk > len(game.disks):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Disk {disk} not found.")
-    return _ranged_file_response(request, game.disks[disk - 1])
+    path = game.disks[disk - 1]
+    if path.suffix.lower() == ".cue" and path.is_file():
+        plan = cue_service.bundle(path)
+        if plan is not None:
+            return _cue_bundle_response(request, plan)
+    return _ranged_file_response(request, path)
+
+
+def _cue_bundle_response(request: Request, plan: cue_service.CueBundle) -> Response:
+    """A .cue disc with its tracks, as one uncompressed zip (see services/cue.py)."""
+    headers = {"ETag": plan.etag, "Content-Length": str(plan.size), "Cache-Control": "no-cache"}
+    if request.headers.get("if-none-match") == plan.etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers={"ETag": plan.etag})
+    if request.method == "HEAD":
+        return Response(headers=headers, media_type="application/zip")
+    return StreamingResponse(plan.iter_bytes(), headers=headers, media_type="application/zip")
 
 
 # Two routes: with and without filename suffix (EmulatorJS needs the extension in the URL)

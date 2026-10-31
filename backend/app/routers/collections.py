@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..deps import current_user, get_db, require_admin
@@ -33,12 +32,13 @@ class CollectionGamesUpdate(BaseModel):
 
 @router.get("", response_model=list[CollectionOut])
 def list_collections(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    # Single grouped query instead of one COUNT per collection.
-    counts = dict(
-        db.query(CollectionGame.collection_id, func.count(CollectionGame.id))
-        .group_by(CollectionGame.collection_id)
-        .all()
-    )
+    # Count only games currently in the library. Rows for games missing
+    # from the last scan are kept (a ROM share can be offline for a scan)
+    # but must not inflate the count.
+    counts: dict[int, int] = {}
+    for cid, gid in db.query(CollectionGame.collection_id, CollectionGame.game_id).all():
+        if library.index.get(gid) is not None:
+            counts[cid] = counts.get(cid, 0) + 1
     rows = db.query(Collection).order_by(Collection.name).all()
     return [
         CollectionOut(
@@ -97,7 +97,11 @@ def update_collection(
         raise HTTPException(409, "A collection with that name already exists.")
     c.name = name
     db.commit()
-    count = db.query(CollectionGame).filter(CollectionGame.collection_id == c.id).count()
+    # Same rule as list_collections: only games currently in the library.
+    count = sum(
+        1 for (gid,) in db.query(CollectionGame.game_id).filter(CollectionGame.collection_id == c.id)
+        if library.index.get(gid) is not None
+    )
     return CollectionOut(
         id=c.id,
         name=c.name,
@@ -146,7 +150,15 @@ def set_collection_games(
             f"Unknown game id(s): {', '.join(unknown[:5])}"
             + ("..." if len(unknown) > 5 else ""),
         )
-    db.query(CollectionGame).filter(CollectionGame.collection_id == collection_id).delete()
-    for gid in body.game_ids:
-        db.add(CollectionGame(collection_id=collection_id, game_id=gid))
+    # Replace only the memberships the editor could see. Rows for games
+    # missing from the current scan stay, so they reappear with the ROM.
+    existing = db.query(CollectionGame).filter(CollectionGame.collection_id == collection_id).all()
+    for row in existing:
+        if library.index.get(row.game_id) is not None:
+            db.delete(row)
+    kept = {row.game_id for row in existing if library.index.get(row.game_id) is None}
+    db.flush()
+    for gid in dict.fromkeys(body.game_ids):
+        if gid not in kept:
+            db.add(CollectionGame(collection_id=collection_id, game_id=gid))
     db.commit()

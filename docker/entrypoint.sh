@@ -4,6 +4,13 @@ set -eu
 DATA_DIR="${RETROX_DATA_DIR:-/data}"
 DEMO_SENTINEL="${DATA_DIR}/.demo_seeded"
 
+if [ ! -w "${DATA_DIR}" ]; then
+  echo "RetroX: ${DATA_DIR} is not writable by uid $(id -u), gid $(id -g)." >&2
+  echo "Give that user write access to the folder you mounted at ${DATA_DIR}," >&2
+  echo "or run the container as its owner (e.g. --user \$(id -u):\$(id -g) / user: in compose)." >&2
+  exit 1
+fi
+
 mkdir -p \
   "${DATA_DIR}/roms" \
   "${DATA_DIR}/covers" \
@@ -51,8 +58,11 @@ if [ ! -f "${DEMO_SENTINEL}" ]; then
   : > "${DEMO_SENTINEL}"
 fi
 
+# RETROX_TRUSTED_PROXIES wins; FORWARDED_ALLOW_IPS (uvicorn's own variable,
+# which older setups may already set) is still honoured as a fallback.
 exec uvicorn app.main:app \
   --app-dir /app/backend \
   --host "${RETROX_HOST:-0.0.0.0}" \
   --port "${RETROX_PORT:-8080}" \
-  --proxy-headers
+  --proxy-headers \
+  --forwarded-allow-ips "${RETROX_TRUSTED_PROXIES:-${FORWARDED_ALLOW_IPS:-127.0.0.1,::1}}"

@@ -163,6 +163,8 @@ const SORT_FNS = {
   system: (a, b) => (a.system || "").localeCompare(b.system || "") || a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
   recent: (a, b) => (b.added_at || "").localeCompare(a.added_at || ""),
 };
+// The server rejects unknown sort keys; never send a stale stored value.
+if (!SORT_FNS[viewState.sort]) viewState.sort = "name";
 
 function renderPagination({ currentPage, totalPages, basePath }) {
   const pages = [];
@@ -204,7 +206,7 @@ function renderPagination({ currentPage, totalPages, basePath }) {
   `;
 }
 
-async function renderLibraryView({ items, title, hint, allowSystemFilter = true, pagination = null, systemNav = false }) {
+async function renderLibraryView({ items, title, hint, allowSystemFilter = true, pagination = null, systemNav = false, systems = null }) {
   // Empty state only on page 1; later pages are out-of-range URLs.
   const onFirstPage = !pagination || pagination.currentPage <= 1;
   if (!items.length && onFirstPage) {
@@ -223,7 +225,9 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true,
     return;
   }
 
-  const presentSystems = [...new Set(items.map(g => g.system))].sort((a, b) =>
+  // Paginated views get the systems of the whole result from the server;
+  // deriving them from one page missed systems on later pages.
+  const presentSystems = [...new Set(systems || items.map(g => g.system))].sort((a, b) =>
     systemLabel(a).localeCompare(systemLabel(b))
   );
 
@@ -232,8 +236,9 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true,
     if (allowSystemFilter && viewState.systemFilter) {
       list = list.filter(g => g.system === viewState.systemFilter);
     }
-    const sortFn = SORT_FNS[viewState.sort] || SORT_FNS.name;
-    list.sort(sortFn);
+    // Paginated views arrive sorted by the server (sorting one page here
+    // would only reorder that page).
+    if (!pagination) list.sort(SORT_FNS[viewState.sort] || SORT_FNS.name);
 
     const isGrid = viewState.layout === "grid";
     const displayCount = pagination && pagination.totalItems != null ? pagination.totalItems : list.length;
@@ -315,6 +320,8 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true,
     slot.querySelector("#sort-select")?.addEventListener("change", (e) => {
       viewState.sort = e.target.value;
       localStorage.setItem("retrox.sort", viewState.sort);
+      // New order → start again from page 1 of the server-sorted list.
+      if (pagination) { location.href = pagination.basePath; return; }
       draw();
     });
 
@@ -411,7 +418,7 @@ async function renderLibraryView({ items, title, hint, allowSystemFilter = true,
 
 async function renderLibrary() {
   const currentPage = parseInt(params.get("page") || "1", 10) || 1;
-  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE) });
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), sort: viewState.sort });
   const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
   const items = list.items || [];
   const total = list.total || 0;
@@ -426,6 +433,7 @@ async function renderLibrary() {
     hint: "There are no games matching this view.",
     pagination: { currentPage, totalPages, basePath: "/games", totalItems: total },
     systemNav: "/games",
+    systems: list.systems,
   });
 }
 
@@ -454,7 +462,7 @@ async function renderSystem() {
   const basePath = collectionName
     ? `/games?collection=${encodeURIComponent(COLLECTION)}&system=${encodeURIComponent(SYSTEM)}`
     : `/games?system=${encodeURIComponent(SYSTEM)}`;
-  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), system: SYSTEM });
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), system: SYSTEM, sort: viewState.sort });
   if (collectionId) qs.set("collection", String(collectionId));
   const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
   const items = list.items || [];
@@ -468,6 +476,7 @@ async function renderSystem() {
     allowSystemFilter: Boolean(chipTarget),
     systemNav: chipTarget,
     pagination: { currentPage, totalPages, basePath, totalItems: total },
+    systems: list.systems,
   });
 }
 
@@ -502,7 +511,7 @@ async function renderCollection() {
   // hide members.
   const currentPage = parseInt(params.get("page") || "1", 10) || 1;
   const basePath = `/games?collection=${encodeURIComponent(COLLECTION)}`;
-  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), collection: String(coll.id) });
+  const qs = new URLSearchParams({ page: String(currentPage), page_size: String(PAGE_SIZE), collection: String(coll.id), sort: viewState.sort });
   const list = await api.get(`/games?${qs}`).catch(() => ({ items: [], total: 0, page: 1, page_size: PAGE_SIZE }));
   const items = list.items || [];
   const total = list.total || 0;
@@ -514,6 +523,7 @@ async function renderCollection() {
     allowSystemFilter: true,
     systemNav: basePath,
     pagination: { currentPage, totalPages, basePath, totalItems: total },
+    systems: list.systems,
   });
 }
 

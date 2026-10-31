@@ -6,6 +6,10 @@ def _create(client, name):
     return client.post("/api/collections", json={"name": name}, headers=SAME_ORIGIN)
 
 
+def _set_games(client, collection_id, game_ids):
+    return client.put(f"/api/collections/{collection_id}/games", json={"game_ids": game_ids}, headers=SAME_ORIGIN)
+
+
 def _rename(client, collection_id, name):
     return client.patch(f"/api/collections/{collection_id}", json={"name": name}, headers=SAME_ORIGIN)
 
@@ -43,3 +47,48 @@ def test_rename_still_works(admin_client):
     res = _rename(admin_client, c["id"], "  New Name  ")
     assert res.status_code == 200
     assert res.json()["name"] == "New Name"
+
+
+def test_membership_survives_a_scan_that_misses_the_game(admin_client, seeded_roms):
+    """A ROM share that's offline for one scan must not empty collections."""
+    from app.services.library import library
+
+    gid = seeded_roms["plain_id"]
+    c = _create(admin_client, "Survivors").json()
+    assert _set_games(admin_client, c["id"], [gid]).status_code == 204
+
+    # The ROM disappears for a scan (share offline, typo in extensions…).
+    hidden = seeded_roms["plain"].with_suffix(".offline")
+    seeded_roms["plain"].rename(hidden)
+    library.scan()
+    listed = {x["id"]: x for x in admin_client.get("/api/collections").json()}
+    assert listed[c["id"]]["game_count"] == 0  # stale rows aren't counted
+    assert admin_client.get(f"/api/collections/{c['id']}/games").json() == []
+    # Editing the collection meanwhile must not drop the hidden member.
+    other = seeded_roms["gz_id"]
+    assert _set_games(admin_client, c["id"], [other]).status_code == 204
+
+    # It comes back.
+    hidden.rename(seeded_roms["plain"])
+    library.scan()
+    ids = {g["id"] for g in admin_client.get(f"/api/collections/{c['id']}/games").json()}
+    assert ids == {gid, other}
+    listed = {x["id"]: x for x in admin_client.get("/api/collections").json()}
+    assert listed[c["id"]]["game_count"] == 2
+
+
+def test_rename_reports_the_same_count_as_the_list(admin_client, seeded_roms):
+    from app.services.library import library
+
+    c = _create(admin_client, "Counted").json()
+    _set_games(admin_client, c["id"], [seeded_roms["plain_id"], seeded_roms["gz_id"]])
+    hidden = seeded_roms["plain"].with_suffix(".offline")
+    seeded_roms["plain"].rename(hidden)
+    library.scan()
+    try:
+        renamed = _rename(admin_client, c["id"], "Counted 2").json()
+        listed = {x["id"]: x for x in admin_client.get("/api/collections").json()}[c["id"]]
+        assert renamed["game_count"] == listed["game_count"] == 1
+    finally:
+        hidden.rename(seeded_roms["plain"])
+        library.scan()

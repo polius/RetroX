@@ -5,6 +5,13 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  # Lets release.yml run these as a gate before publishing an image.
+  workflow_call:
 
 jobs:
   lint:

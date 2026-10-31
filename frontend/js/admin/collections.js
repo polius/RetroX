@@ -164,8 +164,15 @@ async function renameCollection(c) {
 }
 
 async function manageCollectionGames(c, allGames) {
-  let members = [];
-  try { members = await api.get(`/collections/${c.id}/games`); } catch { members = []; }
+  // Saving replaces the membership list, so editing on top of a failed
+  // load would empty the collection. Don't open the editor in that case.
+  let members;
+  try {
+    members = await api.get(`/collections/${c.id}/games`);
+  } catch (err) {
+    toast.fromError(err, "Couldn't load this collection's games");
+    return;
+  }
   const memberIds = new Set(members.map(g => g.id));
 
   await modal.open({

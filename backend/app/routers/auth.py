@@ -69,7 +69,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 def _is_https(request: Request) -> bool:
-    """Trust X-Forwarded-Proto thanks to --proxy-headers in entrypoint.sh."""
+    """X-Forwarded-Proto is honoured only from RETROX_TRUSTED_PROXIES (entrypoint.sh)."""
     return request.url.scheme == "https"
 
 
@@ -101,16 +101,14 @@ def _clear_cookie(request: Request, response: Response, name: str, path: str = "
 
 
 def _client_ip(request: Request) -> str | None:
-    """Best-effort source IP. Honors X-Forwarded-For (uvicorn is run
-    with --proxy-headers in entrypoint.sh, so the leftmost entry is the
-    real client behind a reverse proxy). Truncated to fit our column."""
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        ip = fwd.split(",")[0].strip()
-    elif request.client is not None:
-        ip = request.client.host
-    else:
+    """Best-effort source IP, truncated to fit our column.
+
+    Never read X-Forwarded-For here: any client can send it. uvicorn's
+    --proxy-headers (see entrypoint.sh) already rewrites request.client
+    from it, but only for proxies listed in RETROX_TRUSTED_PROXIES."""
+    if request.client is None:
         return None
+    ip = request.client.host
     return (ip or None) and ip[:64]
 
 

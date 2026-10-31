@@ -238,6 +238,13 @@ export class SavePersistor {
     // server until they reload. Surfaced via toast (one-shot, mirrors
     // failureNotified) and the "offline" pill state.
     this.authFailed = false;
+    // Local bytes that never reached the server (the launch-time upload of
+    // cached offline progress failed). Shown as "offline" so the pill never
+    // claims "Synced" while the server still has older bytes.
+    this.pendingLocal = false;
+    // Generations produced by this tab's own uploads. Lets callers tell
+    // "the server moved because of us" from "another device wrote".
+    this.ownGenerations = new Set();
     this.authFailedNotified = false;
 
     // Timers.
@@ -342,8 +349,9 @@ export class SavePersistor {
       const result = await this._upload(bytes, /*sendGeneration=*/true);
       this.lastHash = fnv1a(bytes);
       this.lastLength = bytes.length;
-      if (result.generation != null) this.generation = result.generation;
+      this._noteOwnGeneration(result.generation);
       this.lastSavedAt = result.updatedAt ? new Date(result.updatedAt) : new Date();
+      this.pendingLocal = false;
       // Update cache so it knows these bytes are now synced.
       await saveCache.markSynced(
         this.username, this.gameId, this.slot,
@@ -351,9 +359,19 @@ export class SavePersistor {
       );
       this._emitState();
     } catch (err) {
-      // Offline at launch is the expected case — leave cache dirty,
-      // normal pipeline will retry once we detect any write later.
+      // Offline or server down at launch. The cache stays dirty. The
+      // constructor seeded lastHash from these very bytes, so without a
+      // reset nothing would retry until the game wrote its save again,
+      // and another device would keep seeing old progress. Forget the
+      // hash so the regular pipeline (retry timer, poll, `online` event)
+      // uploads them.
       dlog("uploadInitialBytes: failed", err && err.message);
+      if (!(err instanceof ConflictError)) {
+        this.lastHash = null;
+        this.lastLength = -1;
+        this.pendingLocal = true;
+      }
+      this._handleFailure(err);
     }
   }
 
@@ -377,8 +395,9 @@ export class SavePersistor {
         serverUpdatedAt: updatedAt || null,
       }).catch(() => {});
     }
-    if (Number.isFinite(generation)) this.generation = generation;
+    if (Number.isFinite(generation)) this._noteOwnGeneration(generation);
     this.conflictHalted = false;
+    this.pendingLocal = false;
     this.retryCount = 0;
     this._emitState();
   }
@@ -415,7 +434,8 @@ export class SavePersistor {
       const result = await this._upload(bytes, /*sendGeneration=*/false);
       this.lastHash = fnv1a(bytes);
       this.lastLength = bytes.length;
-      if (result.generation != null) this.generation = result.generation;
+      this._noteOwnGeneration(result.generation);
+      this.pendingLocal = false;
       this.lastSavedAt = result.updatedAt ? new Date(result.updatedAt) : new Date();
       await saveCache.markSynced(
         this.username, this.gameId, this.slot,
@@ -454,6 +474,22 @@ export class SavePersistor {
   }
 
   /**
+   * Upload any unsynced bytes and wait for it, for an in-app exit (Back,
+   * Esc, Select+Start). Navigating away cancels a normal fetch, and saves
+   * over the keepalive limit (PSX memory cards, N64, most GBA) can only
+   * use a normal fetch, so the exit has to wait. The caller bounds the
+   * wait; the cache already holds the bytes if it gives up.
+   */
+  async drain() {
+    if (this.detached || !this.startEventSeen) return;
+    clearTimeout(this.debounceTimer);
+    try { this.emulator?.gameManager?.saveSaveFiles?.(); } catch { /* not yet started */ }
+    while (this.inFlight) await new Promise((r) => setTimeout(r, 50));
+    await this._maybeUpload();
+    while (this.inFlight) await new Promise((r) => setTimeout(r, 50));
+  }
+
+  /**
    * Unload-time flush (pagehide). Uses keepalive — bound by the
    * Fetch-spec 64 KiB body cap. Saves over that limit skip the PUT
    * entirely; the cache + boot-time reconciliation matrix will sync
@@ -470,6 +506,9 @@ export class SavePersistor {
       if (!bytes || bytes.length === 0) return;
       const hash = fnv1a(bytes);
       if (hash === this.lastHash && bytes.length === this.lastLength) return;
+      // visibilitychange + pagehide can both land here; a second PUT with
+      // the same generation would just 409.
+      if (hash === this._flushedHash) return;
 
       // Always write to the cache — that's our offline safety net,
       // including the conflict-halted path (the cache survives the
@@ -495,10 +534,23 @@ export class SavePersistor {
 
       // Keepalive PUT for payloads within the per-origin aggregate cap.
       // Best chance of completing past page unload.
+      this._flushedHash = hash;
+      // If the page survives (bfcache) or the response lands before
+      // teardown, record the sync so the next launch doesn't see a
+      // "dirty" cache for bytes the server already has.
+      const markSynced = (r) => {
+        if (!r || !r.ok) return null;
+        return r.json().then((d) => {
+          this.lastHash = hash;
+          this.lastLength = bytes.length;
+          this._noteOwnGeneration(Number.isFinite(d?.generation) ? d.generation : null);
+          return saveCache.markSynced(this.username, this.gameId, this.slot, hash, this.generation, d?.updated_at || null);
+        });
+      };
       if (bytes.length <= KEEPALIVE_BYTE_LIMIT) {
         fetch(url, {
           method: "PUT", body: fd, keepalive: true, credentials: "include", headers,
-        }).catch(() => {});
+        }).then(markSynced).catch(() => {});
         return;
       }
 
@@ -514,7 +566,7 @@ export class SavePersistor {
         `/games/${encodeURIComponent(this.gameId)}/saves/${this.slot}`,
         fd,
         headers,
-      ).catch(() => {});
+      ).then(markSynced).catch(() => {});
     } catch { /* unload path: never throw */ }
   }
 
@@ -724,7 +776,8 @@ export class SavePersistor {
       // Step 3: advance dedup + sync watermarks on success.
       this.lastHash = hash;
       this.lastLength = snapshot.length;
-      if (result.generation != null) this.generation = result.generation;
+      this._noteOwnGeneration(result.generation);
+      this.pendingLocal = false;
       this.lastSavedAt = result.updatedAt ? new Date(result.updatedAt) : new Date();
       await saveCache.markSynced(
         this.username, this.gameId, this.slot,
@@ -780,7 +833,9 @@ export class SavePersistor {
       headers,
     );
     if (r.status === 409) {
-      this._notifyConflict();
+      let detail = "";
+      try { detail = (await r.json())?.detail || ""; } catch { /* no body */ }
+      this._notifyConflict(/deleted/i.test(detail));
       throw new ConflictError();
     }
     if (r.status === 401) {
@@ -828,10 +883,24 @@ export class SavePersistor {
     this.retryTimer = setTimeout(() => this._maybeUpload(), delay);
   }
 
-  _notifyConflict() {
+  _noteOwnGeneration(generation) {
+    if (!Number.isFinite(generation)) return;
+    this.generation = generation;
+    this.ownGenerations.add(generation);
+  }
+
+  _notifyConflict(slotDeleted = false) {
     this.conflictHalted = true;
     clearTimeout(this.debounceTimer);
     clearTimeout(this.retryTimer);
+    if (slotDeleted) {
+      toast.warning(
+        "Slot deleted elsewhere",
+        "This slot was deleted on another device. Reload to choose whether to restore this device's copy.",
+        8000,
+      );
+      return;
+    }
     toast.warning(
       "Save updated elsewhere",
       "Another session uploaded a newer save for this slot. Reload to pull the latest copy.",
@@ -854,6 +923,7 @@ export class SavePersistor {
     if (typeof navigator !== "undefined" && navigator.onLine === false) return "offline";
     if (this.failureNotified) return "offline";
     if (this.authFailed) return "offline";
+    if (this.pendingLocal) return "offline";
     if (this.lastSavedAt) return "synced";
     return "idle";
   }

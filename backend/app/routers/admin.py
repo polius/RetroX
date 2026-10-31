@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Cookie,
     Depends,
     File,
     Header,
@@ -48,6 +49,7 @@ from ..services import recovery as recovery_service
 from ..services.library import library
 from ..services.saves import remove_game_saves_all_users, remove_user_saves
 from ..services.slugs import regenerate_slug
+from .profile import _current_sid, _revoke_other_sessions
 
 log = logging.getLogger("retrox")
 
@@ -125,6 +127,7 @@ def update_user(
     payload: AdminUpdateUserRequest,
     actor: User = Depends(require_admin),
     db: Session = Depends(get_db),
+    access_token: str | None = Cookie(default=None),
 ) -> AdminUserSummary:
     target = db.get(User, user_id)
     if target is None:
@@ -210,6 +213,14 @@ def update_user(
         target.pending_2fa_expires_at = None
         target.totp_last_step = None
 
+    credentials_reset = payload.password is not None or bool(payload.disable_2fa)
+    if credentials_reset:
+        # A reset is how an admin recovers a compromised account, so the
+        # old sessions must end now, not when their refresh token expires.
+        # When admins reset themselves, keep the browser they're using.
+        keep = _current_sid(access_token) if target.id == actor.id else None
+        _revoke_other_sessions(db, target.id, keep)
+
     try:
         db.commit()
     except Exception:
@@ -236,6 +247,8 @@ def update_user(
                     new_path, old_path,
                 )
         raise
+    if credentials_reset:
+        recovery_service.clear(target.username)
     db.refresh(target)
     return AdminUserSummary(
         id=target.id, username=target.username, is_admin=target.is_admin,
@@ -273,6 +286,9 @@ def delete_user(
         ) from e
     db.delete(target)
     db.commit()
+    # A later user created with the same name must not inherit a pending
+    # operator-issued recovery password.
+    recovery_service.clear(username)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

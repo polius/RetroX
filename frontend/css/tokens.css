@@ -26,8 +26,8 @@
   /* Text */
   --text:          #f4f5f8;
   --text-muted:    #a8acb6;
-  --text-dim:      #6e7280;
-  --text-faint:    #4a4e58;
+  --text-dim:      #8b909c;   /* ≥4.5:1 on every surface, incl. --raised */
+  --text-faint:    #4a4e58;   /* decoration only (scrollbars); fails AA as text */
 
   /* Brand accent (Plex amber) */
   --accent:        #e5a00d;

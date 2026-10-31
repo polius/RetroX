@@ -5,12 +5,20 @@ on:
     types: [published]
 
 jobs:
+  # Never publish an image the tests or the container smoke test reject.
+  backend:
+    uses: ./.github/workflows/backend.yml
+  frontend:
+    uses: ./.github/workflows/frontend.yml
+  docker:
+    uses: ./.github/workflows/docker.yml
+
   push_to_registry:
     name: Push Docker image to Docker Hub
+    needs: [backend, frontend, docker]
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
       id-token: write
       attestations: write
 
@@ -37,7 +45,7 @@ jobs:
         id: tag
         run: |
           SHORT_TAG="${GITHUB_REF_NAME#v}"
-          echo "SHORT_TAG=$SHORT_TAG" >> $GITHUB_OUTPUT
+          echo "SHORT_TAG=$SHORT_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
         id: push
@@ -46,8 +54,10 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          # Pre-releases get their version tag only; `latest` stays on the
+          # newest stable release.
           tags: |
-            poliuscorp/retrox:latest 
+            ${{ !github.event.release.prerelease && 'poliuscorp/retrox:latest' || '' }}
             poliuscorp/retrox:${{ steps.tag.outputs.short_tag }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
