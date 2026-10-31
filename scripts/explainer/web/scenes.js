@@ -20,6 +20,83 @@
   const AMBER = "#e5a00d", PEACH = "#edb068", SLATE = "#55698a", BERRY = "#e06a7a",
         LCD = "#d3dbe5", GREEN = "#34d399", CYAN = "#38bdf8";
 
+  /* Square covers (object-fit: cover, rounded corners) drawn in perspective on
+   * a 2D canvas. `at(u, v)` maps a point of the cover (0..side CSS px) to the
+   * screen. Each cover is split into a grid of triangles, each drawn with its
+   * own affine transform, so the perspective stays right across the cover; the
+   * triangles go onto a scratch canvas opaque first (no seams), then the cover
+   * is laid onto the wall at its opacity. */
+  function wallTiles(cv, imgs, side, radius, grid = 5) {
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = 1920 * dpr; cv.height = 1080 * dpr;
+    const ctx = cv.getContext("2d");
+    const scratch = document.createElement("canvas");
+    scratch.width = cv.width; scratch.height = cv.height;
+    const sctx = scratch.getContext("2d");
+    ctx.imageSmoothingQuality = sctx.imageSmoothingQuality = "high";
+    const tex = {};
+    const texture = (url) => {
+      if (tex[url]) return tex[url];
+      const img = imgs[url], n = Math.min(img.naturalWidth, img.naturalHeight) || 1;
+      const c = document.createElement("canvas");
+      c.width = c.height = n;
+      const g = c.getContext("2d");
+      g.beginPath(); g.roundRect(0, 0, n, n, radius * n / side); g.clip();
+      g.drawImage(img, (img.naturalWidth - n) / 2, (img.naturalHeight - n) / 2, n, n, 0, 0, n, n);
+      return (tex[url] = c);
+    };
+    // the affine map taking texture triangle s onto screen triangle d
+    const affine = (s, d) => {
+      const [[u0, v0], [u1, v1], [u2, v2]] = s, [[x0, y0], [x1, y1], [x2, y2]] = d;
+      const du1 = u1 - u0, dv1 = v1 - v0, du2 = u2 - u0, dv2 = v2 - v0, det = du1 * dv2 - du2 * dv1;
+      const a = ((x1 - x0) * dv2 - (x2 - x0) * dv1) / det, c = (du1 * (x2 - x0) - du2 * (x1 - x0)) / det;
+      const b = ((y1 - y0) * dv2 - (y2 - y0) * dv1) / det, e = (du1 * (y2 - y0) - du2 * (y1 - y0)) / det;
+      return [a, b, c, e, x0 - a * u0 - c * v0, y0 - b * u0 - e * v0];
+    };
+    return {
+      clear() { ctx.clearRect(0, 0, cv.width, cv.height); },
+      draw(url, at, alpha) {
+        const t = texture(url), n = t.width;
+        const pts = [];
+        for (let j = 0; j <= grid; j++) for (let i = 0; i <= grid; i++) {
+          const [x, y, z] = at(side * i / grid, side * j / grid);
+          if (z > PERSP_LIMIT) return;                     // behind the eye: skip
+          pts.push([x * dpr, y * dpr]);
+        }
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+        x0 = Math.max(0, Math.floor(x0) - 2); y0 = Math.max(0, Math.floor(y0) - 2);
+        x1 = Math.min(cv.width, Math.ceil(x1) + 2); y1 = Math.min(cv.height, Math.ceil(y1) + 2);
+        if (x1 <= x0 || y1 <= y0) return;
+        sctx.setTransform(1, 0, 0, 1, 0, 0);
+        sctx.clearRect(x0, y0, x1 - x0, y1 - y0);
+        const P = (i, j) => pts[j * (grid + 1) + i], T = (i, j) => [i * n / grid, j * n / grid];
+        for (let j = 0; j < grid; j++) for (let i = 0; i < grid; i++) {
+          for (const tri of [[[i, j], [i + 1, j], [i, j + 1]], [[i + 1, j], [i + 1, j + 1], [i, j + 1]]]) {
+            const d = tri.map(([a, b]) => P(a, b)), s = tri.map(([a, b]) => T(a, b));
+            // grow the clip a pixel past the edges so neighbours overlap
+            const mx = (d[0][0] + d[1][0] + d[2][0]) / 3, my = (d[0][1] + d[1][1] + d[2][1]) / 3;
+            sctx.save();
+            sctx.setTransform(1, 0, 0, 1, 0, 0);
+            sctx.beginPath();
+            d.forEach(([x, y], q) => {
+              const l = Math.hypot(x - mx, y - my) || 1;
+              sctx[q ? "lineTo" : "moveTo"](x + (x - mx) / l, y + (y - my) / l);
+            });
+            sctx.closePath(); sctx.clip();
+            sctx.setTransform(...affine(s, d));
+            sctx.drawImage(t, 0, 0);
+            sctx.restore();
+          }
+        }
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(scratch, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+        ctx.globalAlpha = 1;
+      },
+    };
+  }
+  const PERSP_LIMIT = 1300;
+
   /* ------------------------------------------------------------------ *
    *  pixel art
    * ------------------------------------------------------------------ */
@@ -180,19 +257,35 @@
     const brAt = api.on("open2", "browser");
     const HIT = 2.45;
 
-    // the cover wall: the real library, tilted into the distance
-    const wallWrap = el("div", "abs", cam);
-    Object.assign(wallWrap.style, { left: 0, top: 0, width: "1920px", height: "1080px", perspective: "1400px" });
-    const wall = el("div", "wall", wallWrap);
+    // The cover wall: the real library, tilted into the distance. It is drawn
+    // on a canvas with its own perspective projection (the same geometry as CSS
+    // `perspective: 1400px; rotateX(52deg) rotateZ(-14deg)`), not with CSS 3D:
+    // headless Chromium depth-sorts CSS 3D layers differently from one frame to
+    // the next, and the near covers flashed in front of the shade and headline.
     const games = api.data.games;
     const covers = [];
-    const COLS = 14, ROWS = 7, P = 250;
+    const COLS = 14, ROWS = 7, P = 250, SIDE = 230, PERSP = 1400;
+    const stash = el("div", "", cam);
+    stash.style.display = "none";
+    const imgs = {};
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      const g = games[(r * COLS + c * 5) % games.length];
-      const img = image(wall, `/app/${g.cover}`);
-      img.style.left = (c - COLS / 2) * P + "px"; img.style.top = (r - ROWS / 2) * P + "px";
-      covers.push({ img, r, c, k: rnd(r * 13 + c * 7) });
+      const url = `/app/${games[(r * COLS + c * 5) % games.length].cover}`;
+      imgs[url] = imgs[url] || image(stash, url);
+      covers.push({ url, x: (c - COLS / 2) * P, y: (r - ROWS / 2) * P, r, c, k: rnd(r * 13 + c * 7) });
     }
+    const wallCv = el("canvas", "abs", cam);
+    Object.assign(wallCv.style, { left: 0, top: 0, width: "1920px", height: "1080px" });
+    const wall = wallTiles(wallCv, imgs, SIDE, 14);
+    const RX = 52 * Math.PI / 180, RZ = -14 * Math.PI / 180;
+    const cx = Math.cos(RX), sx = Math.sin(RX), cz = Math.cos(RZ), sz = Math.sin(RZ);
+    // a point on the wall (wall-local px, z toward the viewer) -> screen px
+    const project = (x, y, z, ty) => {
+      y += ty;
+      const x1 = x * cz - y * sz, y1 = x * sz + y * cz;
+      const y2 = y1 * cx - z * sx, z2 = y1 * sx + z * cx;
+      const w = PERSP / (PERSP - z2);
+      return [960 + x1 * w, 540 + y2 * w, z2];
+    };
     const shade = el("div", "abs", cam);
     Object.assign(shade.style, { inset: 0, background: "radial-gradient(ellipse 60% 55% at 50% 52%, rgba(7,9,12,0.92), rgba(7,9,12,0.55) 70%, rgba(7,9,12,0.3))" });
 
@@ -250,14 +343,20 @@
       } else { hide(l1); hide(l2); }
       // the wall of covers: tilted, drifting, popping in from the centre
       const wp = ramp(t, colAt - 0.2, colAt + 0.9);
-      wall.style.transform = `translate(-50%, -50%) rotateX(52deg) rotateZ(-14deg) translateY(${(-120 - (t - colAt) * 40).toFixed(1)}px)`;
-      covers.forEach(({ img, r, c, k }) => {
-        const d = Math.hypot(c - COLS / 2, (r - ROWS / 2) * 1.6) / 9;
-        const p = steps(outCubic(ramp(t, colAt - 0.2 + d * 0.6 + k * 0.1, colAt + d * 0.6 + k * 0.1 + 0.15)), 4);
-        img.style.opacity = (p * 0.8).toFixed(3);
-        img.style.transform = `translateZ(${((1 - p) * -300).toFixed(1)}px)`;
-      });
-      wallWrap.style.opacity = wp > 0 ? "1" : "0";
+      const ty = -120 - (t - colAt) * 40;
+      wall.clear();
+      if (wp > 0) {
+        const quads = [];
+        for (const { url, x, y, r, c, k } of covers) {
+          const d = Math.hypot(c - COLS / 2, (r - ROWS / 2) * 1.6) / 9;
+          const p = steps(outCubic(ramp(t, colAt - 0.2 + d * 0.6 + k * 0.1, colAt + d * 0.6 + k * 0.1 + 0.15)), 4);
+          if (p <= 0) continue;
+          const z = (1 - p) * -300;
+          const at = (u, v) => project(x + u, y + v, z, ty);
+          quads.push({ url, alpha: p * 0.8, at, depth: at(SIDE / 2, SIDE / 2)[2] });
+        }
+        quads.sort((a, b) => a.depth - b.depth).forEach((q) => wall.draw(q.url, q.at, q.alpha));
+      }
       shade.style.opacity = (0.4 + 0.6 * ramp(t, colAt - 0.2, colAt + 0.6)).toFixed(3);
     };
   };
