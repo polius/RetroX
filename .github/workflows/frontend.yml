@@ -1,10 +1,11 @@
 name: Frontend
 
 on:
+  # No `paths:` filter on pull_request: these checks are required by branch
+  # protection, and a path-filtered workflow never reports a status on PRs
+  # that don't touch those paths (e.g. a backend-only Dependabot PR would
+  # leave eslint/jsdom stuck at "Expected" forever).
   pull_request:
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend.yml'
   push:
     branches: [main]
     paths:
