@@ -4,7 +4,7 @@
 # are intrinsically wide, and wrapping them mid-call hurts more than
 # it helps readability.
 line-length = 120
-target-version = "py314"
+target-version = "py315"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RET"]
