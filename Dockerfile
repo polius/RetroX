@@ -4,6 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/opt/venv/bin:$PATH
 
+# Picks up Alpine security fixes that the base image doesn't have yet, and
+# Dependabot can't see.
+RUN apk upgrade --no-cache
+
 # UID 1000 keeps a host-bind-mounted /data writable without manual chowns
 # on Linux hosts. BusyBox adduser/addgroup — Alpine has no useradd.
 RUN addgroup -S -g 1000 retrox \
